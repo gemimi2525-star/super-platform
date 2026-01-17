@@ -24,6 +24,7 @@ export interface SelectProps {
     label?: string;
     error?: string;
     className?: string;
+    disabled?: boolean;
 }
 
 export function Select({
@@ -36,6 +37,7 @@ export function Select({
     label,
     error,
     className = '',
+    disabled = false,
 }: SelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,15 +94,19 @@ export function Select({
                     className={`
                         flex items-center justify-between
                         w-full px-3 py-2
-                        border rounded-lg cursor-pointer
+                        border rounded-lg
                         transition-all
+                        ${disabled
+                            ? 'bg-gray-50 cursor-not-allowed opacity-60'
+                            : 'cursor-pointer'
+                        }
                         ${error
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-300 hover:border-gray-400'
                         }
                         ${isOpen ? 'ring-2 ring-blue-200' : ''}
                     `}
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => !disabled && setIsOpen(!isOpen)}
                 >
                     <span className={selectedValues.length === 0 ? 'text-gray-400' : 'text-gray-900'}>
                         {displayText}

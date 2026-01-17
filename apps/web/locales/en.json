@@ -11,7 +11,8 @@
         "loading": "Loading...",
         "error": "An error occurred",
         "noData": "No Data",
-        "back": "Back"
+        "back": "Back",
+        "actions": "Actions"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -32,13 +33,18 @@
         "sites": {
             "title": "All Websites",
             "addNew": "Add New Website",
+            "name": "Website Name",
             "domain": "Domain",
+            "url": "URL",
             "status": "Status",
             "active": "Active",
             "inactive": "Inactive",
+            "pending": "Pending",
             "createdAt": "Created",
             "noData": "No websites yet",
-            "noDataDesc": "Get started by adding your first website"
+            "noDataDesc": "Get started by adding your first website",
+            "deleteTitle": "Delete Website",
+            "deleteMessage": "Are you sure you want to delete this website? This action cannot be undone."
         }
     }
 }

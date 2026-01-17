@@ -1,25 +1,176 @@
 'use client';
 
 /**
- * Sites List Page (with i18n and guards)
+ * SEO Sites Page with CRUD Modal
+ * Using UI Kit components: Table, Pagination, Button, SiteModal
  */
 
-import { useSites, useSEOGuard } from '@modules/seo';
-import { useAuthStore } from '@/lib/stores/authStore';
-import { LanguageSwitcher } from '@modules/seo';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSites, useSEOGuard, useCreateSite, useUpdateSite } from '@modules/seo';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { LanguageSwitcher } from '@modules/seo';
+import {
+    Table,
+    Pagination,
+    Button,
+    ConfirmDialog,
+    type ColumnDef
+} from '@platform/ui-kit';
+import { SiteModal, type SiteFormData } from '@/components/sites/SiteModal';
+import type { Site } from '@modules/seo';
 
 export default function SitesPage() {
     const router = useRouter();
     const t = useTranslations();
     const authStore = useAuthStore();
 
-    // Guard: Ensure organization is selected
+    // SEO Guard
     const { organizationId, organization, isReady } = useSEOGuard(authStore);
 
     // Fetch sites
     const { data: sites, isLoading, error } = useSites(organizationId);
+
+    // Mutations
+    const createSite = useCreateSite();
+    const updateSite = useUpdateSite();
+
+    // Local state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showSiteModal, setShowSiteModal] = useState(false);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+    const itemsPerPage = 10;
+
+    // Pagination logic
+    const totalPages = Math.ceil((sites?.length || 0) / itemsPerPage);
+    const paginatedSites = sites?.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    ) || [];
+
+    // Table columns
+    const columns: ColumnDef<Site>[] = [
+        {
+            key: 'name',
+            header: t('seo.sites.name', { defaultValue: 'ชื่อเว็บไซต์' }),
+            render: (site) => (
+                <div>
+                    <div className="font-medium text-gray-900">{site.name}</div>
+                    <div className="text-sm text-gray-500">{site.domain}</div>
+                </div>
+            )
+        },
+        {
+            key: 'url',
+            header: t('seo.sites.url', { defaultValue: 'URL' }),
+            render: (site) => (
+                <a
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {site.url}
+                </a>
+            )
+        },
+        {
+            key: 'status',
+            header: t('seo.sites.status', { defaultValue: 'สถานะ' }),
+            render: (site) => (
+                <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${site.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : site.status === 'inactive'
+                                ? 'bg-gray-100 text-gray-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                >
+                    {site.status === 'active'
+                        ? t('seo.sites.active', { defaultValue: 'ใช้งาน' })
+                        : site.status === 'inactive'
+                            ? t('seo.sites.inactive', { defaultValue: 'ไม่ใช้งาน' })
+                            : t('seo.sites.pending', { defaultValue: 'รอดำเนินการ' })}
+                </span>
+            )
+        },
+        {
+            key: 'createdAt',
+            header: t('seo.sites.createdAt', { defaultValue: 'วันที่สร้าง' }),
+            render: (site) => new Date(site.createdAt).toLocaleDateString('th-TH')
+        },
+        {
+            key: 'actions',
+            header: t('common.actions', { defaultValue: 'จัดการ' }),
+            render: (site) => (
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(site)}
+                    >
+                        {t('common.edit', { defaultValue: 'แก้ไข' })}
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDeleteClick(site)}
+                    >
+                        {t('common.delete', { defaultValue: 'ลบ' })}
+                    </Button>
+                </div>
+            )
+        }
+    ];
+
+    // Handlers
+    const handleRowClick = (site: Site) => {
+        router.push(`/seo/sites/${site.id}`);
+    };
+
+    const handleCreate = () => {
+        setModalMode('create');
+        setSelectedSite(null);
+        setShowSiteModal(true);
+    };
+
+    const handleEdit = (site: Site) => {
+        setModalMode('edit');
+        setSelectedSite(site);
+        setShowSiteModal(true);
+    };
+
+    const handleDeleteClick = (site: Site) => {
+        setSelectedSite(site);
+        setShowDeleteDialog(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (!selectedSite) return;
+        // TODO: Implement delete mutation
+        console.log('Delete site:', selectedSite.id);
+        setShowDeleteDialog(false);
+        setSelectedSite(null);
+    };
+
+    const handleSiteSubmit = async (data: SiteFormData) => {
+        if (modalMode === 'create') {
+            await createSite.mutateAsync({
+                organizationId,
+                userId: authStore.firebaseUser?.uid || '',
+                siteData: data,
+            });
+        } else if (selectedSite) {
+            await updateSite.mutateAsync({
+                siteId: selectedSite.id,
+                updates: data,
+            });
+        }
+    };
 
     // Loading state
     if (!isReady || isLoading) {
@@ -41,12 +192,9 @@ export default function SitesPage() {
                     <p className="text-sm text-gray-600 mb-4">
                         {error instanceof Error ? error.message : 'Unknown error'}
                     </p>
-                    <button
-                        onClick={() => router.push('/organizations')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
+                    <Button onClick={() => router.push('/organizations')}>
                         {t('dashboard.organizations')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -69,17 +217,18 @@ export default function SitesPage() {
 
                         <div className="flex items-center gap-4">
                             <LanguageSwitcher />
-                            <button
+                            <Button
+                                variant="outline"
                                 onClick={() => router.push('/dashboard')}
-                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                             >
                                 ← {t('common.back', { defaultValue: 'กลับ' })}
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleCreate}
                             >
                                 + {t('seo.sites.addNew', { defaultValue: 'เพิ่มเว็บไซต์' })}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -87,47 +236,27 @@ export default function SitesPage() {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Sites Grid */}
                 {sites && sites.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {sites.map((site) => (
-                            <div
-                                key={site.id}
-                                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-                                onClick={() => router.push(`/seo/sites/${site.id}`)}
-                            >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <span className="text-2xl">🌐</span>
-                                    </div>
-                                    <span className={`text-xs px-2 py-1 rounded ${site.status === 'active'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-700'
-                                        }`}>
-                                        {site.status === 'active'
-                                            ? t('seo.sites.active', { defaultValue: 'ใช้งาน' })
-                                            : t('seo.sites.inactive', { defaultValue: 'ไม่ใช้งาน' })
-                                        }
-                                    </span>
-                                </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <Table
+                            columns={columns}
+                            data={paginatedSites}
+                            keyExtractor={(site) => site.id}
+                            onRowClick={handleRowClick}
+                        />
 
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                    {site.name}
-                                </h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    {site.domain}
-                                </p>
-
-                                <div className="pt-4 border-t border-gray-100">
-                                    <p className="text-xs text-gray-500">
-                                        {t('seo.sites.createdAt', { defaultValue: 'สร้างเมื่อ' })} {new Date(site.createdAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                        {totalPages > 1 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                                itemsPerPage={itemsPerPage}
+                                totalItems={sites.length}
+                            />
+                        )}
                     </div>
                 ) : (
-                    <div className="text-center py-12">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                         <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-6xl">🌐</span>
                         </div>
@@ -137,14 +266,41 @@ export default function SitesPage() {
                         <p className="text-gray-600 mb-4">
                             {t('seo.sites.noDataDesc', { defaultValue: 'เริ่มต้นโดยการเพิ่มเว็บไซต์แรกของคุณ' })}
                         </p>
-                        <button
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
+                        <Button variant="primary" onClick={handleCreate}>
                             + {t('seo.sites.addNew', { defaultValue: 'เพิ่มเว็บไซต์ใหม่' })}
-                        </button>
+                        </Button>
                     </div>
                 )}
             </main>
+
+            {/* Site Modal */}
+            <SiteModal
+                open={showSiteModal}
+                mode={modalMode}
+                initialData={selectedSite || undefined}
+                organizationId={organizationId}
+                userId={authStore.firebaseUser?.uid || ''}
+                onClose={() => setShowSiteModal(false)}
+                onSubmit={handleSiteSubmit}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showDeleteDialog}
+                onClose={() => {
+                    setShowDeleteDialog(false);
+                    setSelectedSite(null);
+                }}
+                onConfirm={handleDeleteConfirm}
+                title={t('seo.sites.deleteTitle', { defaultValue: 'ลบเว็บไซต์' })}
+                message={t('seo.sites.deleteMessage', {
+                    defaultValue: 'คุณแน่ใจหรือไม่ว่าต้องการลบเว็บไซต์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้',
+                    site: selectedSite?.name || ''
+                })}
+                variant="danger"
+                confirmText={t('common.delete', { defaultValue: 'ลบ' })}
+                cancelText={t('common.cancel', { defaultValue: 'ยกเลิก' })}
+            />
         </div>
     );
 }

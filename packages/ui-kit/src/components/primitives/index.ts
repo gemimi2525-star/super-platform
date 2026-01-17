@@ -15,3 +15,7 @@ export type { CardProps, CardHeaderProps, CardBodyProps, CardFooterProps } from 
 
 export { Modal, ModalFooter } from './Modal';
 export type { ModalProps, ModalFooterProps } from './Modal';
+
+export { Textarea } from './Textarea';
+export type { TextareaProps } from './Textarea';
+

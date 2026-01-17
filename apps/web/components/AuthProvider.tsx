@@ -21,10 +21,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setFirebaseUser(firebaseUser);
             setLoading(false);
 
+            // Public routes that don't require authentication
+            const publicRoutes = [
+                '/design-system',  // Dev-only UI Kit showcase
+            ];
+
+            // Check if current path is public
+            const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+
             // Redirect logic
             const isAuthPage = pathname.startsWith('/auth');
 
-            if (!firebaseUser && !isAuthPage) {
+            if (!firebaseUser && !isAuthPage && !isPublicRoute) {
                 router.push('/auth/login');
             } else if (firebaseUser && isAuthPage) {
                 router.push('/organizations');
