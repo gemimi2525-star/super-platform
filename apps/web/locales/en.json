@@ -1,0 +1,44 @@
+{
+    "common": {
+        "welcome": "Welcome",
+        "logout": "Logout",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "language": "Language",
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "noData": "No Data",
+        "back": "Back"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "organizations": "Organizations",
+        "modules": "Modules",
+        "settings": "Settings",
+        "plan": "Plan",
+        "yourRole": "Your Role",
+        "status": "Status"
+    },
+    "auth": {
+        "login": "Login",
+        "signup": "Sign Up",
+        "email": "Email",
+        "password": "Password"
+    },
+    "seo": {
+        "sites": {
+            "title": "All Websites",
+            "addNew": "Add New Website",
+            "domain": "Domain",
+            "status": "Status",
+            "active": "Active",
+            "inactive": "Inactive",
+            "createdAt": "Created",
+            "noData": "No websites yet",
+            "noDataDesc": "Get started by adding your first website"
+        }
+    }
+}

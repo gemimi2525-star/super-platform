@@ -1,0 +1,41 @@
+{
+    "sites": {
+        "title": "All Websites",
+        "addNew": "Add New Website",
+        "domain": "Domain",
+        "status": "Status",
+        "active": "Active",
+        "inactive": "Inactive",
+        "createdAt": "Created At",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "view": "View Details"
+    },
+    "pages": {
+        "title": "All Pages",
+        "url": "URL",
+        "seoScore": "SEO Score",
+        "status": "Status",
+        "lastAnalyzed": "Last Analyzed"
+    },
+    "keywords": {
+        "title": "All Keywords",
+        "keyword": "Keyword",
+        "volume": "Search Volume",
+        "difficulty": "Difficulty",
+        "ranking": "Ranking"
+    },
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "search": "Search",
+        "filter": "Filter",
+        "loading": "Loading...",
+        "noData": "No Data",
+        "error": "Error Occurred"
+    }
+}

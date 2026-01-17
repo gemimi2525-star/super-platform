@@ -1,0 +1,44 @@
+{
+    "common": {
+        "welcome": "欢迎",
+        "logout": "登出",
+        "save": "保存",
+        "cancel": "取消",
+        "delete": "删除",
+        "edit": "编辑",
+        "create": "创建",
+        "language": "语言",
+        "loading": "加载中...",
+        "error": "发生错误",
+        "noData": "无数据",
+        "back": "返回"
+    },
+    "dashboard": {
+        "title": "仪表板",
+        "organizations": "组织",
+        "modules": "模块",
+        "settings": "设置",
+        "plan": "计划",
+        "yourRole": "您的角色",
+        "status": "状态"
+    },
+    "auth": {
+        "login": "登录",
+        "signup": "注册",
+        "email": "电子邮件",
+        "password": "密码"
+    },
+    "seo": {
+        "sites": {
+            "title": "所有网站",
+            "addNew": "添加新网站",
+            "domain": "域名",
+            "status": "状态",
+            "active": "活跃",
+            "inactive": "不活跃",
+            "createdAt": "创建于",
+            "noData": "暂无网站",
+            "noDataDesc": "开始添加您的第一个网站"
+        }
+    }
+}

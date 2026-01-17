@@ -1,0 +1,41 @@
+{
+    "sites": {
+        "title": "所有网站",
+        "addNew": "添加新网站",
+        "domain": "域名",
+        "status": "状态",
+        "active": "活跃",
+        "inactive": "不活跃",
+        "createdAt": "创建于",
+        "actions": "操作",
+        "edit": "编辑",
+        "delete": "删除",
+        "view": "查看详情"
+    },
+    "pages": {
+        "title": "所有网页",
+        "url": "网址",
+        "seoScore": "SEO评分",
+        "status": "状态",
+        "lastAnalyzed": "最后分析"
+    },
+    "keywords": {
+        "title": "所有关键词",
+        "keyword": "关键词",
+        "volume": "搜索量",
+        "difficulty": "难度",
+        "ranking": "排名"
+    },
+    "common": {
+        "save": "保存",
+        "cancel": "取消",
+        "delete": "删除",
+        "edit": "编辑",
+        "create": "创建",
+        "search": "搜索",
+        "filter": "筛选",
+        "loading": "加载中...",
+        "noData": "无数据",
+        "error": "发生错误"
+    }
+}

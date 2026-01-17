@@ -1,0 +1,27 @@
+{
+    "name": "super-platform",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*",
+        "modules/*"
+    ],
+    "scripts": {
+        "dev": "turbo run dev",
+        "build": "turbo run build",
+        "lint": "turbo run lint",
+        "clean": "turbo run clean",
+        "dev:web": "cd apps/web && npm run dev",
+        "build:web": "cd apps/web && npm run build"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "turbo": "^1.11.0",
+        "typescript": "^5.3.0"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    }
+}
