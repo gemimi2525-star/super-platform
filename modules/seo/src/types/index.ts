@@ -73,7 +73,8 @@ export interface Keyword {
         currentPosition?: number;
         previousPosition?: number;
         bestPosition?: number;
-        lastChecked?: Date;
+        lastChecked?: Date; // Original field, kept for compatibility
+        lastUpdated?: Date; // New field for manual tracking
     };
     metrics?: {
         searchVolume?: number;
@@ -87,6 +88,50 @@ export interface Keyword {
 
 export type CreateKeywordInput = Omit<Keyword, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateKeywordInput = Partial<Omit<Keyword, 'id' | 'pageId' | 'organizationId' | 'createdAt' | 'createdBy'>>;
+
+// ==================== Rank History ====================
+
+export interface RankHistory {
+    id: string;
+    keywordId: string;
+    organizationId: string;
+    rank: number;
+    date: string; // YYYY-MM-DD
+    note?: string;
+}
+
+// Audit Log Types
+export type AuditAction =
+    | 'keyword.create'
+    | 'keyword.update'
+    | 'keyword.delete'
+    | 'page.create'
+    | 'page.update'
+    | 'page.delete'
+    | 'rank.create'
+    | 'rank.update'
+    | 'import.csv';
+
+export type AuditEntityType = 'keyword' | 'page' | 'rank' | 'import';
+
+export interface AuditLog {
+    id: string;
+    organizationId: string;
+    actor: {
+        userId: string;
+        email?: string;
+    };
+    action: AuditAction;
+    entity: {
+        type: AuditEntityType;
+        id?: string;
+        name?: string;
+    };
+    metadata?: Record<string, any>;
+    createdAt: Date;
+}
+
+export type CreateRankHistoryInput = Omit<RankHistory, 'id' | 'createdAt'>;
 
 // ==================== Analytics ====================
 

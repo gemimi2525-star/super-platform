@@ -1,5 +1,6 @@
 {
     "common": {
+        "appName": "超级平台",
         "welcome": "欢迎",
         "logout": "登出",
         "save": "保存",
@@ -11,7 +12,26 @@
         "loading": "加载中...",
         "error": "发生错误",
         "noData": "无数据",
-        "back": "返回"
+        "back": "返回",
+        "actions": "操作",
+        "comingSoon": "即将推出...",
+        "unknownError": "未知错误",
+        "csv": {
+            "importTitle": "导入 CSV",
+            "exportTitle": "导出 CSV",
+            "dropzone": "将 CSV 文件拖放到此处或点击上传",
+            "preview": "预览数据",
+            "importing": "正在导入...",
+            "successSummary": "成功导入 {count} 条数据",
+            "errorHeader": "无效行",
+            "downloadTemplate": "下载模板",
+            "columnsMismatch": "列数不匹配",
+            "importButton": "导入 {count} 条有效数据",
+            "cancel": "取消",
+            "validRows": "有效数据: {count}",
+            "invalidRows": "无效数据: {count}",
+            "row": "第 {row} 行"
+        }
     },
     "dashboard": {
         "title": "仪表板",
@@ -20,13 +40,46 @@
         "settings": "设置",
         "plan": "计划",
         "yourRole": "您的角色",
-        "status": "状态"
+        "status": "状态",
+        "owner": "所有者",
+        "active": "活跃",
+        "activeModules": "活跃模块",
+        "clickToOpen": "点击打开",
+        "liveBanner": {
+            "title": "超级平台已上线!",
+            "organization": "组织",
+            "multiTenant": "多租户架构已激活",
+            "rbac": "RBAC权限已配置",
+            "audit": "审计日志已启用",
+            "ready": "准备添加业务模块!"
+        }
     },
     "auth": {
         "login": "登录",
         "signup": "注册",
         "email": "电子邮件",
-        "password": "密码"
+        "password": "密码",
+        "loginButton": "登录",
+        "signupButton": "注册",
+        "createAccount": "创建您的账户",
+        "signInToContinue": "登录以继续",
+        "emailPlaceholder": "you@example.com",
+        "passwordPlaceholder": "••••••••",
+        "hasAccount": "已有账户？登录",
+        "noAccount": "没有账户？注册",
+        "authFailed": "认证失败"
+    },
+    "organizations": {
+        "welcome": "欢迎来到超级平台",
+        "guest": "访客",
+        "description": "这是临时组织页面。选择您要去的地方:",
+        "dashboard": "仪表板",
+        "designSystem": "设计系统",
+        "seoSites": "SEO 站点",
+        "ownerPanel": "所有者面板",
+        "user": "用户",
+        "notLoggedIn": "未登录",
+        "logoutSwitch": "登出 / 切换账户"
     },
     "seo": {
         "sites": {
@@ -36,9 +89,173 @@
             "status": "状态",
             "active": "活跃",
             "inactive": "不活跃",
+            "pending": "待定",
             "createdAt": "创建于",
             "noData": "暂无网站",
-            "noDataDesc": "开始添加您的第一个网站"
+            "noDataDesc": "开始添加您的第一个网站",
+            "deleteTitle": "删除网站",
+            "deleteMessage": "您确定要删除此网站吗？此操作无法撤销。",
+            "modal": {
+                "addNew": "添加新站点",
+                "edit": "编辑站点",
+                "nameLabel": "站点名称",
+                "nameHelper": "此网站的友好名称",
+                "namePlaceholder": "我的网站",
+                "domainLabel": "域名",
+                "domainHelper": "不带协议的域名（例如 example.com）",
+                "domainPlaceholder": "example.com",
+                "urlLabel": "完整 URL",
+                "urlHelper": "带协议的完整 URL",
+                "urlPlaceholder": "https://example.com",
+                "statusLabel": "状态",
+                "statusHelper": "设置站点监控状态",
+                "activeOption": "活跃",
+                "inactiveOption": "不活跃",
+                "pendingOption": "待定",
+                "createButton": "创建站点",
+                "saveButton": "保存更改"
+            },
+            "validation": {
+                "nameRequired": "站点名称为必填项",
+                "domainRequired": "域名为必填项",
+                "domainInvalid": "域名格式无效",
+                "urlRequired": "URL 为必填项",
+                "urlInvalid": "URL 格式无效"
+            }
+        },
+        "keywords": {
+            "title": "关键词",
+            "addNew": "添加新关键词",
+            "term": "搜索词",
+            "page": "目标页面",
+            "rank": "排名",
+            "status": "状态",
+            "noData": "暂无关键词",
+            "noDataDesc": "开始追踪您的第一个关键词",
+            "deleteTitle": "删除关键词",
+            "deleteMessage": "确定要删除此关键词吗？此操作无法撤销。",
+            "noPageLinked": "未关联页面",
+            "modal": {
+                "addNew": "添加新关键词",
+                "edit": "编辑关键词",
+                "termLabel": "搜索词 (Keyword)",
+                "termHelper": "要追踪的搜索词",
+                "termPlaceholder": "例如 SEO 仪表板",
+                "pageLabel": "目标页面（可选）",
+                "pageHelper": "选择与此关键词关联的页面",
+                "selectPage": "选择页面...",
+                "priorityLabel": "优先级",
+                "priorityHigh": "高",
+                "priorityMedium": "中",
+                "priorityLow": "低",
+                "statusLabel": "状态",
+                "statusTracking": "追踪中",
+                "statusPaused": "已暂停",
+                "createButton": "添加关键词",
+                "saveButton": "保存更改"
+            },
+            "validation": {
+                "termRequired": "搜索词为必填项"
+            }
+        },
+        "ranks": {
+            "updateRank": "更新排名",
+            "currentRank": "当前排名",
+            "bestRank": "最佳排名",
+            "history": "排名历史",
+            "trend": "排名趋势",
+            "date": "日期",
+            "rank": "排名",
+            "note": "备注",
+            "change": "变化",
+            "modal": {
+                "title": "更新排名",
+                "rankLabel": "当前排名",
+                "dateLabel": "日期",
+                "noteLabel": "备注（可选）",
+                "notePlaceholder": "例如：优化 h1 标签",
+                "saveButton": "保存排名"
+            },
+            "validation": {
+                "rankRequired": "排名为必填项",
+                "rankInvalid": "排名必须在 1 到 100 之间",
+                "dateRequired": "日期为必填项"
+            }
+        },
+        "pages": {
+            "title": "页面",
+            "addNew": "添加新页面",
+            "pageTitle": "页面标题",
+            "path": "路径/Slug",
+            "url": "URL",
+            "status": "状态",
+            "published": "已发布",
+            "draft": "草稿",
+            "archived": "已归档",
+            "updatedAt": "更新于",
+            "untitled": "(无标题)",
+            "noData": "暂无页面",
+            "noDataDesc": "开始添加您的第一个页面",
+            "deleteTitle": "删除页面",
+            "deleteMessage": "确定要删除此页面吗？此操作无法撤销。",
+            "modal": {
+                "addNew": "添加新页面",
+                "edit": "编辑页面",
+                "titleLabel": "页面标题",
+                "titleHelper": "此页面的标题（可选）",
+                "titlePlaceholder": "我的页面",
+                "pathLabel": "路径/Slug",
+                "pathHelper": "以此开头的 URL 路径 / (例如 /about)",
+                "pathPlaceholder": "/about",
+                "urlLabel": "完整 URL",
+                "urlHelper": "包含域名的完整 URL",
+                "urlPlaceholder": "https://example.com/about",
+                "siteLabel": "网站",
+                "siteHelper": "选择此页面所属的网站",
+                "statusLabel": "状态",
+                "statusHelper": "发布状态",
+                "publishedOption": "已发布",
+                "draftOption": "草稿",
+                "archivedOption": "已归档",
+                "createButton": "创建页面",
+                "saveButton": "保存更改"
+            },
+            "validation": {
+                "siteRequired": "请选择一个网站",
+                "pathRequired": "路径为必填项",
+                "pathInvalid": "路径必须以 / 开头",
+                "urlRequired": "URL 为必填项",
+                "urlInvalid": "URL 格式无效"
+            }
+        }
+    },
+    "toast": {
+        "sites": {
+            "createSuccess": "站点创建成功",
+            "updateSuccess": "站点更新成功",
+            "deleteSuccess": "站点删除成功",
+            "deleteError": "删除站点失败",
+            "operationFailed": "操作失败"
+        },
+        "pages": {
+            "createSuccess": "页面创建成功",
+            "updateSuccess": "页面更新成功",
+            "deleteSuccess": "页面删除成功",
+            "deleteError": "删除页面失败",
+            "operationFailed": "操作失败"
+        }
+    },
+    "errors": {
+        "notFound": {
+            "title": "找不到页面",
+            "description": "您要访问的页面不存在或已被移动。",
+            "goHome": "返回仪表板"
+        },
+        "serverError": {
+            "title": "出现错误",
+            "description": "我们遇到了意外错误。请重试或返回仪表板。",
+            "tryAgain": "重试",
+            "goHome": "返回仪表板"
         }
     }
 }

@@ -1,0 +1,129 @@
+rules_version = '2';
+
+/**
+ * Firestore Security Rules - Supper Platform
+ * 
+ * LOCKED Foundation Rules:
+ * - Tenant data isolation: orgs/{orgId}/...
+ * - Platform owner global read access
+ * - No cross-org data access for tenants
+ * 
+ * Deploy: firebase deploy --only firestore:rules
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is platform owner
+    function isPlatformOwner() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'platform_owner';
+    }
+    
+    // Check if user belongs to specific org
+    function isOrgMember(orgId) {
+      return isAuthenticated() && 
+             request.auth.token.orgId == orgId;
+    }
+    
+    // Check if user is org admin
+    function isOrgAdmin(orgId) {
+      return isOrgMember(orgId) && 
+             request.auth.token.role == 'org_admin';
+    }
+    
+    // ========================================
+    // GLOBAL COLLECTIONS (Platform-level)
+    // ========================================
+    
+    // Organizations - Platform owner can read/write, org admins can read own
+    match /orgs/{orgId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isPlatformOwner();
+    }
+    
+    // Platform Audit Logs - Platform owner only
+    match /platform_audit_logs/{logId} {
+      allow read: if isPlatformOwner();
+      allow write: if isPlatformOwner();
+    }
+    
+    // Apps Catalog - Platform owner manages, all can read
+    match /apps_catalog/{appId} {
+      allow read: if isAuthenticated();
+      allow write: if isPlatformOwner();
+    }
+    
+    // ========================================
+    // TENANT DATA (org-scoped subcollections)
+    // ========================================
+    
+    // Generic rule for ALL org subcollections
+    match /orgs/{orgId}/{document=**} {
+      // Platform owner has READ access to all tenant data
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      
+      // Only org members can write their own data
+      allow write: if isOrgMember(orgId);
+    }
+    
+    // ========================================
+    // SPECIFIC SUBCOLLECTION RULES
+    // ========================================
+    
+    // SEO Keywords
+    match /orgs/{orgId}/seo_keywords/{keywordId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isOrgMember(orgId);
+    }
+    
+    // SEO Pages
+    match /orgs/{orgId}/seo_pages/{pageId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isOrgMember(orgId);
+    }
+    
+    // SEO Sites
+    match /orgs/{orgId}/seo_sites/{siteId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isOrgMember(orgId);
+    }
+    
+    // Keyword Rank History
+    match /orgs/{orgId}/seo_keywords/{keywordId}/rank_history/{rankId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isOrgMember(orgId);
+    }
+    
+    // Audit Logs (org-scoped)
+    match /orgs/{orgId}/audit_logs/{logId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow create: if isOrgMember(orgId);
+      allow update, delete: if false; // Audit logs are immutable
+    }
+    
+    // Enabled Apps
+    match /orgs/{orgId}/enabled_apps/{appId} {
+      allow read: if isPlatformOwner() || isOrgMember(orgId);
+      allow write: if isPlatformOwner(); // Only platform owner can toggle apps
+    }
+    
+    // ========================================
+    // DENY ALL (Fallback)
+    // ========================================
+    
+    // Explicitly deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

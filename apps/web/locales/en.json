@@ -1,5 +1,6 @@
 {
     "common": {
+        "appName": "Super Platform",
         "welcome": "Welcome",
         "logout": "Logout",
         "save": "Save",
@@ -12,7 +13,33 @@
         "error": "An error occurred",
         "noData": "No Data",
         "back": "Back",
-        "actions": "Actions"
+        "actions": "Actions",
+        "comingSoon": "Coming soon...",
+        "unknownError": "Unknown error",
+        "next": "Next",
+        "submit": "Submit",
+        "close": "Close",
+        "status": "Status",
+        "active": "Active",
+        "inactive": "Inactive",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "csv": {
+            "importTitle": "Import CSV",
+            "exportTitle": "Export CSV",
+            "dropzone": "Drop CSV file here or click to upload",
+            "preview": "Preview Data",
+            "importing": "Importing...",
+            "successSummary": "Successfully imported {count} items",
+            "errorHeader": "Invalid Rows",
+            "downloadTemplate": "Download Template",
+            "columnsMismatch": "Column mismatch",
+            "importButton": "Import {count} Valid Rows",
+            "cancel": "Cancel",
+            "validRows": "Valid Rows: {count}",
+            "invalidRows": "Invalid Rows: {count}",
+            "row": "Row {row}"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -21,13 +48,46 @@
         "settings": "Settings",
         "plan": "Plan",
         "yourRole": "Your Role",
-        "status": "Status"
+        "status": "Status",
+        "owner": "Owner",
+        "active": "Active",
+        "activeModules": "Active Modules",
+        "clickToOpen": "Click to open",
+        "liveBanner": {
+            "title": "Super Platform is Live!",
+            "organization": "Organization",
+            "multiTenant": "Multi-tenant architecture active",
+            "rbac": "RBAC permissions configured",
+            "audit": "Audit logging enabled",
+            "ready": "Ready to add business modules!"
+        }
     },
     "auth": {
         "login": "Login",
         "signup": "Sign Up",
         "email": "Email",
-        "password": "Password"
+        "password": "Password",
+        "loginButton": "Sign In",
+        "signupButton": "Sign Up",
+        "createAccount": "Create your account",
+        "signInToContinue": "Sign in to continue",
+        "emailPlaceholder": "you@example.com",
+        "passwordPlaceholder": "••••••••",
+        "hasAccount": "Already have an account? Sign in",
+        "noAccount": "Don't have an account? Sign up",
+        "authFailed": "Authentication failed"
+    },
+    "organizations": {
+        "welcome": "Welcome to Super Platform",
+        "guest": "Guest",
+        "description": "This is a temporary organizations page. Select where you want to go:",
+        "dashboard": "Dashboard",
+        "designSystem": "Design System",
+        "seoSites": "SEO Sites",
+        "ownerPanel": "Owner Panel",
+        "user": "User",
+        "notLoggedIn": "Not logged in",
+        "logoutSwitch": "Logout / Switch Account"
     },
     "seo": {
         "sites": {
@@ -44,7 +104,173 @@
             "noData": "No websites yet",
             "noDataDesc": "Get started by adding your first website",
             "deleteTitle": "Delete Website",
-            "deleteMessage": "Are you sure you want to delete this website? This action cannot be undone."
+            "deleteMessage": "Are you sure you want to delete this website? This action cannot be undone.",
+            "modal": {
+                "addNew": "Add New Site",
+                "edit": "Edit Site",
+                "nameLabel": "Site Name",
+                "nameHelper": "A friendly name for this website",
+                "namePlaceholder": "My Website",
+                "domainLabel": "Domain",
+                "domainHelper": "Domain without protocol (e.g., example.com)",
+                "domainPlaceholder": "example.com",
+                "urlLabel": "Full URL",
+                "urlHelper": "Complete URL with protocol",
+                "urlPlaceholder": "https://example.com",
+                "statusLabel": "Status",
+                "statusHelper": "Set site monitoring status",
+                "activeOption": "Active",
+                "inactiveOption": "Inactive",
+                "pendingOption": "Pending",
+                "createButton": "Create Site",
+                "saveButton": "Save Changes"
+            },
+            "validation": {
+                "nameRequired": "Site name is required",
+                "domainRequired": "Domain is required",
+                "domainInvalid": "Invalid domain format",
+                "urlRequired": "URL is required",
+                "urlInvalid": "Invalid URL format"
+            }
+        },
+        "keywords": {
+            "title": "Keywords",
+            "addNew": "Add New Keyword",
+            "term": "Keyword Term",
+            "page": "Target Page",
+            "rank": "Rank",
+            "status": "Status",
+            "noData": "No keywords yet",
+            "noDataDesc": "Start tracking your first keyword",
+            "deleteTitle": "Delete Keyword",
+            "deleteMessage": "Are you sure you want to delete this keyword? This action cannot be undone.",
+            "noPageLinked": "No page linked",
+            "modal": {
+                "addNew": "Add New Keyword",
+                "edit": "Edit Keyword",
+                "termLabel": "Keyword Term",
+                "termHelper": "The search term to track",
+                "termPlaceholder": "e.g. seo dashboard",
+                "pageLabel": "Target Page (Optional)",
+                "pageHelper": "Select a page to associating this keyword with",
+                "selectPage": "Select a page...",
+                "priorityLabel": "Priority",
+                "priorityHigh": "High",
+                "priorityMedium": "Medium",
+                "priorityLow": "Low",
+                "statusLabel": "Status",
+                "statusTracking": "Tracking",
+                "statusPaused": "Paused",
+                "createButton": "Add Keyword",
+                "saveButton": "Save Changes"
+            },
+            "validation": {
+                "termRequired": "Keyword term is required"
+            }
+        },
+        "ranks": {
+            "updateRank": "Update Rank",
+            "currentRank": "Current Rank",
+            "bestRank": "Best Rank",
+            "history": "Ranking History",
+            "trend": "Rank Trend",
+            "date": "Date",
+            "rank": "Rank",
+            "note": "Note",
+            "change": "Change",
+            "modal": {
+                "title": "Update Ranking",
+                "rankLabel": "Current Rank",
+                "dateLabel": "Date",
+                "noteLabel": "Note (Optional)",
+                "notePlaceholder": "e.g. Optimized h1 tag",
+                "saveButton": "Save Ranking"
+            },
+            "validation": {
+                "rankRequired": "Rank is required",
+                "rankInvalid": "Rank must be between 1 and 100",
+                "dateRequired": "Date is required"
+            }
+        },
+        "pages": {
+            "title": "Pages",
+            "addNew": "Add New Page",
+            "pageTitle": "Page Title",
+            "path": "Path/Slug",
+            "url": "URL",
+            "status": "Status",
+            "published": "Published",
+            "draft": "Draft",
+            "archived": "Archived",
+            "updatedAt": "Updated",
+            "untitled": "(Untitled)",
+            "noData": "No pages yet",
+            "noDataDesc": "Get started by adding your first page",
+            "deleteTitle": "Delete Page",
+            "deleteMessage": "Are you sure you want to delete this page? This action cannot be undone.",
+            "modal": {
+                "addNew": "Add New Page",
+                "edit": "Edit Page",
+                "titleLabel": "Page Title",
+                "titleHelper": "The title of this page (optional)",
+                "titlePlaceholder": "My Page",
+                "pathLabel": "Path/Slug",
+                "pathHelper": "URL path starting with / (e.g., /about)",
+                "pathPlaceholder": "/about",
+                "urlLabel": "Full URL",
+                "urlHelper": "Complete URL including domain",
+                "urlPlaceholder": "https://example.com/about",
+                "siteLabel": "Site",
+                "siteHelper": "Select the site this page belongs to",
+                "statusLabel": "Status",
+                "statusHelper": "Publication status",
+                "publishedOption": "Published",
+                "draftOption": "Draft",
+                "archivedOption": "Archived",
+                "createButton": "Create Page",
+                "saveButton": "Save Changes"
+            },
+            "validation": {
+                "siteRequired": "Please select a site",
+                "pathRequired": "Path is required",
+                "pathInvalid": "Path must start with /",
+                "urlRequired": "URL is required",
+                "urlInvalid": "Invalid URL format"
+            }
+        }
+    },
+    "toast": {
+        "ranks": {
+            "addSuccess": "Rank updated successfully",
+            "deleteSuccess": "History entry deleted",
+            "operationFailed": "Operation failed"
+        },
+        "sites": {
+            "createSuccess": "Site created successfully",
+            "updateSuccess": "Site updated successfully",
+            "deleteSuccess": "Site deleted successfully",
+            "deleteError": "Failed to delete site",
+            "operationFailed": "Operation failed"
+        }
+    },
+    "errors": {
+        "notFound": {
+            "title": "Page Not Found",
+            "description": "The page you're looking for doesn't exist or has been moved.",
+            "goHome": "Go to Dashboard"
+        },
+        "pages": {
+            "createSuccess": "Page created successfully",
+            "updateSuccess": "Page updated successfully",
+            "deleteSuccess": "Page deleted successfully",
+            "deleteError": "Failed to delete page",
+            "operationFailed": "Operation failed"
+        },
+        "serverError": {
+            "title": "Something Went Wrong",
+            "description": "We encountered an unexpected error. Please try again or go back to the dashboard.",
+            "tryAgain": "Try Again",
+            "goHome": "Go to Dashboard"
         }
     }
 }

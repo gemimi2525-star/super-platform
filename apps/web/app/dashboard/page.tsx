@@ -91,7 +91,7 @@ export default function DashboardPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-600">Plan</p>
+                                <p className="text-sm text-gray-600">{t('dashboard.plan')}</p>
                                 <p className="text-2xl font-bold text-gray-900 capitalize">
                                     {currentOrganization.plan}
                                 </p>
@@ -105,9 +105,9 @@ export default function DashboardPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-600">Modules</p>
+                                <p className="text-sm text-gray-600">{t('dashboard.modules')}</p>
                                 <p className="text-2xl font-bold text-gray-900">
-                                    {currentOrganization.modules.length}
+                                    {currentOrganization.modules?.length || 0}
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -119,8 +119,8 @@ export default function DashboardPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-600">Your Role</p>
-                                <p className="text-2xl font-bold text-gray-900">Owner</p>
+                                <p className="text-sm text-gray-600">{t('dashboard.yourRole')}</p>
+                                <p className="text-2xl font-bold text-gray-900">{t('dashboard.owner')}</p>
                             </div>
                             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                                 <span className="text-2xl">👑</span>
@@ -131,8 +131,8 @@ export default function DashboardPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-600">Status</p>
-                                <p className="text-2xl font-bold text-green-600">Active</p>
+                                <p className="text-sm text-gray-600">{t('dashboard.status')}</p>
+                                <p className="text-2xl font-bold text-green-600">{t('dashboard.active')}</p>
                             </div>
                             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                                 <span className="text-2xl">✅</span>
@@ -144,10 +144,10 @@ export default function DashboardPage() {
                 {/* Modules Grid */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        Active Modules
+                        {t('dashboard.activeModules')}
                     </h2>
                     <div className="grid md:grid-cols-3 gap-4">
-                        {currentOrganization.modules.map((module) => (
+                        {(currentOrganization.modules || []).map((module) => (
                             <div
                                 key={module}
                                 className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
@@ -162,7 +162,7 @@ export default function DashboardPage() {
                                         <h3 className="font-semibold text-gray-900 capitalize">
                                             {module}
                                         </h3>
-                                        <p className="text-xs text-gray-500">Click to open</p>
+                                        <p className="text-xs text-gray-500">{t('dashboard.clickToOpen')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -173,15 +173,15 @@ export default function DashboardPage() {
                 {/* Info Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                        🎉 Super Platform is Live!
+                        🎉 {t('dashboard.liveBanner.title')}
                     </h2>
                     <div className="space-y-2 text-sm text-gray-700">
-                        <p>✅ Organization: <strong>{currentOrganization.name}</strong></p>
-                        <p>✅ Multi-tenant architecture active</p>
-                        <p>✅ RBAC permissions configured</p>
-                        <p>✅ Audit logging enabled</p>
+                        <p>✅ {t('dashboard.liveBanner.organization')}: <strong>{currentOrganization.name}</strong></p>
+                        <p>✅ {t('dashboard.liveBanner.multiTenant')}</p>
+                        <p>✅ {t('dashboard.liveBanner.rbac')}</p>
+                        <p>✅ {t('dashboard.liveBanner.audit')}</p>
                         <p className="pt-2 text-blue-700">
-                            🚀 Ready to add business modules!
+                            🚀 {t('dashboard.liveBanner.ready')}
                         </p>
                     </div>
                 </div>

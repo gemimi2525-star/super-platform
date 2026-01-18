@@ -20,6 +20,9 @@
         "outDir": "./dist",
         "composite": false,
         "paths": {
+            "@modules/platform": [
+                "../platform/src"
+            ],
             "@platform/core": [
                 "../../packages/core/src"
             ],

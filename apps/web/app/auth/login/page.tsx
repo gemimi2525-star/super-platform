@@ -4,6 +4,7 @@
  * Login Page
  * 
  * Firebase authentication with email/password
+ * Fully internationalized
  */
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from '@platform/firebase';
 import { auth } from '@platform/firebase';
 import { useTranslations } from 'next-intl';
+import { LanguageSwitcher } from '@modules/seo';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -34,7 +36,7 @@ export default function LoginPage() {
             }
             router.push('/owner');
         } catch (err: any) {
-            setError(err.message || 'Authentication failed');
+            setError(err.message || t('auth.authFailed'));
         } finally {
             setLoading(false);
         }
@@ -42,19 +44,24 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+            {/* Language Switcher - Top Right */}
+            <div className="absolute top-4 right-4">
+                <LanguageSwitcher />
+            </div>
+
             <div className="w-full max-w-md">
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
-                        Super Platform
+                        {t('common.appName')}
                     </h1>
                     <p className="text-gray-600 text-center mb-8">
-                        {isSignup ? 'Create your account' : 'Sign in to continue'}
+                        {isSignup ? t('auth.createAccount') : t('auth.signInToContinue')}
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email
+                                {t('auth.email')}
                             </label>
                             <input
                                 type="email"
@@ -62,13 +69,13 @@ export default function LoginPage() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                placeholder="you@example.com"
+                                placeholder={t('auth.emailPlaceholder')}
                             />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Password
+                                {t('auth.password')}
                             </label>
                             <input
                                 type="password"
@@ -76,7 +83,7 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                placeholder="••••••••"
+                                placeholder={t('auth.passwordPlaceholder')}
                             />
                         </div>
 
@@ -91,7 +98,7 @@ export default function LoginPage() {
                             disabled={loading}
                             className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
                         >
-                            {loading ? t('common.loading') : isSignup ? 'Sign Up' : 'Sign In'}
+                            {loading ? t('common.loading') : isSignup ? t('auth.signupButton') : t('auth.loginButton')}
                         </button>
                     </form>
 
@@ -100,7 +107,7 @@ export default function LoginPage() {
                             onClick={() => setIsSignup(!isSignup)}
                             className="text-sm text-blue-600 hover:text-blue-800"
                         >
-                            {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                            {isSignup ? t('auth.hasAccount') : t('auth.noAccount')}
                         </button>
                     </div>
                 </div>

@@ -1,0 +1,16 @@
+{
+    "name": "@modules/platform",
+    "version": "1.0.0",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@platform/firebase": "*",
+        "@modules/seo": "*"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3"
+    }
+}

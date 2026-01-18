@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useSites, useSEOGuard, useCreateSite, useUpdateSite } from '@modules/seo';
+import { useSites, useSEOGuard, useCreateSite, useUpdateSite, useDeleteSite } from '@modules/seo';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { LanguageSwitcher } from '@modules/seo';
 import {
@@ -16,6 +16,7 @@ import {
     Pagination,
     Button,
     ConfirmDialog,
+    useToast,
     type ColumnDef
 } from '@platform/ui-kit';
 import { SiteModal, type SiteFormData } from '@/components/sites/SiteModal';
@@ -35,6 +36,10 @@ export default function SitesPage() {
     // Mutations
     const createSite = useCreateSite();
     const updateSite = useUpdateSite();
+    const deleteSite = useDeleteSite();
+
+    // Toast
+    const { showToast } = useToast();
 
     // Local state
     const [currentPage, setCurrentPage] = useState(1);
@@ -84,10 +89,10 @@ export default function SitesPage() {
             render: (site) => (
                 <span
                     className={`px-2 py-1 text-xs font-semibold rounded-full ${site.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : site.status === 'inactive'
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-green-100 text-green-800'
+                        : site.status === 'inactive'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-yellow-100 text-yellow-800'
                         }`}
                 >
                     {site.status === 'active'
@@ -149,26 +154,40 @@ export default function SitesPage() {
         setShowDeleteDialog(true);
     };
 
-    const handleDeleteConfirm = () => {
+    const handleDeleteConfirm = async () => {
         if (!selectedSite) return;
-        // TODO: Implement delete mutation
-        console.log('Delete site:', selectedSite.id);
-        setShowDeleteDialog(false);
-        setSelectedSite(null);
+
+        try {
+            await deleteSite.mutateAsync(selectedSite.id);
+            showToast(t('toast.sites.deleteSuccess'), 'success');
+            setShowDeleteDialog(false);
+            setSelectedSite(null);
+        } catch (error: any) {
+            showToast(error.message || t('toast.sites.deleteError'), 'error');
+        }
     };
 
     const handleSiteSubmit = async (data: SiteFormData) => {
-        if (modalMode === 'create') {
-            await createSite.mutateAsync({
-                organizationId,
-                userId: authStore.firebaseUser?.uid || '',
-                siteData: data,
-            });
-        } else if (selectedSite) {
-            await updateSite.mutateAsync({
-                siteId: selectedSite.id,
-                updates: data,
-            });
+        try {
+            if (modalMode === 'create') {
+                await createSite.mutateAsync({
+                    organizationId,
+                    userId: authStore.firebaseUser?.uid || '',
+                    siteData: data,
+                });
+                showToast(t('toast.sites.createSuccess'), 'success');
+            } else if (selectedSite) {
+                await updateSite.mutateAsync({
+                    siteId: selectedSite.id,
+                    updates: data,
+                });
+                showToast(t('toast.sites.updateSuccess'), 'success');
+            }
+
+            // Close modal on success
+            setShowSiteModal(false);
+        } catch (error: any) {
+            showToast(error.message || t('toast.sites.operationFailed'), 'error');
         }
     };
 
@@ -190,7 +209,7 @@ export default function SitesPage() {
                         {t('common.error')}
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
-                        {error instanceof Error ? error.message : 'Unknown error'}
+                        {error instanceof Error ? error.message : t('common.unknownError')}
                     </p>
                     <Button onClick={() => router.push('/organizations')}>
                         {t('dashboard.organizations')}

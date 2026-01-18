@@ -1,5 +1,6 @@
 {
     "common": {
+        "appName": "ซุปเปอร์ แพลตฟอร์ม",
         "welcome": "ยินดีต้อนรับ",
         "logout": "ออกจากระบบ",
         "save": "บันทึก",
@@ -12,7 +13,25 @@
         "error": "เกิดข้อผิดพลาด",
         "noData": "ไม่มีข้อมูล",
         "back": "กลับ",
-        "actions": "จัดการ"
+        "actions": "จัดการ",
+        "comingSoon": "เร็วๆ นี้...",
+        "unknownError": "ข้อผิดพลาดที่ไม่ทราบสาเหตุ",
+        "csv": {
+            "importTitle": "นำเข้า CSV",
+            "exportTitle": "ส่งออก CSV",
+            "dropzone": "ลากไฟล์ CSV มาวางที่นี่ หรือคลิกเพื่ออัปโหลด",
+            "preview": "ดูตัวอย่างข้อมูล",
+            "importing": "กำลังนำเข้า...",
+            "successSummary": "นำเข้าสำเร็จ {count} รายการ",
+            "errorHeader": "แถวที่ไม่ถูกต้อง",
+            "downloadTemplate": "ดาวน์โหลดเทมเพลต",
+            "columnsMismatch": "จำนวนคอลัมน์ไม่ถูกต้อง",
+            "importButton": "นำเข้า {count} รายการที่ถูกต้อง",
+            "cancel": "ยกเลิก",
+            "validRows": "ถูกต้อง: {count}",
+            "invalidRows": "ไม่ถูกต้อง: {count}",
+            "row": "แถวที่ {row}"
+        }
     },
     "dashboard": {
         "title": "แดชบอร์ด",
@@ -21,13 +40,46 @@
         "settings": "ตั้งค่า",
         "plan": "แผน",
         "yourRole": "บทบาทของคุณ",
-        "status": "สถานะ"
+        "status": "สถานะ",
+        "owner": "เจ้าของ",
+        "active": "ใช้งาน",
+        "activeModules": "โมดูลที่ใช้งาน",
+        "clickToOpen": "คลิกเพื่อเปิด",
+        "liveBanner": {
+            "title": "ซุปเปอร์ แพลตฟอร์ม เปิดใช้งานแล้ว!",
+            "organization": "องค์กร",
+            "multiTenant": "สถาปัตยกรรมแบบหลายผู้เช่าเปิดใช้งานแล้ว",
+            "rbac": "กำหนดค่าสิทธิ์ RBAC แล้ว",
+            "audit": "เปิดใช้งานการบันทึกการตรวจสอบแล้ว",
+            "ready": "พร้อมเพิ่มโมดูลธุรกิจ!"
+        }
     },
     "auth": {
         "login": "เข้าสู่ระบบ",
         "signup": "สมัครสมาชิก",
         "email": "อีเมล",
-        "password": "รหัสผ่าน"
+        "password": "รหัสผ่าน",
+        "loginButton": "เข้าสู่ระบบ",
+        "signupButton": "สมัครสมาชิก",
+        "createAccount": "สร้างบัญชีของคุณ",
+        "signInToContinue": "เข้าสู่ระบบเพื่อดำเนินการต่อ",
+        "emailPlaceholder": "you@example.com",
+        "passwordPlaceholder": "••••••••",
+        "hasAccount": "มีบัญชีอยู่แล้วใช่ไหม? เข้าสู่ระบบ",
+        "noAccount": "ยังไม่มีบัญชีหรือ? สมัครสมาชิก",
+        "authFailed": "การยืนยันตัวตนล้มเหลว"
+    },
+    "organizations": {
+        "welcome": "ยินดีต้อนรับสู่ ซุปเปอร์ แพลตฟอร์ม",
+        "guest": "ผู้เยี่ยมชม",
+        "description": "นี่คือหน้าองค์กรชั่วคราว เลือกที่คุณต้องการไป:",
+        "dashboard": "แดชบอร์ด",
+        "designSystem": "ระบบออกแบบ",
+        "seoSites": "SEO ไซต์",
+        "ownerPanel": "แผงควบคุมเจ้าของ",
+        "user": "ผู้ใช้",
+        "notLoggedIn": "ยังไม่ได้เข้าสู่ระบบ",
+        "logoutSwitch": "ออกจากระบบ / สลับบัญชี"
     },
     "seo": {
         "sites": {
@@ -44,7 +96,168 @@
             "noData": "ยังไม่มีเว็บไซต์",
             "noDataDesc": "เริ่มต้นโดยการเพิ่มเว็บไซต์แรกของคุณ",
             "deleteTitle": "ลบเว็บไซต์",
-            "deleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบเว็บไซต์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+            "deleteMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบเว็บไซต์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้",
+            "modal": {
+                "addNew": "เพิ่มไซต์ใหม่",
+                "edit": "แก้ไขไซต์",
+                "nameLabel": "ชื่อไซต์",
+                "nameHelper": "ชื่อที่เป็นมิตรสำหรับเว็บไซต์นี้",
+                "namePlaceholder": "เว็บไซต์ของฉัน",
+                "domainLabel": "โดเมน",
+                "domainHelper": "โดเมนโดยไม่มีโปรโตคอล (เช่น example.com)",
+                "domainPlaceholder": "example.com",
+                "urlLabel": "URL แบบเต็ม",
+                "urlHelper": "URL แบบสมบูรณ์พร้อมโปรโตคอล",
+                "urlPlaceholder": "https://example.com",
+                "statusLabel": "สถานะ",
+                "statusHelper": "ตั้งค่าสถานะการตรวจสอบไซต์",
+                "activeOption": "ใช้งาน",
+                "inactiveOption": "ไม่ใช้งาน",
+                "pendingOption": "รอดำเนินการ",
+                "createButton": "สร้างไซต์",
+                "saveButton": "บันทึกการเปลี่ยนแปลง"
+            },
+            "validation": {
+                "nameRequired": "กรุณาระบุชื่อไซต์",
+                "domainRequired": "กรุณาระบุโดเมน",
+                "domainInvalid": "รูปแบบโดเมนไม่ถูกต้อง",
+                "urlRequired": "กรุณาระบุ URL",
+                "urlInvalid": "รูปแบบ URL ไม่ถูกต้อง"
+            }
+        },
+        "pages": {
+            "title": "หน้าเว็บ",
+            "addNew": "เพิ่มหน้าใหม่",
+            "pageTitle": "ชื่อหน้า",
+            "path": "Path/Slug",
+            "url": "URL",
+            "status": "สถานะ",
+            "published": "เผยแพร่",
+            "draft": "ร่าง",
+            "archived": "จัดเก็บ",
+            "updatedAt": "อัปเดต",
+            "untitled": "(ไม่มีชื่อ)",
+            "noData": "ยังไม่มีหน้าเว็บ",
+            "noDataDesc": "เริ่มต้นด้วยการเพิ่มหน้าเว็บแรกของคุณ",
+            "deleteTitle": "ลบหน้าเว็บ",
+            "deleteMessage": "คุณแน่ใจหรือไม่ที่จะลบหน้าเว็บนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+            "modal": {
+                "addNew": "เพิ่มหน้าใหม่",
+                "edit": "แก้ไขหน้าเว็บ",
+                "titleLabel": "ชื่อหน้า",
+                "titleHelper": "ชื่อของหน้านี้ (ไม่บังคับ)",
+                "titlePlaceholder": "หน้าของฉัน",
+                "pathLabel": "Path/Slug",
+                "pathHelper": "URL path ที่ขึ้นต้นด้วย / (เช่น /about)",
+                "pathPlaceholder": "/about",
+                "urlLabel": "URL เต็ม",
+                "urlHelper": "URL เต็มรวมถึงโดเมน",
+                "urlPlaceholder": "https://example.com/about",
+                "siteLabel": "เว็บไซต์",
+                "siteHelper": "เลือกเว็บไซต์ที่หน้านี้สังกัด",
+                "statusLabel": "สถานะ",
+                "statusHelper": "สถานะการเผยแพร่",
+                "publishedOption": "เผยแพร่",
+                "draftOption": "ร่าง",
+                "archivedOption": "จัดเก็บ",
+                "createButton": "สร้างหน้าเว็บ",
+                "saveButton": "บันทึกการเปลี่ยนแปลง"
+            },
+            "validation": {
+                "siteRequired": "กรุณาเลือกเว็บไซต์",
+                "pathRequired": "กรุณาระบุ Path",
+                "pathInvalid": "Path ต้องขึ้นต้นด้วย /",
+                "urlRequired": "กรุณาระบุ URL",
+                "urlInvalid": "รูปแบบ URL ไม่ถูกต้อง"
+            }
+        },
+        "keywords": {
+            "title": "คำหลัก",
+            "addNew": "เพิ่มคำหลักใหม่",
+            "term": "คำค้นหา",
+            "page": "หน้าเป้าหมาย",
+            "rank": "อันดับ",
+            "status": "สถานะ",
+            "noData": "ยังไม่มีคำหลัก",
+            "noDataDesc": "เริ่มติดตามคำหลักแรกของคุณ",
+            "deleteTitle": "ลบคำหลัก",
+            "deleteMessage": "คุณแน่ใจหรือไม่ที่จะลบคำหลักนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+            "noPageLinked": "ไม่มีหน้าเป้าหมายที่เชื่อมโยง",
+            "modal": {
+                "addNew": "เพิ่มคำหลักใหม่",
+                "edit": "แก้ไขคำหลัก",
+                "termLabel": "คำค้นหา (Keyword)",
+                "termHelper": "คำค้นหาที่ต้องการติดตาม",
+                "termPlaceholder": "เช่น การทำ SEO",
+                "pageLabel": "หน้าเป้าหมาย (ไม่บังคับ)",
+                "pageHelper": "เลือกหน้าที่ต้องการเชื่อมโยงกับคำหลักนี้",
+                "selectPage": "เลือกหน้า...",
+                "priorityLabel": "ความสำคัญ",
+                "priorityHigh": "สูง",
+                "priorityMedium": "กลาง",
+                "priorityLow": "ต่ำ",
+                "statusLabel": "สถานะ",
+                "statusTracking": "กำลังติดตาม",
+                "statusPaused": "หยุดชั่วคราว",
+                "createButton": "เพิ่มคำหลัก",
+                "saveButton": "บันทึกการเปลี่ยนแปลง"
+            },
+            "validation": {
+                "termRequired": "กรุณาระบุคำค้นหา"
+            }
+        },
+        "ranks": {
+            "updateRank": "อัปเดตอันดับ",
+            "currentRank": "อันดับปัจจุบัน",
+            "bestRank": "อันดับดีที่สุด",
+            "history": "ประวัติอันดับ",
+            "trend": "แนวโน้มอันดับ",
+            "date": "วันที่",
+            "rank": "อันดับ",
+            "note": "บันทึก",
+            "change": "การเปลี่ยนแปลง",
+            "modal": {
+                "title": "อัปเดตอันดับ",
+                "rankLabel": "อันดับปัจจุบัน",
+                "dateLabel": "วันที่",
+                "noteLabel": "บันทึก (ไม่บังคับ)",
+                "notePlaceholder": "เช่น ปรับแก้ h1",
+                "saveButton": "บันทึกอันดับ"
+            },
+            "validation": {
+                "rankRequired": "กรุณาระบุอันดับ",
+                "rankInvalid": "อันดับต้องอยู่ระหว่าง 1 ถึง 100",
+                "dateRequired": "กรุณาระบุวันที่"
+            }
+        }
+    },
+    "toast": {
+        "sites": {
+            "createSuccess": "สร้างไซต์สำเร็จแล้ว",
+            "updateSuccess": "อัปเดตไซต์สำเร็จแล้ว",
+            "deleteSuccess": "ลบไซต์สำเร็จแล้ว",
+            "deleteError": "ไม่สามารถลบไซต์ได้",
+            "operationFailed": "การดำเนินการล้มเหลว"
+        },
+        "pages": {
+            "createSuccess": "สร้างหน้าเว็บสำเร็จ",
+            "updateSuccess": "อัปเดตหน้าเว็บสำเร็จ",
+            "deleteSuccess": "ลบหน้าเว็บสำเร็จ",
+            "deleteError": "ลบหน้าเว็บไม่สำเร็จ",
+            "operationFailed": "การดำเนินการล้มเหลว"
+        }
+    },
+    "errors": {
+        "notFound": {
+            "title": "ไม่พบหน้าที่คุณต้องการ",
+            "description": "ไม่พบหน้าที่คุณกำลังมองหา หรือหน้าดังกล่าวถูกย้ายไปแล้ว",
+            "goHome": "ไปยังแดชบอร์ด"
+        },
+        "serverError": {
+            "title": "มีบางอย่างผิดพลาด",
+            "description": "เราพบข้อผิดพลาดที่ไม่คาดคิด กรุณาลองอีกครั้ง หรือกลับไปยังแดชบอร์ด",
+            "tryAgain": "ลองอีกครั้ง",
+            "goHome": "ไปยังแดชบอร์ด"
         }
     }
 }

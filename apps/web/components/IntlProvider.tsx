@@ -1,58 +1,60 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+/**
+ * IntlProvider - Fixed Version
+ * 
+ * ป้องกัน infinite loop โดย:
+ * 1. ใช้ useRef ป้องกัน re-initialization ซ้ำ
+ * 2. ใช้ useMemo สำหรับ messages เพื่อหลีกเลี่ยง re-render
+ * 3. Load messages synchronously จาก import (ไม่ใช้ async)
+ */
+
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 
-const locales = {
-    th: () => import('../locales/th.json').then(m => m.default),
-    en: () => import('../locales/en.json').then(m => m.default),
-    zh: () => import('../locales/zh.json').then(m => m.default),
+// Import messages statically for immediate availability
+import thMessages from '../locales/th.json';
+import enMessages from '../locales/en.json';
+import zhMessages from '../locales/zh.json';
+
+const allMessages = {
+    th: thMessages,
+    en: enMessages,
+    zh: zhMessages,
 };
 
+type LocaleKey = keyof typeof allMessages;
+
 export function IntlProvider({ children }: { children: React.ReactNode }) {
-    const [locale, setLocale] = useState('th');
-    const [messages, setMessages] = useState<any>(null);
+    const initialized = useRef(false);
+    const [locale, setLocale] = useState<LocaleKey>('en');
+    const [isReady, setIsReady] = useState(false);
 
-    // Load messages when locale changes
+    // One-time initialization only
     useEffect(() => {
-        const loadMessages = async () => {
-            try {
-                const loader = locales[locale as keyof typeof locales];
-                if (loader) {
-                    const msgs = await loader();
-                    console.log(`[IntlProvider] Loaded messages for ${locale}:`, msgs);
-                    setMessages(msgs);
-                } else {
-                    console.error(`[IntlProvider] No loader found for locale: ${locale}`);
-                }
-            } catch (error) {
-                console.error(`[IntlProvider] Failed to load messages for ${locale}:`, error);
+        if (initialized.current) return;
+        initialized.current = true;
+
+        // Get saved locale from localStorage
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('locale') as LocaleKey;
+            if (saved && allMessages[saved]) {
+                setLocale(saved);
             }
-        };
-
-        loadMessages();
-    }, [locale]);
-
-    // Watch for language changes from localStorage and custom events
-    useEffect(() => {
-        const handleLanguageChange = (e?: CustomEvent) => {
-            const newLocale = e?.detail?.locale || localStorage.getItem('locale') || 'th';
-            setLocale(newLocale);
-        };
-
-        // Initial load from localStorage
-        handleLanguageChange();
-
-        // Listen for custom event from LanguageSwitcher
-        window.addEventListener('languagechange', handleLanguageChange as EventListener);
-
-        return () => {
-            window.removeEventListener('languagechange', handleLanguageChange as EventListener);
-        };
+        }
+        setIsReady(true);
     }, []);
 
-    if (!messages) {
-        return <div>Loading translations...</div>;
+    // Messages are pre-loaded, no async needed
+    const messages = useMemo(() => allMessages[locale], [locale]);
+
+    // Show loading only on first render
+    if (!isReady) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-gray-600">Loading...</div>
+            </div>
+        );
     }
 
     return (

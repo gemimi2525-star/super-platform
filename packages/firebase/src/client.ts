@@ -54,6 +54,8 @@ export {
     startAfter,
     Timestamp,
     serverTimestamp,
+    runTransaction,
+    type Transaction,
 } from 'firebase/firestore';
 
 export {

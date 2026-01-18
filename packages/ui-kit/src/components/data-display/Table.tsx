@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 export interface ColumnDef<T> {
     key: string;
     header: string;
-    render?: (row: T) => React.ReactNode;
+    render?: (row: T, index: number) => React.ReactNode;
     sortable?: boolean;
 }
 
@@ -65,7 +65,7 @@ export function Table<T = any>({
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                    {data.map((row) => (
+                    {data.map((row, index) => (
                         <tr
                             key={keyExtractor(row)}
                             className={`
@@ -80,7 +80,7 @@ export function Table<T = any>({
                                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                                 >
                                     {column.render
-                                        ? column.render(row)
+                                        ? column.render(row, index) // Pass index
                                         : String((row as any)[column.key] ?? '-')
                                     }
                                 </td>

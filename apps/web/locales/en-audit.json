@@ -1,0 +1,21 @@
+{
+    "audit": {
+        "title": "Platform Audit Logs",
+        "description": "Monitor all platform owner activities and global read operations",
+        "filters": "Filters",
+        "filterOrgId": "Filter by Org ID",
+        "filterAction": "Filter by Action",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "logs": "Audit Logs",
+        "entries": "entries",
+        "loading": "Loading...",
+        "noLogs": "No audit logs found",
+        "timestamp": "Timestamp",
+        "actor": "Actor",
+        "action": "Action",
+        "orgId": "Org ID",
+        "entityType": "Entity Type",
+        "path": "Path"
+    }
+}

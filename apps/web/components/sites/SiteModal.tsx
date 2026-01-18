@@ -3,10 +3,12 @@
 /**
  * SiteModal Component
  * Modal for creating and editing SEO sites
+ * Fully internationalized
  */
 
 import { useState, useEffect } from 'react';
 import { Modal, ModalFooter, Button, FormGroup, Input, Select, Textarea } from '@platform/ui-kit';
+import { useTranslations } from 'next-intl';
 import type { Site } from '@modules/seo';
 
 export interface SiteModalProps {
@@ -39,6 +41,7 @@ export function SiteModal({
     onClose,
     onSubmit
 }: SiteModalProps) {
+    const t = useTranslations();
     const [formData, setFormData] = useState<SiteFormData>({
         name: '',
         domain: '',
@@ -77,27 +80,27 @@ export function SiteModal({
         const newErrors: Partial<Record<keyof SiteFormData, string>> = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Site name is required';
+            newErrors.name = t('seo.sites.validation.nameRequired');
         }
 
         if (!formData.domain.trim()) {
-            newErrors.domain = 'Domain is required';
+            newErrors.domain = t('seo.sites.validation.domainRequired');
         } else {
             // Basic domain validation
             const domainRegex = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i;
             if (!domainRegex.test(formData.domain)) {
-                newErrors.domain = 'Invalid domain format';
+                newErrors.domain = t('seo.sites.validation.domainInvalid');
             }
         }
 
         if (!formData.url.trim()) {
-            newErrors.url = 'URL is required';
+            newErrors.url = t('seo.sites.validation.urlRequired');
         } else {
             // Basic URL validation
             try {
                 new URL(formData.url);
             } catch {
-                newErrors.url = 'Invalid URL format';
+                newErrors.url = t('seo.sites.validation.urlInvalid');
             }
         }
 
@@ -134,63 +137,63 @@ export function SiteModal({
         <Modal
             isOpen={open}
             onClose={onClose}
-            title={mode === 'create' ? 'Add New Site' : 'Edit Site'}
+            title={mode === 'create' ? t('seo.sites.modal.addNew') : t('seo.sites.modal.edit')}
             size="md"
         >
             <div className="space-y-4">
                 <FormGroup
-                    label="Site Name"
+                    label={t('seo.sites.modal.nameLabel')}
                     required
                     error={errors.name}
-                    helperText="A friendly name for this website"
+                    helperText={t('seo.sites.modal.nameHelper')}
                 >
                     <Input
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="My Website"
+                        placeholder={t('seo.sites.modal.namePlaceholder')}
                         disabled={isSubmitting}
                     />
                 </FormGroup>
 
                 <FormGroup
-                    label="Domain"
+                    label={t('seo.sites.modal.domainLabel')}
                     required
                     error={errors.domain}
-                    helperText="Domain without protocol (e.g., example.com)"
+                    helperText={t('seo.sites.modal.domainHelper')}
                 >
                     <Input
                         value={formData.domain}
                         onChange={(e) => setFormData({ ...formData, domain: e.target.value.toLowerCase() })}
-                        placeholder="example.com"
+                        placeholder={t('seo.sites.modal.domainPlaceholder')}
                         disabled={isSubmitting}
                     />
                 </FormGroup>
 
                 <FormGroup
-                    label="Full URL"
+                    label={t('seo.sites.modal.urlLabel')}
                     required
                     error={errors.url}
-                    helperText="Complete URL with protocol"
+                    helperText={t('seo.sites.modal.urlHelper')}
                 >
                     <Input
                         value={formData.url}
                         onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        placeholder="https://example.com"
+                        placeholder={t('seo.sites.modal.urlPlaceholder')}
                         disabled={isSubmitting}
                     />
                 </FormGroup>
 
                 <FormGroup
-                    label="Status"
-                    helperText="Set site monitoring status"
+                    label={t('seo.sites.modal.statusLabel')}
+                    helperText={t('seo.sites.modal.statusHelper')}
                 >
                     <Select
                         value={formData.status}
                         onChange={(value) => setFormData({ ...formData, status: value as typeof formData.status })}
                         options={[
-                            { value: 'active', label: 'Active' },
-                            { value: 'inactive', label: 'Inactive' },
-                            { value: 'pending', label: 'Pending' },
+                            { value: 'active', label: t('seo.sites.modal.activeOption') },
+                            { value: 'inactive', label: t('seo.sites.modal.inactiveOption') },
+                            { value: 'pending', label: t('seo.sites.modal.pendingOption') },
                         ]}
                         disabled={isSubmitting}
                     />
@@ -203,7 +206,7 @@ export function SiteModal({
                     onClick={onClose}
                     disabled={isSubmitting}
                 >
-                    Cancel
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     variant="primary"
@@ -211,7 +214,7 @@ export function SiteModal({
                     loading={isSubmitting}
                     disabled={isSubmitting}
                 >
-                    {mode === 'create' ? 'Create Site' : 'Save Changes'}
+                    {mode === 'create' ? t('seo.sites.modal.createButton') : t('seo.sites.modal.saveButton')}
                 </Button>
             </ModalFooter>
         </Modal>
