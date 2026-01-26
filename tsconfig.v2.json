@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "include": [
+        "app/**/(platform-v2)/**/*.ts",
+        "app/**/(platform-v2)/**/*.tsx",
+        "modules/design-system/**/*.ts",
+        "modules/design-system/**/*.tsx",
+        "scripts/**/*.ts"
+    ],
+    "exclude": [
+        "tests/**",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "node_modules"
+    ]
+}

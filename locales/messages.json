@@ -1,0 +1,3219 @@
+{
+  "auth.authFailed": {
+    "en": "Authentication failed",
+    "th": "การยืนยันตัวตนล้มเหลว",
+    "zh": "认证失败"
+  },
+  "common.crud.listTitle": {
+    "en": "List",
+    "th": "รายการ",
+    "zh": "列表"
+  },
+  "common.crud.createTitle": {
+    "en": "Create",
+    "th": "สร้าง",
+    "zh": "创建"
+  },
+  "common.crud.editTitle": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "common.crud.detailTitle": {
+    "en": "Detail",
+    "th": "รายละเอียด",
+    "zh": "详情"
+  },
+  "common.crud.new": {
+    "en": "New",
+    "th": "สร้างใหม่",
+    "zh": "新建"
+  },
+  "common.crud.create": {
+    "en": "Create",
+    "th": "สร้าง",
+    "zh": "创建"
+  },
+  "common.crud.save": {
+    "en": "Save",
+    "th": "บันทึก",
+    "zh": "保存"
+  },
+  "common.crud.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "common.crud.delete": {
+    "en": "Delete",
+    "th": "ลบ",
+    "zh": "删除"
+  },
+  "common.crud.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "common.crud.back": {
+    "en": "Back",
+    "th": "ย้อนกลับ",
+    "zh": "返回"
+  },
+  "common.states.loading": {
+    "en": "Loading...",
+    "th": "กำลังโหลด...",
+    "zh": "加载中..."
+  },
+  "common.states.empty": {
+    "en": "No data available",
+    "th": "ไม่มีข้อมูล",
+    "zh": "暂无数据"
+  },
+  "common.states.errorTitle": {
+    "en": "Error",
+    "th": "ข้อผิดพลาด",
+    "zh": "错误"
+  },
+  "common.states.noOrgTitle": {
+    "en": "Organization Context Missing",
+    "th": "ไม่พบข้อมูลองค์กร",
+    "zh": "缺少组织上下文"
+  },
+  "common.states.noOrgDesc": {
+    "en": "Please select an organization to proceed.",
+    "th": "กรุณาเลือกองค์กรเพื่อดำเนินการต่อ",
+    "zh": "请选择一个组织以继续。"
+  },
+  "common.table.actions": {
+    "en": "Actions",
+    "th": "การกระทำ",
+    "zh": "操作"
+  },
+  "common.validation.required": {
+    "en": "Required",
+    "th": "จำเป็น",
+    "zh": "必填"
+  },
+  "common.validation.invalidEmail": {
+    "en": "Invalid email",
+    "th": "อีเมลไม่ถูกต้อง",
+    "zh": "无效的电子邮件"
+  },
+  "common.validation.invalidPhone": {
+    "en": "Invalid phone number",
+    "th": "เบอร์โทรศัพท์ไม่ถูกต้อง",
+    "zh": "无效的电话号码"
+  },
+  "common.status.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "common.status.inactive": {
+    "en": "Inactive",
+    "th": "ปิดใช้งาน",
+    "zh": "非活跃"
+  },
+  "common.status.pending": {
+    "en": "Pending",
+    "th": "รอดำเนินการ",
+    "zh": "待处理"
+  },
+  "platform.customers.list.title": {
+    "en": "Customers",
+    "th": "ลูกค้า",
+    "zh": "客户"
+  },
+  "platform.customers.list.subtitle": {
+    "en": "Manage customers for {orgId}",
+    "th": "จัดการลูกค้าสำหรับ {orgId}",
+    "zh": "管理 {orgId} 的客户"
+  },
+  "platform.customers.list.actions.create": {
+    "en": "New Customer",
+    "th": "สร้างลูกค้าใหม่",
+    "zh": "新建客户"
+  },
+  "platform.customers.form.titleCreate": {
+    "en": "Create New Customer",
+    "th": "สร้างลูกค้าใหม่",
+    "zh": "创建新客户"
+  },
+  "platform.customers.form.titleEdit": {
+    "en": "Edit Customer",
+    "th": "แก้ไขลูกค้า",
+    "zh": "编辑客户"
+  },
+  "platform.customers.form.subtitle": {
+    "en": "Add a new customer to {orgId}",
+    "th": "เพิ่มลูกค้าใหม่ใน {orgId}",
+    "zh": "向 {orgId} 添加新客户"
+  },
+  "platform.customers.form.sections.basic": {
+    "en": "Basic Information",
+    "th": "ข้อมูลพื้นฐาน",
+    "zh": "基本信息"
+  },
+  "platform.customers.form.sections.contact": {
+    "en": "Contact Information",
+    "th": "ข้อมูลผู้ติดต่อ",
+    "zh": "联系方式"
+  },
+  "platform.customers.form.sections.address": {
+    "en": "Address",
+    "th": "ที่อยู่",
+    "zh": "地址"
+  },
+  "platform.customers.form.fields.code.label": {
+    "en": "Customer Code",
+    "th": "รหัสลูกค้า",
+    "zh": "客户代码"
+  },
+  "platform.customers.form.fields.code.placeholder": {
+    "en": "e.g. CUST-001",
+    "th": "เช่น CUST-001",
+    "zh": "例如 CUST-001"
+  },
+  "platform.customers.form.fields.name.label": {
+    "en": "Customer Name",
+    "th": "ชื่อลูกค้า",
+    "zh": "客户名称"
+  },
+  "platform.customers.form.fields.name.placeholder": {
+    "en": "e.g. Acme Corp",
+    "th": "เช่น Acme Corp",
+    "zh": "例如 Acme Corp"
+  },
+  "platform.customers.form.fields.taxId.label": {
+    "en": "Tax ID",
+    "th": "เลขประจำตัวผู้เสียภาษี",
+    "zh": "税号"
+  },
+  "platform.customers.form.fields.taxId.placeholder": {
+    "en": "Optional",
+    "th": "ไม่บังคับ",
+    "zh": "选填"
+  },
+  "platform.customers.form.fields.address.label": {
+    "en": "Address",
+    "th": "ที่อยู่",
+    "zh": "地址"
+  },
+  "platform.customers.form.fields.address.placeholder": {
+    "en": "Optional",
+    "th": "ไม่บังคับ",
+    "zh": "选填"
+  },
+  "platform.customers.form.fields.contactName.label": {
+    "en": "Contact Name",
+    "th": "ชื่อผู้ติดต่อ",
+    "zh": "联系人姓名"
+  },
+  "platform.customers.form.fields.contactName.placeholder": {
+    "en": "Optional",
+    "th": "ไม่บังคับ",
+    "zh": "选填"
+  },
+  "platform.customers.form.fields.email.label": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮箱"
+  },
+  "platform.customers.form.fields.email.placeholder": {
+    "en": "Optional",
+    "th": "ไม่บังคับ",
+    "zh": "选填"
+  },
+  "platform.customers.form.fields.phone.label": {
+    "en": "Phone",
+    "th": "เบอร์โทรศัพท์",
+    "zh": "电话号码"
+  },
+  "platform.customers.form.fields.phone.placeholder": {
+    "en": "Optional",
+    "th": "ไม่บังคับ",
+    "zh": "选填"
+  },
+  "platform.customers.form.success": {
+    "en": "Customer created successfully",
+    "th": "สร้างลูกค้าสำเร็จ",
+    "zh": "客户创建成功"
+  },
+  "platform.customers.form.error": {
+    "en": "Failed to load customers",
+    "th": "โหลดข้อมูลลูกค้าไม่สำเร็จ",
+    "zh": "加载客户失败"
+  },
+  "platform.customers.errors.contextMissing": {
+    "en": "Organization Context Missing",
+    "th": "ไม่พบข้อมูลองค์กร",
+    "zh": "缺少组织上下文"
+  },
+  "platform.customers.errors.permissionDenied": {
+    "en": "You do not have permission to view customers for this organization.",
+    "th": "คุณไม่มีสิทธิ์ดูข้อมูลลูกค้าขององค์กรนี้",
+    "zh": "您没有权限查看该组织的客户。"
+  },
+  "auth.createAccount": {
+    "en": "Create your account",
+    "th": "สร้างบัญชีของคุณ",
+    "zh": "创建您的账户"
+  },
+  "auth.email": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮件"
+  },
+  "auth.emailPlaceholder": {
+    "en": "you@example.com",
+    "th": "you@example.com",
+    "zh": "you@example.com"
+  },
+  "auth.hasAccount": {
+    "en": "Already have an account? Sign in",
+    "th": "มีบัญชีอยู่แล้วใช่ไหม? เข้าสู่ระบบ",
+    "zh": "已有账户？登录"
+  },
+  "auth.hidePassword": {
+    "en": "Hide password",
+    "th": "ซ่อนรหัสผ่าน",
+    "zh": "隐藏密码"
+  },
+  "auth.login": {
+    "en": "Login",
+    "th": "เข้าสู่ระบบ",
+    "zh": "登录"
+  },
+  "auth.loginButton": {
+    "en": "Sign In",
+    "th": "เข้าสู่ระบบ",
+    "zh": "登录"
+  },
+  "auth.noAccount": {
+    "en": "Don't have an account? Sign up",
+    "th": "ยังไม่มีบัญชีหรือ? สมัครสมาชิก",
+    "zh": "没有账户？注册"
+  },
+  "auth.password": {
+    "en": "Password",
+    "th": "รหัสผ่าน",
+    "zh": "密码"
+  },
+  "auth.passwordPlaceholder": {
+    "en": "••••••••",
+    "th": "••••••••",
+    "zh": "••••••••"
+  },
+  "auth.rememberMe": {
+    "en": "Remember me",
+    "th": "จดจำฉัน",
+    "zh": "记住我"
+  },
+  "auth.showPassword": {
+    "en": "Show password",
+    "th": "แสดงรหัสผ่าน",
+    "zh": "显示密码"
+  },
+  "auth.signInToContinue": {
+    "en": "Sign in to continue",
+    "th": "เข้าสู่ระบบเพื่อดำเนินการต่อ",
+    "zh": "登录以继续"
+  },
+  "auth.signup": {
+    "en": "Sign Up",
+    "th": "สมัครสมาชิก",
+    "zh": "注册"
+  },
+  "auth.signupButton": {
+    "en": "Sign Up",
+    "th": "สมัครสมาชิก",
+    "zh": "注册"
+  },
+  "common.actions": {
+    "en": "Actions",
+    "th": "จัดการ",
+    "zh": "操作"
+  },
+  "common.inactive": {
+    "en": "Inactive",
+    "th": "ปิดใช้งาน",
+    "zh": "非活跃"
+  },
+  "common.pending": {
+    "en": "Pending",
+    "th": "รอดำเนินการ",
+    "zh": "待处理"
+  },
+  "common.appName": {
+    "en": "APICOREDATA",
+    "th": "APICOREDATA",
+    "zh": "APICOREDATA"
+  },
+  "common.back": {
+    "en": "Back",
+    "th": "กลับ",
+    "zh": "返回"
+  },
+  "common.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "common.close": {
+    "en": "Close",
+    "th": "ปิด",
+    "zh": "关闭"
+  },
+  "common.comingSoon": {
+    "en": "Coming soon...",
+    "th": "เร็วๆ นี้...",
+    "zh": "即将推出..."
+  },
+  "common.create": {
+    "en": "Create",
+    "th": "สร้าง",
+    "zh": "创建"
+  },
+  "common.csv.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "common.csv.columnsMismatch": {
+    "en": "Column mismatch",
+    "th": "จำนวนคอลัมน์ไม่ถูกต้อง",
+    "zh": "列数不匹配"
+  },
+  "common.csv.downloadTemplate": {
+    "en": "Download Template",
+    "th": "ดาวน์โหลดเทมเพลต",
+    "zh": "下载模板"
+  },
+  "common.csv.dropzone": {
+    "en": "Drop CSV file here or click to upload",
+    "th": "ลากไฟล์ CSV มาวางที่นี่ หรือคลิกเพื่ออัปโหลด",
+    "zh": "将 CSV 文件拖放到此处或点击上传"
+  },
+  "common.csv.errorHeader": {
+    "en": "Invalid Rows",
+    "th": "แถวที่ไม่ถูกต้อง",
+    "zh": "无效行"
+  },
+  "common.csv.exportTitle": {
+    "en": "Export CSV",
+    "th": "ส่งออก CSV",
+    "zh": "导出 CSV"
+  },
+  "common.csv.importButton": {
+    "en": "Import {count} Valid Rows",
+    "th": "นำเข้า {count} รายการที่ถูกต้อง",
+    "zh": "导入 {count} 条有效数据"
+  },
+  "common.csv.importTitle": {
+    "en": "Import CSV",
+    "th": "นำเข้า CSV",
+    "zh": "导入 CSV"
+  },
+  "common.csv.importing": {
+    "en": "Importing...",
+    "th": "กำลังนำเข้า...",
+    "zh": "正在导入..."
+  },
+  "common.csv.invalidRows": {
+    "en": "Invalid Rows: {count}",
+    "th": "ไม่ถูกต้อง: {count}",
+    "zh": "无效数据: {count}"
+  },
+  "common.csv.preview": {
+    "en": "Preview Data",
+    "th": "ดูตัวอย่างข้อมูล",
+    "zh": "预览数据"
+  },
+  "common.csv.row": {
+    "en": "Row {row}",
+    "th": "แถวที่ {row}",
+    "zh": "第 {row} 行"
+  },
+  "common.csv.successSummary": {
+    "en": "Successfully imported {count} items",
+    "th": "นำเข้าสำเร็จ {count} รายการ",
+    "zh": "成功导入 {count} 条数据"
+  },
+  "common.csv.validRows": {
+    "en": "Valid Rows: {count}",
+    "th": "ถูกต้อง: {count}",
+    "zh": "有效数据: {count}"
+  },
+  "common.delete": {
+    "en": "Delete",
+    "th": "ลบ",
+    "zh": "删除"
+  },
+  "common.disabled": {
+    "en": "Disabled",
+    "th": "ปิดใช้งาน",
+    "zh": "已禁用"
+  },
+  "common.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "common.enabled": {
+    "en": "Enabled",
+    "th": "เปิดใช้งาน",
+    "zh": "已启用"
+  },
+  "common.error": {
+    "en": "An error occurred",
+    "th": "เกิดข้อผิดพลาด",
+    "zh": "发生错误"
+  },
+  "common.language": {
+    "en": "Language",
+    "th": "ภาษา",
+    "zh": "语言"
+  },
+  "common.loading": {
+    "en": "Loading...",
+    "th": "กำลังโหลด...",
+    "zh": "加载中..."
+  },
+  "common.logout": {
+    "en": "Logout",
+    "th": "ออกจากระบบ",
+    "zh": "登出"
+  },
+  "common.next": {
+    "en": "Next",
+    "th": "ถัดไป",
+    "zh": "下一步"
+  },
+  "common.noData": {
+    "en": "No Data",
+    "th": "ไม่มีข้อมูล",
+    "zh": "无数据"
+  },
+  "common.save": {
+    "en": "Save",
+    "th": "บันทึก",
+    "zh": "保存"
+  },
+  "common.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "common.submit": {
+    "en": "Submit",
+    "th": "ส่ง",
+    "zh": "提交"
+  },
+  "common.unknownError": {
+    "en": "Unknown error",
+    "th": "ข้อผิดพลาดที่ไม่ทราบสาเหตุ",
+    "zh": "未知错误"
+  },
+  "common.welcome": {
+    "en": "Welcome",
+    "th": "ยินดีต้อนรับ",
+    "zh": "欢迎"
+  },
+  "dashboard.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "dashboard.activeModules": {
+    "en": "Active Modules",
+    "th": "โมดูลที่ใช้งาน",
+    "zh": "活跃模块"
+  },
+  "dashboard.clickToOpen": {
+    "en": "Click to open",
+    "th": "คลิกเพื่อเปิด",
+    "zh": "点击打开"
+  },
+  "dashboard.liveBanner.audit": {
+    "en": "Audit logging enabled",
+    "th": "เปิดใช้งานการบันทึกการตรวจสอบแล้ว",
+    "zh": "审计日志已启用"
+  },
+  "dashboard.liveBanner.multiTenant": {
+    "en": "Multi-tenant architecture active",
+    "th": "สถาปัตยกรรมแบบหลายผู้เช่าเปิดใช้งานแล้ว",
+    "zh": "多租户架构已激活"
+  },
+  "dashboard.liveBanner.organization": {
+    "en": "Organization",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "dashboard.liveBanner.rbac": {
+    "en": "RBAC permissions configured",
+    "th": "กำหนดค่าสิทธิ์ RBAC แล้ว",
+    "zh": "RBAC权限已配置"
+  },
+  "dashboard.liveBanner.ready": {
+    "en": "Ready to add business modules!",
+    "th": "พร้อมเพิ่มโมดูลธุรกิจ!",
+    "zh": "准备添加业务模块!"
+  },
+  "dashboard.liveBanner.title": {
+    "en": "APICOREDATA is Live!",
+    "th": "APICOREDATA เปิดใช้งานแล้ว!",
+    "zh": "APICOREDATA 已上线!"
+  },
+  "dashboard.modules": {
+    "en": "Modules",
+    "th": "โมดูล",
+    "zh": "模块"
+  },
+  "dashboard.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "dashboard.owner": {
+    "en": "Owner",
+    "th": "เจ้าของ",
+    "zh": "所有者"
+  },
+  "dashboard.plan": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "dashboard.settings": {
+    "en": "Settings",
+    "th": "ตั้งค่า",
+    "zh": "设置"
+  },
+  "dashboard.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "dashboard.title": {
+    "en": "Dashboard",
+    "th": "แดชบอร์ด",
+    "zh": "仪表板"
+  },
+  "dashboard.yourRole": {
+    "en": "Your Role",
+    "th": "บทบาทของคุณ",
+    "zh": "您的角色"
+  },
+  "errors.notFound.description": {
+    "en": "The page you're looking for doesn't exist or has been moved.",
+    "th": "ไม่พบหน้าที่คุณกำลังมองหา หรือหน้าดังกล่าวถูกย้ายไปแล้ว",
+    "zh": "您要访问的页面不存在或已被移动。"
+  },
+  "errors.notFound.goHome": {
+    "en": "Go to Dashboard",
+    "th": "ไปยังแดชบอร์ด",
+    "zh": "返回仪表板"
+  },
+  "errors.notFound.title": {
+    "en": "Page Not Found",
+    "th": "ไม่พบหน้าที่คุณต้องการ",
+    "zh": "找不到页面"
+  },
+  "errors.pages.createSuccess": {
+    "en": "Page created successfully",
+    "th": "สร้างหน้าเว็บสำเร็จ",
+    "zh": "页面创建成功"
+  },
+  "errors.pages.deleteError": {
+    "en": "Failed to delete page",
+    "th": "ลบหน้าเว็บไม่สำเร็จ",
+    "zh": "删除页面失败"
+  },
+  "errors.pages.deleteSuccess": {
+    "en": "Page deleted successfully",
+    "th": "ลบหน้าเว็บสำเร็จ",
+    "zh": "页面删除成功"
+  },
+  "errors.pages.operationFailed": {
+    "en": "Operation failed",
+    "th": "การดำเนินการล้มเหลว",
+    "zh": "操作失败"
+  },
+  "errors.pages.updateSuccess": {
+    "en": "Page updated successfully",
+    "th": "อัปเดตหน้าเว็บสำเร็จ",
+    "zh": "页面更新成功"
+  },
+  "errors.serverError.description": {
+    "en": "We encountered an unexpected error. Please try again or go back to the dashboard.",
+    "th": "เราพบข้อผิดพลาดที่ไม่คาดคิด กรุณาลองอีกครั้ง หรือกลับไปยังแดชบอร์ด",
+    "zh": "我们遇到了意外错误。请重试或返回仪表板。"
+  },
+  "errors.serverError.goHome": {
+    "en": "Go to Dashboard",
+    "th": "ไปยังแดชบอร์ด",
+    "zh": "返回仪表板"
+  },
+  "errors.serverError.title": {
+    "en": "Something Went Wrong",
+    "th": "มีบางอย่างผิดพลาด",
+    "zh": "出现错误"
+  },
+  "errors.serverError.tryAgain": {
+    "en": "Try Again",
+    "th": "ลองอีกครั้ง",
+    "zh": "重试"
+  },
+  "organizations.dashboard": {
+    "en": "Dashboard",
+    "th": "แดชบอร์ด",
+    "zh": "仪表板"
+  },
+  "organizations.description": {
+    "en": "This is a temporary organizations page. Select where you want to go:",
+    "th": "นี่คือหน้าองค์กรชั่วคราว เลือกที่คุณต้องการไป:",
+    "zh": "这是临时组织页面。选择您要去的地方:"
+  },
+  "organizations.designSystem": {
+    "en": "Design System",
+    "th": "ระบบออกแบบ",
+    "zh": "设计系统"
+  },
+  "organizations.guest": {
+    "en": "Guest",
+    "th": "ผู้เยี่ยมชม",
+    "zh": "访客"
+  },
+  "organizations.logoutSwitch": {
+    "en": "Logout / Switch Account",
+    "th": "ออกจากระบบ / สลับบัญชี",
+    "zh": "登出 / 切换账户"
+  },
+  "organizations.notLoggedIn": {
+    "en": "Not logged in",
+    "th": "ยังไม่ได้เข้าสู่ระบบ",
+    "zh": "未登录"
+  },
+  "organizations.ownerPanel": {
+    "en": "Owner Panel",
+    "th": "แผงควบคุมเจ้าของ",
+    "zh": "所有者面板"
+  },
+  "organizations.seoSites": {
+    "en": "SEO Sites",
+    "th": "SEO ไซต์",
+    "zh": "SEO 站点"
+  },
+  "organizations.user": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "organizations.welcome": {
+    "en": "Welcome to APICOREDATA",
+    "th": "ยินดีต้อนรับสู่ APICOREDATA",
+    "zh": "欢迎来到 APICOREDATA"
+  },
+  "platform.controlPanel.authConnected": {
+    "en": "Auth: Firebase (Connected)",
+    "th": "การยืนยันตัวตน: Firebase (เชื่อมต่อแล้ว)",
+    "zh": "认证：Firebase（已连接）"
+  },
+  "platform.controlPanel.billing": {
+    "en": "Billing",
+    "th": "การเรียกเก็บเงิน",
+    "zh": "计费"
+  },
+  "platform.controlPanel.billingComingSoon": {
+    "en": "Revenue & Invoices (Coming Soon)",
+    "th": "รายได้และใบแจ้งหนี้ (เร็วๆ นี้)",
+    "zh": "收入和发票（即将推出）"
+  },
+  "platform.controlPanel.globalActivity": {
+    "en": "Global Activity",
+    "th": "กิจกรรมทั่วโลก",
+    "zh": "全球活动"
+  },
+  "platform.controlPanel.logout": {
+    "en": "Logout",
+    "th": "ออกจากระบบ",
+    "zh": "登出"
+  },
+  "platform.controlPanel.manageTenantsSubscriptions": {
+    "en": "Manage tenants & subscriptions",
+    "th": "จัดการผู้เช่าและการสมัครสมาชิก",
+    "zh": "管理租户和订阅"
+  },
+  "platform.controlPanel.manageViaOrgs": {
+    "en": "Manage via Orgs",
+    "th": "จัดการผ่านองค์กร",
+    "zh": "通过组织管理"
+  },
+  "platform.controlPanel.managementModules": {
+    "en": "Management Modules",
+    "th": "โมดูลการจัดการ",
+    "zh": "管理模块"
+  },
+  "platform.controlPanel.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.controlPanel.organizationsModule": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.controlPanel.platformOwner": {
+    "en": "Platform Owner",
+    "th": "เจ้าของแพลตฟอร์ม",
+    "zh": "平台所有者"
+  },
+  "platform.controlPanel.subtitle": {
+    "en": "System Overview & Management",
+    "th": "ภาพรวมระบบและการจัดการ",
+    "zh": "系统概览与管理"
+  },
+  "platform.controlPanel.systemOperational": {
+    "en": "System Operational",
+    "th": "ระบบทำงานปกติ",
+    "zh": "系统运行正常"
+  },
+  "platform.controlPanel.title": {
+    "en": "Platform Control Panel",
+    "th": "แผงควบคุมแพลตฟอร์ม",
+    "zh": "平台控制面板"
+  },
+  "platform.controlPanel.totalScans": {
+    "en": "Total Scans",
+    "th": "การสแกนทั้งหมด",
+    "zh": "扫描总数"
+  },
+  "platform.controlPanel.totalUsers": {
+    "en": "Total Users",
+    "th": "ผู้ใช้ทั้งหมด",
+    "zh": "用户总数"
+  },
+  "platform.controlPanel.viewAll": {
+    "en": "View All",
+    "th": "ดูทั้งหมด",
+    "zh": "查看全部"
+  },
+  "platform.controlPanel.usersModule": {
+    "en": "Users",
+    "th": "ผู้ใช้งาน",
+    "zh": "用户"
+  },
+  "platform.controlPanel.usersModuleDesc": {
+    "en": "Manage platform users and roles",
+    "th": "จัดการผู้ดูแลและสิทธิ์การใช้งาน",
+    "zh": "管理平台用户和角色"
+  },
+  "platform.controlPanel.rolesModule": {
+    "en": "Roles",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "platform.controlPanel.rolesModuleDesc": {
+    "en": "Configure role-based access",
+    "th": "กำหนดสิทธิ์การเข้าถึงตามบทบาท",
+    "zh": "配置基于角色的访问权限"
+  },
+  "platform.controlPanel.auditModule": {
+    "en": "Audit Logs",
+    "th": "บันทึกการตรวจสอบ",
+    "zh": "审计日志"
+  },
+  "platform.controlPanel.auditModuleDesc": {
+    "en": "View system activity and security logs",
+    "th": "ดูประวัติการใช้งานและความปลอดภัย",
+    "zh": "查看系统活动和安全日志"
+  },
+  "platform.controlPanel.orgsModule": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.controlPanel.orgsModuleDesc": {
+    "en": "Manage customer organizations and subscriptions",
+    "th": "จัดการลูกค้าและการสมัครสมาชิก",
+    "zh": "管理客户组织和订阅"
+  },
+  "platform.controlPanel.billingModule": {
+    "en": "Billing",
+    "th": "การเรียกเก็บเงิน",
+    "zh": "账单"
+  },
+  "platform.controlPanel.billingModuleDesc": {
+    "en": "View revenue and manage plans",
+    "th": "ดูรายได้และจัดการแพ็กเกจ",
+    "zh": "查看收入和管理计划"
+  },
+  "platform.orgs.title": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.orgs.subtitle": {
+    "en": "Manage all tenants on the platform",
+    "th": "จัดการลูกค้าทั้งหมดบนแพลตฟอร์ม",
+    "zh": "管理平台上的所有租户"
+  },
+  "platform.orgs.table.name": {
+    "en": "Name",
+    "th": "ชื่อ",
+    "zh": "名称"
+  },
+  "platform.orgs.table.id": {
+    "en": "ID",
+    "th": "รหัส",
+    "zh": "标识"
+  },
+  "platform.orgs.table.plan": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "platform.orgs.table.created": {
+    "en": "Created",
+    "th": "วันที่สร้าง",
+    "zh": "创建时间"
+  },
+  "platform.orgs.table.actions": {
+    "en": "Actions",
+    "th": "จัดการ",
+    "zh": "操作"
+  },
+  "platform.orgs.loading": {
+    "en": "Loading organizations...",
+    "th": "กำลังโหลดองค์กร...",
+    "zh": "正在加载组织..."
+  },
+  "platform.orgs.noOrgs": {
+    "en": "No organizations found.",
+    "th": "ไม่พบองค์กร",
+    "zh": "未找到组织"
+  },
+  "platform.orgs.actions.view": {
+    "en": "View",
+    "th": "ดู",
+    "zh": "查看"
+  },
+  "platform.orgs.createButton": {
+    "en": "Create New Organization",
+    "th": "สร้างองค์กรใหม่",
+    "zh": "创建新组织"
+  },
+  "platform.orgs.toolbar.searchPlaceholder": {
+    "en": "Search organizations...",
+    "th": "ค้นหาองค์กร...",
+    "zh": "搜索组织..."
+  },
+  "platform.orgs.toolbar.rowsPerPage": {
+    "en": "{count} per page",
+    "th": "{count} รายการต่อหน้า",
+    "zh": "每页 {count} 条"
+  },
+  "platform.orgs.toolbar.density.default": {
+    "en": "Default",
+    "th": "ปกติ",
+    "zh": "默认"
+  },
+  "platform.orgs.toolbar.density.dense": {
+    "en": "Dense",
+    "th": "กระชับ",
+    "zh": "紧凑"
+  },
+  "platform.orgs.table.slug": {
+    "en": "Slug",
+    "th": "Slug",
+    "zh": "标识符"
+  },
+  "platform.orgs.actions.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "platform.orgs.actions.disable": {
+    "en": "Disable",
+    "th": "ปิดใช้งาน",
+    "zh": "禁用"
+  },
+  "platform.orgs.empty.title": {
+    "en": "No organizations yet",
+    "th": "ยังไม่มีองค์กร",
+    "zh": "暂无组织"
+  },
+  "platform.orgs.empty.description": {
+    "en": "Create your first organization to get started",
+    "th": "สร้างองค์กรแรกของคุณเพื่อเริ่มต้น",
+    "zh": "创建您的第一个组织以开始"
+  },
+  "platform.orgs.create.title": {
+    "en": "Create New Organization",
+    "th": "สร้างองค์กรใหม่",
+    "zh": "创建新组织"
+  },
+  "platform.orgs.create.name": {
+    "en": "Organization Name",
+    "th": "ชื่อองค์กร",
+    "zh": "组织名称"
+  },
+  "platform.orgs.create.namePlaceholder": {
+    "en": "e.g. Acme Corporation",
+    "th": "เช่น บริษัท Acme จำกัด",
+    "zh": "例如 Acme 公司"
+  },
+  "platform.orgs.create.slug": {
+    "en": "Slug",
+    "th": "Slug",
+    "zh": "标识符"
+  },
+  "platform.orgs.create.slugPlaceholder": {
+    "en": "e.g. acme-corp",
+    "th": "เช่น acme-corp",
+    "zh": "例如 acme-corp"
+  },
+  "platform.orgs.create.slugHelper": {
+    "en": "Lowercase, numbers, and hyphens only",
+    "th": "ตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายยัติภังค์เท่านั้น",
+    "zh": "仅限小写字母、数字和连字符"
+  },
+  "platform.orgs.create.plan": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "platform.orgs.create.planFree": {
+    "en": "Free",
+    "th": "ฟรี",
+    "zh": "免费"
+  },
+  "platform.orgs.create.planStarter": {
+    "en": "Starter",
+    "th": "เริ่มต้น",
+    "zh": "入门"
+  },
+  "platform.orgs.create.planPro": {
+    "en": "Pro",
+    "th": "โปร",
+    "zh": "专业"
+  },
+  "platform.orgs.create.planEnterprise": {
+    "en": "Enterprise",
+    "th": "องค์กร",
+    "zh": "企业"
+  },
+  "platform.orgs.create.submit": {
+    "en": "Create Organization",
+    "th": "สร้างองค์กร",
+    "zh": "创建组织"
+  },
+  "platform.orgs.create.creating": {
+    "en": "Creating...",
+    "th": "กำลังสร้าง...",
+    "zh": "创建中..."
+  },
+  "platform.orgs.create.success": {
+    "en": "Organization created successfully",
+    "th": "สร้างองค์กรสำเร็จ",
+    "zh": "组织创建成功"
+  },
+  "platform.orgs.create.error.duplicateSlug": {
+    "en": "This slug is already in use. Please choose a different one.",
+    "th": "Slug นี้ถูกใช้แล้ว กรุณาเลือกอันใหม่",
+    "zh": "此标识符已被使用，请选择其他标识符。"
+  },
+  "platform.orgs.create.error.invalidSlug": {
+    "en": "Slug must contain only lowercase letters, numbers, and hyphens",
+    "th": "Slug ต้องประกอบด้วยตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายยัติภังค์เท่านั้น",
+    "zh": "标识符只能包含小写字母、数字和连字符"
+  },
+  "platform.orgs.create.error.general": {
+    "en": "Failed to create organization. Please try again.",
+    "th": "ไม่สามารถสร้างองค์กรได้ กรุณาลองอีกครั้ง",
+    "zh": "创建组织失败，请重试。"
+  },
+  "platform.orgs.create.error.forbidden": {
+    "en": "You don't have permission to create organizations",
+    "th": "คุณไม่มีสิทธิ์สร้างองค์กร",
+    "zh": "你没有权限创建组织"
+  },
+  "platform.orgs.edit.title": {
+    "en": "Edit Organization",
+    "th": "แก้ไของค์กร",
+    "zh": "编辑组织"
+  },
+  "platform.orgs.edit.name": {
+    "en": "Organization Name",
+    "th": "ชื่อองค์กร",
+    "zh": "组织名称"
+  },
+  "platform.orgs.edit.namePlaceholder": {
+    "en": "e.g. Acme Corporation",
+    "th": "เช่น บริษัท Acme จำกัด",
+    "zh": "例如 Acme 公司"
+  },
+  "platform.orgs.edit.slug": {
+    "en": "Slug",
+    "th": "Slug",
+    "zh": "标识符"
+  },
+  "platform.orgs.edit.slugPlaceholder": {
+    "en": "e.g. acme-corp",
+    "th": "เช่น acme-corp",
+    "zh": "例如 acme-corp"
+  },
+  "platform.orgs.edit.slugHelper": {
+    "en": "Lowercase, numbers, and hyphens only",
+    "th": "ตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายยัติภังค์เท่านั้น",
+    "zh": "仅限小写字母、数字和连字符"
+  },
+  "platform.orgs.edit.plan": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "platform.orgs.edit.planFree": {
+    "en": "Free",
+    "th": "ฟรี",
+    "zh": "免费"
+  },
+  "platform.orgs.edit.planStarter": {
+    "en": "Starter",
+    "th": "เริ่มต้น",
+    "zh": "入门"
+  },
+  "platform.orgs.edit.planPro": {
+    "en": "Pro",
+    "th": "โปร",
+    "zh": "专业"
+  },
+  "platform.orgs.edit.planEnterprise": {
+    "en": "Enterprise",
+    "th": "องค์กร",
+    "zh": "企业"
+  },
+  "platform.orgs.edit.submit": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "platform.orgs.edit.saving": {
+    "en": "Saving...",
+    "th": "กำลังบันทึก...",
+    "zh": "保存中..."
+  },
+  "platform.orgs.edit.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "platform.orgs.edit.error.invalidSlug": {
+    "en": "Slug must contain only lowercase letters, numbers, and hyphens",
+    "th": "Slug ต้องประกอบด้วยตัวพิมพ์เล็ก ตัวเลข และเครื่องหมายยัติภังค์เท่านั้น",
+    "zh": "标识符只能包含小写字母、数字和连字符"
+  },
+  "platform.orgs.edit.error.general": {
+    "en": "Failed to update organization. Please try again.",
+    "th": "ไม่สามารถอัปเดตองค์กรได้ กรุณาลองอีกครั้ง",
+    "zh": "更新组织失败，请重试。"
+  },
+  "platform.orgs.edit.error.duplicateSlug": {
+    "en": "This slug is already in use. Please choose another one.",
+    "th": "Slug นี้ถูกใช้งานแล้ว กรุณาเลือก slug ใหม่",
+    "zh": "该 slug 已被使用，请选择其他 slug。"
+  },
+  "platform.orgs.edit.error.forbidden": {
+    "en": "You don't have permission to edit this organization",
+    "th": "คุณไม่มีสิทธิ์แก้ไของค์กรนี้",
+    "zh": "你没有权限编辑该组织"
+  },
+  "platform.orgs.disable.confirmTitle": {
+    "en": "Disable organization?",
+    "th": "ปิดการใช้งานองค์กรนี้?",
+    "zh": "停用该组织？"
+  },
+  "platform.orgs.disable.confirmDescription": {
+    "en": "This will disable the organization and hide it from the list. You can restore it later if needed.",
+    "th": "การปิดใช้งานจะซ่อนองค์กรนี้ออกจากรายการ และสามารถกู้คืนได้ภายหลังหากต้องการ",
+    "zh": "停用后该组织将从列表中隐藏，必要时可在之后恢复。"
+  },
+  "platform.orgs.disable.confirmButton": {
+    "en": "Disable",
+    "th": "ปิดการใช้งาน",
+    "zh": "停用"
+  },
+  "platform.orgs.disable.cancelButton": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "platform.orgs.disable.disabling": {
+    "en": "Disabling...",
+    "th": "กำลังปิดการใช้งาน...",
+    "zh": "正在停用..."
+  },
+  "platform.orgs.disable.success": {
+    "en": "Organization disabled successfully",
+    "th": "ปิดการใช้งานองค์กรเรียบร้อยแล้ว",
+    "zh": "组织已成功停用"
+  },
+  "platform.orgs.disable.error.general": {
+    "en": "Failed to disable organization",
+    "th": "ไม่สามารถปิดการใช้งานองค์กรได้",
+    "zh": "无法停用组织"
+  },
+  "platform.orgs.disable.error.notFound": {
+    "en": "Organization not found",
+    "th": "ไม่พบองค์กร",
+    "zh": "未找到组织"
+  },
+  "platform.orgs.disable.error.forbidden": {
+    "en": "You don't have permission to disable this organization",
+    "th": "คุณไม่มีสิทธิ์ปิดการใช้งานองค์กรนี้",
+    "zh": "你没有权限停用该组织"
+  },
+  "platform.orgs.detail.title": {
+    "en": "Organization",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.orgs.detail.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "platform.orgs.detail.status.active": {
+    "en": "ACTIVE",
+    "th": "ใช้งานอยู่",
+    "zh": "启用"
+  },
+  "platform.orgs.detail.status.disabled": {
+    "en": "DISABLED",
+    "th": "ถูกปิดใช้งาน",
+    "zh": "已停用"
+  },
+  "platform.orgs.detail.section.basic": {
+    "en": "Basic Information",
+    "th": "ข้อมูลพื้นฐาน",
+    "zh": "基本信息"
+  },
+  "platform.orgs.detail.section.domain": {
+    "en": "Domain",
+    "th": "โดเมน",
+    "zh": "域名"
+  },
+  "platform.orgs.detail.section.audit": {
+    "en": "Audit Information",
+    "th": "ข้อมูลการบันทึก",
+    "zh": "审计信息"
+  },
+  "platform.orgs.detail.field.name": {
+    "en": "Name",
+    "th": "ชื่อ",
+    "zh": "名称"
+  },
+  "platform.orgs.detail.field.slug": {
+    "en": "Slug",
+    "th": "Slug",
+    "zh": "Slug"
+  },
+  "platform.orgs.detail.field.plan": {
+    "en": "Plan",
+    "th": "แพ็กเกจ",
+    "zh": "套餐"
+  },
+  "platform.orgs.detail.field.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "platform.orgs.detail.field.domain": {
+    "en": "Custom Domain",
+    "th": "โดเมนที่กำหนดเอง",
+    "zh": "自定义域名"
+  },
+  "platform.orgs.detail.field.createdAt": {
+    "en": "Created",
+    "th": "สร้างเมื่อ",
+    "zh": "创建时间"
+  },
+  "platform.orgs.detail.field.updatedAt": {
+    "en": "Last Updated",
+    "th": "อัปเดตล่าสุด",
+    "zh": "最近更新"
+  },
+  "platform.orgs.detail.field.createdBy": {
+    "en": "Created By",
+    "th": "สร้างโดย",
+    "zh": "创建者"
+  },
+  "platform.orgs.detail.error.notFound.title": {
+    "en": "Organization not found",
+    "th": "ไม่พบองค์กร",
+    "zh": "未找到组织"
+  },
+  "platform.orgs.detail.error.notFound.subtitle": {
+    "en": "The organization may have been deleted or you don't have access.",
+    "th": "องค์กรอาจถูกลบ หรือคุณไม่มีสิทธิ์เข้าถึง",
+    "zh": "该组织可能已被删除，或你没有访问权限。"
+  },
+  "platform.orgs.detail.error.failed.title": {
+    "en": "Failed to load organization",
+    "th": "โหลดข้อมูลองค์กรไม่สำเร็จ",
+    "zh": "加载组织失败"
+  },
+  "platform.orgs.detail.error.failed.subtitle": {
+    "en": "Please try again later.",
+    "th": "กรุณาลองใหม่อีกครั้งภายหลัง",
+    "zh": "请稍后重试。"
+  },
+  "platform.roles.title": {
+    "en": "Role Management",
+    "th": "จัดการบทบาท",
+    "zh": "角色管理"
+  },
+  "platform.roles.subtitle": {
+    "en": "Manage platform roles and permissions",
+    "th": "จัดการบทบาทและสิทธิ์การใช้งานของแพลตฟอร์ม",
+    "zh": "管理平台角色和权限"
+  },
+  "platform.roles.createButton": {
+    "en": "Create New Role",
+    "th": "สร้างบทบาทใหม่",
+    "zh": "创建新角色"
+  },
+  "platform.roles.table.name": {
+    "en": "Role Name",
+    "th": "ชื่อบทบาท",
+    "zh": "角色名称"
+  },
+  "platform.roles.table.description": {
+    "en": "Description",
+    "th": "คำอธิบาย",
+    "zh": "描述"
+  },
+  "platform.roles.table.type": {
+    "en": "Type",
+    "th": "ประเภท",
+    "zh": "类型"
+  },
+  "platform.roles.table.actions": {
+    "en": "Actions",
+    "th": "การจัดการ",
+    "zh": "操作"
+  },
+  "platform.roles.status.system": {
+    "en": "System",
+    "th": "ระบบ",
+    "zh": "系统"
+  },
+  "platform.roles.status.custom": {
+    "en": "Custom",
+    "th": "กำหนดเอง",
+    "zh": "自定义"
+  },
+  "platform.roles.actions.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "platform.roles.actions.copy": {
+    "en": "Copy",
+    "th": "คัดลอก",
+    "zh": "复制"
+  },
+  "platform.roles.actions.delete": {
+    "en": "Delete",
+    "th": "ลบ",
+    "zh": "删除"
+  },
+  "platform.roles.messages.deleteConfirm": {
+    "en": "Are you sure you want to delete this role? This cannot be undone.",
+    "th": "คุณแน่ใจหรือไม่ที่จะลบชีบทบาทนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+    "zh": "确定要删除此角色吗？此操作无法撤销。"
+  },
+  "platform.roles.messages.copyPrompt": {
+    "en": "Enter name for copy of {name}:",
+    "th": "ป้อนชื่อสำหรับคัดลอก {name}:",
+    "zh": "输入 {name} 副本的名称："
+  },
+  "platform.roles.messages.copyDefaultName": {
+    "en": "Copy of {name}",
+    "th": "สำเนาของ {name}",
+    "zh": "复件 {name}"
+  },
+  "platform.roles.messages.forbidden.delete": {
+    "en": "You don't have permission to delete roles",
+    "th": "คุณไม่มีสิทธิ์ลบบทบาท",
+    "zh": "你没有权限删除角色"
+  },
+  "platform.roles.messages.forbidden.copy": {
+    "en": "You don't have permission to copy roles",
+    "th": "คุณไม่มีสิทธิ์คัดลอกบทบาท",
+    "zh": "你没有权限复制角色"
+  },
+  "platform.roles.form.createTitle": {
+    "en": "Create New Role",
+    "th": "สร้างบทบาทใหม่",
+    "zh": "创建新角色"
+  },
+  "platform.roles.form.editTitle": {
+    "en": "Edit Role: {name}",
+    "th": "แก้ไขบทบาท: {name}",
+    "zh": "编辑角色: {name}"
+  },
+  "platform.roles.form.nameLabel": {
+    "en": "Role Name",
+    "th": "ชื่อบทบาท",
+    "zh": "角色名称"
+  },
+  "platform.roles.form.namePlaceholder": {
+    "en": "e.g. Support Manager",
+    "th": "ตัวอย่าง ผู้จัดการฝ่ายสนับสนุน",
+    "zh": "例如 支持经理"
+  },
+  "platform.roles.form.descLabel": {
+    "en": "Description",
+    "th": "คำอธิบาย",
+    "zh": "描述"
+  },
+  "platform.roles.form.descPlaceholder": {
+    "en": "Describe what this role can do...",
+    "th": "อธิบายสิ่งที่บทบาทนี้สามารถทำได้...",
+    "zh": "描述此角色的权限..."
+  },
+  "platform.roles.form.permissionsTitle": {
+    "en": "Permissions",
+    "th": "สิทธิ์การใช้งาน",
+    "zh": "权限"
+  },
+  "platform.roles.form.permissionsDesc": {
+    "en": "Select the permissions this role needs. Be careful when granting 'Delete' permissions.",
+    "th": "เลือกสิทธิ์ที่บทบาทนี้ต้องการ โปรดระมัดระวังเมื่อให้สิทธิ์ 'ลบ'",
+    "zh": "选择此角色所需的权限。授予“删除”权限时请小心。"
+  },
+  "platform.roles.form.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },
+  "platform.roles.form.save": {
+    "en": "Save Role",
+    "th": "บันทึกบทบาท",
+    "zh": "保存角色"
+  },
+  "platform.roles.form.saving": {
+    "en": "Saving...",
+    "th": "กำลังบันทึก...",
+    "zh": "保存中..."
+  },
+  "seo.keywords.addNew": {
+    "en": "Add New Keyword",
+    "th": "เพิ่มคำหลักใหม่",
+    "zh": "添加新关键词"
+  },
+  "seo.keywords.deleteMessage": {
+    "en": "Are you sure you want to delete this keyword? This action cannot be undone.",
+    "th": "คุณแน่ใจหรือไม่ที่จะลบคำหลักนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+    "zh": "确定要删除此关键词吗？此操作无法撤销。"
+  },
+  "seo.keywords.deleteTitle": {
+    "en": "Delete Keyword",
+    "th": "ลบคำหลัก",
+    "zh": "删除关键词"
+  },
+  "seo.keywords.modal.addNew": {
+    "en": "Add New Keyword",
+    "th": "เพิ่มคำหลักใหม่",
+    "zh": "添加新关键词"
+  },
+  "seo.keywords.modal.createButton": {
+    "en": "Add Keyword",
+    "th": "เพิ่มคำหลัก",
+    "zh": "添加关键词"
+  },
+  "seo.keywords.modal.edit": {
+    "en": "Edit Keyword",
+    "th": "แก้ไขคำหลัก",
+    "zh": "编辑关键词"
+  },
+  "seo.keywords.modal.pageHelper": {
+    "en": "Select a page to associating this keyword with",
+    "th": "เลือกหน้าที่ต้องการเชื่อมโยงกับคำหลักนี้",
+    "zh": "选择与此关键词关联的页面"
+  },
+  "seo.keywords.modal.pageLabel": {
+    "en": "Target Page (Optional)",
+    "th": "หน้าเป้าหมาย (ไม่บังคับ)",
+    "zh": "目标页面（可选）"
+  },
+  "seo.keywords.modal.priorityHigh": {
+    "en": "High",
+    "th": "สูง",
+    "zh": "高"
+  },
+  "seo.keywords.modal.priorityLabel": {
+    "en": "Priority",
+    "th": "ความสำคัญ",
+    "zh": "优先级"
+  },
+  "seo.keywords.modal.priorityLow": {
+    "en": "Low",
+    "th": "ต่ำ",
+    "zh": "低"
+  },
+  "seo.keywords.modal.priorityMedium": {
+    "en": "Medium",
+    "th": "กลาง",
+    "zh": "中"
+  },
+  "seo.keywords.modal.saveButton": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "seo.keywords.modal.selectPage": {
+    "en": "Select a page...",
+    "th": "เลือกหน้า...",
+    "zh": "选择页面..."
+  },
+  "seo.keywords.modal.statusLabel": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.keywords.modal.statusPaused": {
+    "en": "Paused",
+    "th": "หยุดชั่วคราว",
+    "zh": "已暂停"
+  },
+  "seo.keywords.modal.statusTracking": {
+    "en": "Tracking",
+    "th": "กำลังติดตาม",
+    "zh": "追踪中"
+  },
+  "seo.keywords.modal.termHelper": {
+    "en": "The search term to track",
+    "th": "คำค้นหาที่ต้องการติดตาม",
+    "zh": "要追踪的搜索词"
+  },
+  "seo.keywords.modal.termLabel": {
+    "en": "Keyword Term",
+    "th": "คำค้นหา (Keyword)",
+    "zh": "搜索词 (Keyword)"
+  },
+  "seo.keywords.modal.termPlaceholder": {
+    "en": "e.g. seo dashboard",
+    "th": "เช่น การทำ SEO",
+    "zh": "例如 SEO 仪表板"
+  },
+  "seo.keywords.noData": {
+    "en": "No keywords yet",
+    "th": "ยังไม่มีคำหลัก",
+    "zh": "暂无关键词"
+  },
+  "seo.keywords.noDataDesc": {
+    "en": "Start tracking your first keyword",
+    "th": "เริ่มติดตามคำหลักแรกของคุณ",
+    "zh": "开始追踪您的第一个关键词"
+  },
+  "seo.keywords.noPageLinked": {
+    "en": "No page linked",
+    "th": "ไม่มีหน้าเป้าหมายที่เชื่อมโยง",
+    "zh": "未关联页面"
+  },
+  "seo.keywords.page": {
+    "en": "Target Page",
+    "th": "หน้าเป้าหมาย",
+    "zh": "目标页面"
+  },
+  "seo.keywords.rank": {
+    "en": "Rank",
+    "th": "อันดับ",
+    "zh": "排名"
+  },
+  "seo.keywords.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.keywords.term": {
+    "en": "Keyword Term",
+    "th": "คำค้นหา",
+    "zh": "搜索词"
+  },
+  "seo.keywords.title": {
+    "en": "Keywords",
+    "th": "คำหลัก",
+    "zh": "关键词"
+  },
+  "seo.keywords.validation.termRequired": {
+    "en": "Keyword term is required",
+    "th": "กรุณาระบุคำค้นหา",
+    "zh": "搜索词为必填项"
+  },
+  "seo.pages.addNew": {
+    "en": "Add New Page",
+    "th": "เพิ่มหน้าใหม่",
+    "zh": "添加新页面"
+  },
+  "seo.pages.archived": {
+    "en": "Archived",
+    "th": "จัดเก็บ",
+    "zh": "已归档"
+  },
+  "seo.pages.deleteMessage": {
+    "en": "Are you sure you want to delete this page? This action cannot be undone.",
+    "th": "คุณแน่ใจหรือไม่ที่จะลบหน้าเว็บนี้? การกระทำนี้ไม่สามารถย้อนกลับได้",
+    "zh": "确定要删除此页面吗？此操作无法撤销。"
+  },
+  "seo.pages.deleteTitle": {
+    "en": "Delete Page",
+    "th": "ลบหน้าเว็บ",
+    "zh": "删除页面"
+  },
+  "seo.pages.draft": {
+    "en": "Draft",
+    "th": "ร่าง",
+    "zh": "草稿"
+  },
+  "seo.pages.modal.addNew": {
+    "en": "Add New Page",
+    "th": "เพิ่มหน้าใหม่",
+    "zh": "添加新页面"
+  },
+  "seo.pages.modal.archivedOption": {
+    "en": "Archived",
+    "th": "จัดเก็บ",
+    "zh": "已归档"
+  },
+  "seo.pages.modal.createButton": {
+    "en": "Create Page",
+    "th": "สร้างหน้าเว็บ",
+    "zh": "创建页面"
+  },
+  "seo.pages.modal.draftOption": {
+    "en": "Draft",
+    "th": "ร่าง",
+    "zh": "草稿"
+  },
+  "seo.pages.modal.edit": {
+    "en": "Edit Page",
+    "th": "แก้ไขหน้าเว็บ",
+    "zh": "编辑页面"
+  },
+  "seo.pages.modal.pathHelper": {
+    "en": "URL path starting with / (e.g., /about)",
+    "th": "URL path ที่ขึ้นต้นด้วย / (เช่น /about)",
+    "zh": "以此开头的 URL 路径 / (例如 /about)"
+  },
+  "seo.pages.modal.pathLabel": {
+    "en": "Path/Slug",
+    "th": "Path/Slug",
+    "zh": "路径/Slug"
+  },
+  "seo.pages.modal.pathPlaceholder": {
+    "en": "/about",
+    "th": "/about",
+    "zh": "/about"
+  },
+  "seo.pages.modal.publishedOption": {
+    "en": "Published",
+    "th": "เผยแพร่",
+    "zh": "已发布"
+  },
+  "seo.pages.modal.saveButton": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "seo.pages.modal.siteHelper": {
+    "en": "Select the site this page belongs to",
+    "th": "เลือกเว็บไซต์ที่หน้านี้สังกัด",
+    "zh": "选择此页面所属的网站"
+  },
+  "seo.pages.modal.siteLabel": {
+    "en": "Site",
+    "th": "เว็บไซต์",
+    "zh": "网站"
+  },
+  "seo.pages.modal.statusHelper": {
+    "en": "Publication status",
+    "th": "สถานะการเผยแพร่",
+    "zh": "发布状态"
+  },
+  "seo.pages.modal.statusLabel": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.pages.modal.titleHelper": {
+    "en": "The title of this page (optional)",
+    "th": "ชื่อของหน้านี้ (ไม่บังคับ)",
+    "zh": "此页面的标题（可选）"
+  },
+  "seo.pages.modal.titleLabel": {
+    "en": "Page Title",
+    "th": "ชื่อหน้า",
+    "zh": "页面标题"
+  },
+  "seo.pages.modal.titlePlaceholder": {
+    "en": "My Page",
+    "th": "หน้าของฉัน",
+    "zh": "我的页面"
+  },
+  "seo.pages.modal.urlHelper": {
+    "en": "Complete URL including domain",
+    "th": "URL เต็มรวมถึงโดเมน",
+    "zh": "包含域名的完整 URL"
+  },
+  "seo.pages.modal.urlLabel": {
+    "en": "Full URL",
+    "th": "URL เต็ม",
+    "zh": "完整 URL"
+  },
+  "seo.pages.modal.urlPlaceholder": {
+    "en": "https://example.com/about",
+    "th": "https://example.com/about",
+    "zh": "https://example.com/about"
+  },
+  "seo.pages.noData": {
+    "en": "No pages yet",
+    "th": "ยังไม่มีหน้าเว็บ",
+    "zh": "暂无页面"
+  },
+  "seo.pages.noDataDesc": {
+    "en": "Get started by adding your first page",
+    "th": "เริ่มต้นด้วยการเพิ่มหน้าเว็บแรกของคุณ",
+    "zh": "开始添加您的第一个页面"
+  },
+  "seo.pages.pageTitle": {
+    "en": "Page Title",
+    "th": "ชื่อหน้า",
+    "zh": "页面标题"
+  },
+  "seo.pages.path": {
+    "en": "Path/Slug",
+    "th": "Path/Slug",
+    "zh": "路径/Slug"
+  },
+  "seo.pages.published": {
+    "en": "Published",
+    "th": "เผยแพร่",
+    "zh": "已发布"
+  },
+  "seo.pages.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.pages.title": {
+    "en": "Pages",
+    "th": "หน้าเว็บ",
+    "zh": "页面"
+  },
+  "seo.pages.untitled": {
+    "en": "(Untitled)",
+    "th": "(ไม่มีชื่อ)",
+    "zh": "(无标题)"
+  },
+  "seo.pages.updatedAt": {
+    "en": "Updated",
+    "th": "อัปเดต",
+    "zh": "更新于"
+  },
+  "seo.pages.url": {
+    "en": "URL",
+    "th": "URL",
+    "zh": "URL"
+  },
+  "seo.pages.validation.pathInvalid": {
+    "en": "Path must start with /",
+    "th": "Path ต้องขึ้นต้นด้วย /",
+    "zh": "路径必须以 / 开头"
+  },
+  "seo.pages.validation.pathRequired": {
+    "en": "Path is required",
+    "th": "กรุณาระบุ Path",
+    "zh": "路径为必填项"
+  },
+  "seo.pages.validation.siteRequired": {
+    "en": "Please select a site",
+    "th": "กรุณาเลือกเว็บไซต์",
+    "zh": "请选择一个网站"
+  },
+  "seo.pages.validation.urlInvalid": {
+    "en": "Invalid URL format",
+    "th": "รูปแบบ URL ไม่ถูกต้อง",
+    "zh": "URL 格式无效"
+  },
+  "seo.pages.validation.urlRequired": {
+    "en": "URL is required",
+    "th": "กรุณาระบุ URL",
+    "zh": "URL 为必填项"
+  },
+  "seo.ranks.bestRank": {
+    "en": "Best Rank",
+    "th": "อันดับดีที่สุด",
+    "zh": "最佳排名"
+  },
+  "seo.ranks.change": {
+    "en": "Change",
+    "th": "การเปลี่ยนแปลง",
+    "zh": "变化"
+  },
+  "seo.ranks.currentRank": {
+    "en": "Current Rank",
+    "th": "อันดับปัจจุบัน",
+    "zh": "当前排名"
+  },
+  "seo.ranks.date": {
+    "en": "Date",
+    "th": "วันที่",
+    "zh": "日期"
+  },
+  "seo.ranks.history": {
+    "en": "Ranking History",
+    "th": "ประวัติอันดับ",
+    "zh": "排名历史"
+  },
+  "seo.ranks.modal.dateLabel": {
+    "en": "Date",
+    "th": "วันที่",
+    "zh": "日期"
+  },
+  "seo.ranks.modal.noteLabel": {
+    "en": "Note (Optional)",
+    "th": "บันทึก (ไม่บังคับ)",
+    "zh": "备注（可选）"
+  },
+  "seo.ranks.modal.notePlaceholder": {
+    "en": "e.g. Optimized h1 tag",
+    "th": "เช่น ปรับแก้ h1",
+    "zh": "例如：优化 h1 标签"
+  },
+  "seo.ranks.modal.rankLabel": {
+    "en": "Current Rank",
+    "th": "อันดับปัจจุบัน",
+    "zh": "当前排名"
+  },
+  "seo.ranks.modal.saveButton": {
+    "en": "Save Ranking",
+    "th": "บันทึกอันดับ",
+    "zh": "保存排名"
+  },
+  "seo.ranks.modal.title": {
+    "en": "Update Ranking",
+    "th": "อัปเดตอันดับ",
+    "zh": "更新排名"
+  },
+  "seo.ranks.note": {
+    "en": "Note",
+    "th": "บันทึก",
+    "zh": "备注"
+  },
+  "seo.ranks.rank": {
+    "en": "Rank",
+    "th": "อันดับ",
+    "zh": "排名"
+  },
+  "seo.ranks.trend": {
+    "en": "Rank Trend",
+    "th": "แนวโน้มอันดับ",
+    "zh": "排名趋势"
+  },
+  "seo.ranks.updateRank": {
+    "en": "Update Rank",
+    "th": "อัปเดตอันดับ",
+    "zh": "更新排名"
+  },
+  "seo.ranks.validation.dateRequired": {
+    "en": "Date is required",
+    "th": "กรุณาระบุวันที่",
+    "zh": "日期为必填项"
+  },
+  "seo.ranks.validation.rankInvalid": {
+    "en": "Rank must be between 1 and 100",
+    "th": "อันดับต้องอยู่ระหว่าง 1 ถึง 100",
+    "zh": "排名必须在 1 到 100 之间"
+  },
+  "seo.ranks.validation.rankRequired": {
+    "en": "Rank is required",
+    "th": "กรุณาระบุอันดับ",
+    "zh": "排名为必填项"
+  },
+  "seo.sites.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "seo.sites.addNew": {
+    "en": "Add New Website",
+    "th": "เพิ่มเว็บไซต์ใหม่",
+    "zh": "添加新网站"
+  },
+  "seo.sites.createdAt": {
+    "en": "Created",
+    "th": "สร้างเมื่อ",
+    "zh": "创建于"
+  },
+  "seo.sites.deleteMessage": {
+    "en": "Are you sure you want to delete this website? This action cannot be undone.",
+    "th": "คุณแน่ใจหรือไม่ว่าต้องการลบเว็บไซต์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้",
+    "zh": "您确定要删除此网站吗？此操作无法撤销。"
+  },
+  "seo.sites.deleteTitle": {
+    "en": "Delete Website",
+    "th": "ลบเว็บไซต์",
+    "zh": "删除网站"
+  },
+  "seo.sites.domain": {
+    "en": "Domain",
+    "th": "โดเมน",
+    "zh": "域名"
+  },
+  "seo.sites.inactive": {
+    "en": "Inactive",
+    "th": "ไม่ใช้งาน",
+    "zh": "不活跃"
+  },
+  "seo.sites.modal.activeOption": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "seo.sites.modal.addNew": {
+    "en": "Add New Site",
+    "th": "เพิ่มไซต์ใหม่",
+    "zh": "添加新站点"
+  },
+  "seo.sites.modal.createButton": {
+    "en": "Create Site",
+    "th": "สร้างไซต์",
+    "zh": "创建站点"
+  },
+  "seo.sites.modal.domainHelper": {
+    "en": "Domain without protocol (e.g., example.com)",
+    "th": "โดเมนโดยไม่มีโปรโตคอล (เช่น example.com)",
+    "zh": "不带协议的域名（例如 example.com）"
+  },
+  "seo.sites.modal.domainLabel": {
+    "en": "Domain",
+    "th": "โดเมน",
+    "zh": "域名"
+  },
+  "seo.sites.modal.domainPlaceholder": {
+    "en": "example.com",
+    "th": "example.com",
+    "zh": "example.com"
+  },
+  "seo.sites.modal.edit": {
+    "en": "Edit Site",
+    "th": "แก้ไขไซต์",
+    "zh": "编辑站点"
+  },
+  "seo.sites.modal.inactiveOption": {
+    "en": "Inactive",
+    "th": "ไม่ใช้งาน",
+    "zh": "不活跃"
+  },
+  "seo.sites.modal.nameHelper": {
+    "en": "A friendly name for this website",
+    "th": "ชื่อที่เป็นมิตรสำหรับเว็บไซต์นี้",
+    "zh": "此网站的友好名称"
+  },
+  "seo.sites.modal.nameLabel": {
+    "en": "Site Name",
+    "th": "ชื่อไซต์",
+    "zh": "站点名称"
+  },
+  "seo.sites.modal.namePlaceholder": {
+    "en": "My Website",
+    "th": "เว็บไซต์ของฉัน",
+    "zh": "我的网站"
+  },
+  "seo.sites.modal.pendingOption": {
+    "en": "Pending",
+    "th": "รอดำเนินการ",
+    "zh": "待定"
+  },
+  "seo.sites.modal.saveButton": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "seo.sites.modal.statusHelper": {
+    "en": "Set site monitoring status",
+    "th": "ตั้งค่าสถานะการตรวจสอบไซต์",
+    "zh": "设置站点监控状态"
+  },
+  "seo.sites.modal.statusLabel": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.sites.modal.urlHelper": {
+    "en": "Complete URL with protocol",
+    "th": "URL แบบสมบูรณ์พร้อมโปรโตคอล",
+    "zh": "带协议的完整 URL"
+  },
+  "seo.sites.modal.urlLabel": {
+    "en": "Full URL",
+    "th": "URL แบบเต็ม",
+    "zh": "完整 URL"
+  },
+  "seo.sites.modal.urlPlaceholder": {
+    "en": "https://example.com",
+    "th": "https://example.com",
+    "zh": "https://example.com"
+  },
+  "seo.sites.name": {
+    "en": "Website Name",
+    "th": "ชื่อเว็บไซต์",
+    "zh": "网站名称"
+  },
+  "seo.sites.noData": {
+    "en": "No websites yet",
+    "th": "ยังไม่มีเว็บไซต์",
+    "zh": "暂无网站"
+  },
+  "seo.sites.noDataDesc": {
+    "en": "Get started by adding your first website",
+    "th": "เริ่มต้นโดยการเพิ่มเว็บไซต์แรกของคุณ",
+    "zh": "开始添加您的第一个网站"
+  },
+  "seo.sites.pending": {
+    "en": "Pending",
+    "th": "รอดำเนินการ",
+    "zh": "待定"
+  },
+  "seo.sites.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "seo.sites.title": {
+    "en": "All Websites",
+    "th": "เว็บไซต์ทั้งหมด",
+    "zh": "所有网站"
+  },
+  "seo.sites.url": {
+    "en": "URL",
+    "th": "URL",
+    "zh": "网址"
+  },
+  "seo.sites.validation.domainInvalid": {
+    "en": "Invalid domain format",
+    "th": "รูปแบบโดเมนไม่ถูกต้อง",
+    "zh": "域名格式无效"
+  },
+  "seo.sites.validation.domainRequired": {
+    "en": "Domain is required",
+    "th": "กรุณาระบุโดเมน",
+    "zh": "域名为必填项"
+  },
+  "seo.sites.validation.nameRequired": {
+    "en": "Site name is required",
+    "th": "กรุณาระบุชื่อไซต์",
+    "zh": "站点名称为必填项"
+  },
+  "seo.sites.validation.urlInvalid": {
+    "en": "Invalid URL format",
+    "th": "รูปแบบ URL ไม่ถูกต้อง",
+    "zh": "URL 格式无效"
+  },
+  "seo.sites.validation.urlRequired": {
+    "en": "URL is required",
+    "th": "กรุณาระบุ URL",
+    "zh": "URL 为必填项"
+  },
+  "toast.pages.createSuccess": {
+    "en": "Page created successfully",
+    "th": "สร้างหน้าเว็บสำเร็จ",
+    "zh": "页面创建成功"
+  },
+  "toast.pages.deleteError": {
+    "en": "Failed to delete page",
+    "th": "ลบหน้าเว็บไม่สำเร็จ",
+    "zh": "删除页面失败"
+  },
+  "toast.pages.deleteSuccess": {
+    "en": "Page deleted successfully",
+    "th": "ลบหน้าเว็บสำเร็จ",
+    "zh": "页面删除成功"
+  },
+  "toast.pages.operationFailed": {
+    "en": "Operation failed",
+    "th": "การดำเนินการล้มเหลว",
+    "zh": "操作失败"
+  },
+  "toast.pages.updateSuccess": {
+    "en": "Page updated successfully",
+    "th": "อัปเดตหน้าเว็บสำเร็จ",
+    "zh": "页面更新成功"
+  },
+  "toast.ranks.addSuccess": {
+    "en": "Rank updated successfully",
+    "th": "อัปเดตอันดับสำเร็จ",
+    "zh": "排名更新成功"
+  },
+  "toast.ranks.deleteSuccess": {
+    "en": "History entry deleted",
+    "th": "ลบประวัติสำเร็จ",
+    "zh": "历史记录已删除"
+  },
+  "toast.ranks.operationFailed": {
+    "en": "Operation failed",
+    "th": "การดำเนินการล้มเหลว",
+    "zh": "操作失败"
+  },
+  "toast.sites.createSuccess": {
+    "en": "Site created successfully",
+    "th": "สร้างไซต์สำเร็จแล้ว",
+    "zh": "站点创建成功"
+  },
+  "toast.sites.deleteError": {
+    "en": "Failed to delete site",
+    "th": "ไม่สามารถลบไซต์ได้",
+    "zh": "删除站点失败"
+  },
+  "toast.sites.deleteSuccess": {
+    "en": "Site deleted successfully",
+    "th": "ลบไซต์สำเร็จแล้ว",
+    "zh": "站点删除成功"
+  },
+  "toast.sites.operationFailed": {
+    "en": "Operation failed",
+    "th": "การดำเนินการล้มเหลว",
+    "zh": "操作失败"
+  },
+  "toast.sites.updateSuccess": {
+    "en": "Site updated successfully",
+    "th": "อัปเดตไซต์สำเร็จแล้ว",
+    "zh": "站点更新成功"
+  },
+  "platform.userManagement.title": {
+    "en": "User Management",
+    "th": "จัดการผู้ใช้",
+    "zh": "用户管理"
+  },
+  "platform.userManagement.subtitle": {
+    "en": "Manage platform users and their roles",
+    "th": "จัดการผู้ใช้แพลตฟอร์มและบทบาท",
+    "zh": "管理平台用户及其角色"
+  },
+  "platform.userManagement.createUser": {
+    "en": "Create User",
+    "th": "สร้างผู้ใช้",
+    "zh": "创建用户"
+  },
+  "platform.userManagement.user": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "platform.userManagement.role": {
+    "en": "Role",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "platform.userManagement.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "platform.userManagement.created": {
+    "en": "Created",
+    "th": "สร้างเมื่อ",
+    "zh": "创建时间"
+  },
+  "platform.userManagement.actions": {
+    "en": "Actions",
+    "th": "การดำเนินการ",
+    "zh": "操作"
+  },
+  "platform.userManagement.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "platform.userManagement.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "platform.userManagement.disabled": {
+    "en": "Disabled",
+    "th": "ปิดใช้งาน",
+    "zh": "已禁用"
+  },
+  "platform.userManagement.noUsers": {
+    "en": "No users found",
+    "th": "ไม่พบผู้ใช้",
+    "zh": "未找到用户"
+  },
+  "platform.userManagement.loading": {
+    "en": "Loading users...",
+    "th": "กำลังโหลดผู้ใช้...",
+    "zh": "加载用户中..."
+  },
+  "platform.userManagement.createNewUser": {
+    "en": "Create New User",
+    "th": "สร้างผู้ใช้ใหม่",
+    "zh": "创建新用户"
+  },
+  "platform.userManagement.email": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮件"
+  },
+  "platform.userManagement.displayName": {
+    "en": "Display Name",
+    "th": "ชื่อที่แสดง",
+    "zh": "显示名称"
+  },
+  "platform.userManagement.selectRole": {
+    "en": "Select role",
+    "th": "เลือกบทบาท",
+    "zh": "选择角色"
+  },
+  "platform.userManagement.roleNote": {
+    "en": "You can only create users with roles lower than yours",
+    "th": "คุณสามารถสร้างผู้ใช้ที่มีบทบาทต่ำกว่าคุณเท่านั้น",
+    "zh": "您只能创建角色低于您的用户"
+  },
+  "platform.userManagement.creating": {
+    "en": "Creating...",
+    "th": "กำลังสร้าง...",
+    "zh": "创建中..."
+  },
+  "platform.userManagement.userCreated": {
+    "en": "User Created Successfully",
+    "th": "สร้างผู้ใช้สำเร็จ",
+    "zh": "用户创建成功"
+  },
+  "platform.userManagement.saveCredentials": {
+    "en": "Save these credentials - the password will not be shown again!",
+    "th": "บันทึกข้อมูลเหล่านี้ - รหัสผ่านจะไม่แสดงอีก!",
+    "zh": "保存这些凭据 - 密码不会再次显示！"
+  },
+  "platform.userManagement.password": {
+    "en": "Password",
+    "th": "รหัสผ่าน",
+    "zh": "密码"
+  },
+  "platform.userManagement.done": {
+    "en": "Done",
+    "th": "เสร็จสิ้น",
+    "zh": "完成"
+  },
+  "platform.userManagement.error.forbidden": {
+    "en": "You don't have permission to perform this action",
+    "th": "คุณไม่มีสิทธิ์ดำเนินการนี้",
+    "zh": "你没有权限执行此操作"
+  },
+  "platform.userManagement.backToUsers": {
+    "en": "Back to Users",
+    "th": "กลับไปยังผู้ใช้",
+    "zh": "返回用户列表"
+  },
+  "platform.userManagement.userInfo": {
+    "en": "User Information",
+    "th": "ข้อมูลผู้ใช้",
+    "zh": "用户信息"
+  },
+  "platform.userManagement.uid": {
+    "en": "UID",
+    "th": "UID",
+    "zh": "UID"
+  },
+  "platform.userManagement.lastLogin": {
+    "en": "Last Login",
+    "th": "เข้าสู่ระบบล่าสุด",
+    "zh": "最后登录"
+  },
+  "platform.userManagement.never": {
+    "en": "Never",
+    "th": "ไม่เคย",
+    "zh": "从未"
+  },
+  "platform.userManagement.roleAndStatus": {
+    "en": "Role & Status",
+    "th": "บทบาทและสถานะ",
+    "zh": "角色和状态"
+  },
+  "platform.userManagement.userEnabled": {
+    "en": "User is enabled and can log in",
+    "th": "ผู้ใช้เปิดใช้งานและสามารถเข้าสู่ระบบได้",
+    "zh": "用户已启用并可以登录"
+  },
+  "platform.userManagement.permissions": {
+    "en": "Permissions",
+    "th": "สิทธิ์",
+    "zh": "权限"
+  },
+  "platform.userManagement.permissionsNote": {
+    "en": "Role default permissions are shown in gray. Check additional permissions to grant them.",
+    "th": "สิทธิ์ค่าเริ่มต้นของบทบาทแสดงเป็นสีเทา เลือกสิทธิ์เพิ่มเติมเพื่อมอบให้",
+    "zh": "角色默认权限以灰色显示。勾选其他权限以授予。"
+  },
+  "platform.userManagement.saveChanges": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "platform.userManagement.saving": {
+    "en": "Saving...",
+    "th": "กำลังบันทึก...",
+    "zh": "保存中..."
+  },
+  "platform.userManagement.disableUser": {
+    "en": "Disable User",
+    "th": "ปิดใช้งานผู้ใช้",
+    "zh": "禁用用户"
+  },
+  "platform.userManagement.searchPlaceholder": {
+    "en": "Search users...",
+    "th": "ค้นหาผู้ใช้...",
+    "zh": "搜索用户..."
+  },
+  "platform.userManagement.selectedCount": {
+    "en": "{count} selected",
+    "th": "เลือกแล้ว {count} รายการ",
+    "zh": "已选择 {count} 项"
+  },
+  "platform.userManagement.rowsPerPage": {
+    "en": "{count} rows",
+    "th": "{count} แถว",
+    "zh": "{count} 行"
+  },
+  "platform.userManagement.densityDefault": {
+    "en": "Default",
+    "th": "ปกติ",
+    "zh": "默认"
+  },
+  "platform.userManagement.densityDense": {
+    "en": "Dense",
+    "th": "กระชับ",
+    "zh": "紧凑"
+  },
+  "platform.userManagement.emptySearchMessage": {
+    "en": "No users match \"{query}\". Try a different search term.",
+    "th": "ไม่พบผู้ใช้ที่ตรงกับ \"{query}\" ลองคำค้นหาอื่น",
+    "zh": "没有与 \"{query}\" 匹配的用户。请尝试其他搜索词。"
+  },
+  "platform.userManagement.emptyStateMessage": {
+    "en": "Get started by creating your first platform user.",
+    "th": "เริ่มต้นด้วยการสร้างผู้ใช้แพลตฟอร์มคนแรก",
+    "zh": "开始创建您的第一个平台用户。"
+  },
+  "platform.userManagement.paginationText": {
+    "en": "Showing {from} to {to} of {total} users",
+    "th": "แสดง {from} ถึง {to} จาก {total} ผู้ใช้",
+    "zh": "显示 {from} 到 {to}，共 {total} 个用户"
+  },
+  "platform.userManagement.retryButton": {
+    "en": "Retry",
+    "th": "ลองใหม่",
+    "zh": "重试"
+  },
+  "platform.userManagement.noUsersMatch": {
+    "en": "No users found",
+    "th": "ไม่พบผู้ใช้",
+    "zh": "未找到用户"
+  },
+  "platform.roles.owner": {
+    "en": "Owner",
+    "th": "เจ้าของ",
+    "zh": "所有者"
+  },
+  "platform.roles.admin": {
+    "en": "Admin",
+    "th": "ผู้ดูแล",
+    "zh": "管理员"
+  },
+  "platform.roles.user": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "platform.roles.permissionRef": {
+    "en": "Permission Reference",
+    "th": "อ้างอิงสิทธิ์",
+    "zh": "权限参考"
+  },
+  "platform.modules.users": {
+    "en": "Users",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "platform.modules.usersDesc": {
+    "en": "Manage platform users & access",
+    "th": "จัดการผู้ใช้และการเข้าถึงแพลตฟอร์ม",
+    "zh": "管理平台用户和访问权限"
+  },
+  "platform.modules.rolesPermissions": {
+    "en": "Roles & Permissions",
+    "th": "บทบาทและสิทธิ์",
+    "zh": "角色和权限"
+  },
+  "platform.modules.rolesPermissionsDesc": {
+    "en": "Configure role permissions",
+    "th": "กำหนดค่าสิทธิ์ของบทบาท",
+    "zh": "配置角色权限"
+  },
+  "platform.sidebar.nav.users": {
+    "en": "Users",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "platform.sidebar.nav.roles": {
+    "en": "Roles",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "platform.sidebar.nav.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "platform.sidebar.nav.dashboard": {
+    "en": "Dashboard",
+    "th": "แดชบอร์ด",
+    "zh": "仪表板"
+  },
+  "platform.sidebar.nav.customers": {
+    "en": "Customers",
+    "th": "ลูกค้า",
+    "zh": "客户"
+  },
+  "platform.sidebar.nav.audit": {
+    "en": "Audit Logs",
+    "th": "บันทึกการตรวจสอบ",
+    "zh": "审计日志"
+  },
+  "platform.sidebar.nav.insights": {
+    "en": "Insights",
+    "th": "ข้อมูลเชิงลึก",
+    "zh": "见解"
+  },
+  "platform.sidebar.nav.products": {
+    "en": "Products",
+    "th": "สินค้า",
+    "zh": "产品"
+  },
+  "platform.sidebar.nav.inventory": {
+    "en": "Inventory",
+    "th": "คลังสินค้า",
+    "zh": "库存"
+  },
+  "platform.sidebar.nav.finance": {
+    "en": "Finance",
+    "th": "การเงิน",
+    "zh": "财务"
+  },
+  "platform.sidebar.nav.settings": {
+    "en": "Settings",
+    "th": "ตั้งค่า",
+    "zh": "设置"
+  },
+  "platform.sidebar.nav.brand": {
+    "en": "Brand Settings",
+    "th": "ตั้งค่าแบรนด์",
+    "zh": "品牌设置"
+  },
+  "platform.sidebar.domain.platform": {
+    "en": "Platform",
+    "th": "แพลตฟอร์ม",
+    "zh": "平台"
+  },
+  "platform.sidebar.domain.business": {
+    "en": "Business",
+    "th": "ธุรกิจ",
+    "zh": "业务"
+  },
+  "platform.sidebar.domain.system": {
+    "en": "System",
+    "th": "ระบบ",
+    "zh": "系统"
+  },
+  "platform.sidebar.resources.title": {
+    "en": "Resources",
+    "th": "ทรัพยากร",
+    "zh": "资源"
+  },
+  "platform.sidebar.resources.designSystem": {
+    "en": "Design System",
+    "th": "ระบบออกแบบ",
+    "zh": "设计系统"
+  },
+  "platform.sidebar.resources.uiReference": {
+    "en": "UI Reference",
+    "th": "คู่มือ UI",
+    "zh": "UI 参考"
+  },
+  "platform.roles.toolbar.searchPlaceholder": {
+    "en": "Search roles...",
+    "th": "ค้นหาบทบาท...",
+    "zh": "搜索角色..."
+  },
+  "platform.roles.toolbar.rowsPerPage": {
+    "en": "{count} roles",
+    "th": "{count} บทบาท",
+    "zh": "{count} 角色"
+  },
+  "platform.roles.toolbar.density.default": {
+    "en": "Default",
+    "th": "ปกติ",
+    "zh": "默认"
+  },
+  "platform.roles.toolbar.density.dense": {
+    "en": "Dense",
+    "th": "กระชับ",
+    "zh": "紧凑"
+  },
+  "platform.roles.empty.title": {
+    "en": "No roles yet",
+    "th": "ยังไม่มีบทบาท",
+    "zh": "还没有角色"
+  },
+  "platform.roles.empty.description": {
+    "en": "Create your first role to get started",
+    "th": "สร้างบทบาทแรกของคุณเพื่อเริ่มต้น",
+    "zh": "创建您的第一个角色以开始"
+  },
+  "platform.roles.empty.action": {
+    "en": "Create Role",
+    "th": "สร้างบทบาท",
+    "zh": "创建角色"
+  },
+  "platform.roles.empty.noMatch.title": {
+    "en": "No roles match your search",
+    "th": "ไม่พบบทบาทที่ตรงกับการค้นหา",
+    "zh": "没有匹配的角色"
+  },
+  "platform.roles.empty.noMatch.description": {
+    "en": "Try adjusting your search terms",
+    "th": "ลองปรับคำค้นหาของคุณ",
+    "zh": "尝试调整搜索词"
+  },
+  "platform.roles.error.general": {
+    "en": "Failed to load roles",
+    "th": "ไม่สามารถโหลดบทบาทได้",
+    "zh": "加载角色失败"
+  },
+  "platform.roles.error.retry": {
+    "en": "Retry",
+    "th": "ลองอีกครั้ง",
+    "zh": "重试"
+  },
+  "platform.roles.pagination.text": {
+    "en": "Showing {from} to {to} of {total} roles",
+    "th": "แสดง {from} ถึง {to} จาก {total} บทบาท",
+    "zh": "显示 {from} 到 {to}，共 {total} 个角色"
+  },
+  "platform.roles.selectedCount": {
+    "en": "{count} selected",
+    "th": "เลือก {count} รายการ",
+    "zh": "已选 {count} 项"
+  },
+  "platform.sidebar.nav.brandHeader": {
+    "en": "Header",
+    "th": "ส่วนหัว",
+    "zh": "页头"
+  },
+  "platform.sidebar.nav.brandSidebar": {
+    "en": "Sidebar",
+    "th": "แถบด้านข้าง",
+    "zh": "侧边栏"
+  },
+  "platform.sidebar.nav.brandLogin": {
+    "en": "Login Page",
+    "th": "หน้าเข้าสู่ระบบ",
+    "zh": "登录页"
+  },
+  "v2.dashboard.title": {
+    "en": "Dashboard",
+    "th": "แดชบอร์ด",
+    "zh": "仪表板"
+  },
+  "v2.dashboard.subtitle": {
+    "en": "Welcome to Platform V2 - MacOS-grade UI",
+    "th": "ยินดีต้อนรับสู่ Platform V2 - UI ระดับ MacOS",
+    "zh": "欢迎来到 Platform V2 - MacOS 级 UI"
+  },
+  "v2.dashboard.stats.totalOrgs": {
+    "en": "Total Organizations",
+    "th": "องค์กรทั้งหมด",
+    "zh": "组织总数"
+  },
+  "v2.dashboard.stats.activeUsers": {
+    "en": "Active Users",
+    "th": "ผู้ใช้ที่ใช้งาน",
+    "zh": "活跃用户"
+  },
+  "v2.dashboard.stats.systemStatus": {
+    "en": "System Status",
+    "th": "สถานะระบบ",
+    "zh": "系统状态"
+  },
+  "v2.dashboard.stats.apiCalls": {
+    "en": "API Calls Today",
+    "th": "การเรียก API วันนี้",
+    "zh": "今日 API 调用"
+  },
+  "v2.orgs.title": {
+    "en": "Organizations",
+    "th": "องค์กร",
+    "zh": "组织"
+  },
+  "v2.orgs.subtitle": {
+    "en": "Manage all organizations in the platform",
+    "th": "จัดการองค์กรทั้งหมดในแพลตฟอร์ม",
+    "zh": "管理平台中的所有组织"
+  },
+  "v2.orgs.actions.create": {
+    "en": "New Organization",
+    "th": "สร้างองค์กรใหม่",
+    "zh": "新建组织"
+  },
+  "v2.orgs.search.placeholder": {
+    "en": "Search organizations...",
+    "th": "ค้นหาองค์กร...",
+    "zh": "搜索组织..."
+  },
+  "v2.orgs.table.name": {
+    "en": "Organization Name",
+    "th": "ชื่อองค์กร",
+    "zh": "组织名称"
+  },
+  "v2.orgs.table.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "v2.orgs.table.users": {
+    "en": "Users",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "v2.orgs.table.plan": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "v2.common.settings": {
+    "en": "Settings",
+    "th": "ตั้งค่า",
+    "zh": "设置"
+  },
+  "v2.common.createNew": {
+    "en": "Create New",
+    "th": "สร้างใหม่",
+    "zh": "新建"
+  },
+  "v2.common.manage": {
+    "en": "Manage",
+    "th": "จัดการ",
+    "zh": "管理"
+  },
+  "v2.orgs.table.slug": {
+    "en": "Slug",
+    "th": "รหัส",
+    "zh": "标识符"
+  },
+  "v2.orgs.table.createdAt": {
+    "en": "Created",
+    "th": "สร้างเมื่อ",
+    "zh": "创建时间"
+  },
+  "v2.orgs.table.actions": {
+    "en": "Actions",
+    "th": "การดำเนินการ",
+    "zh": "操作"
+  },
+  "v2.orgs.actions.view": {
+    "en": "View",
+    "th": "ดู",
+    "zh": "查看"
+  },
+  "v2.orgs.actions.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "v2.orgs.actions.disable": {
+    "en": "Disable",
+    "th": "ปิดใช้งาน",
+    "zh": "禁用"
+  },
+  "v2.orgs.comingSoon": {
+    "en": "Coming soon",
+    "th": "เร็วๆ นี้",
+    "zh": "即将推出"
+  },
+  "v2.orgs.filters.plan.label": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "v2.orgs.filters.plan.all": {
+    "en": "All Plans",
+    "th": "ทุกแผน",
+    "zh": "所有计划"
+  },
+  "v2.orgs.filters.plan.free": {
+    "en": "Free",
+    "th": "ฟรี",
+    "zh": "免费"
+  },
+  "v2.orgs.filters.plan.starter": {
+    "en": "Starter",
+    "th": "เริ่มต้น",
+    "zh": "入门"
+  },
+  "v2.orgs.filters.plan.pro": {
+    "en": "Pro",
+    "th": "โปร",
+    "zh": "专业版"
+  },
+  "v2.orgs.filters.plan.enterprise": {
+    "en": "Enterprise",
+    "th": "องค์กร",
+    "zh": "企业版"
+  },
+  "v2.orgs.empty.title": {
+    "en": "No organizations yet",
+    "th": "ยังไม่มีองค์กร",
+    "zh": "暂无组织"
+  },
+  "v2.orgs.empty.message": {
+    "en": "Get started by creating your first organization",
+    "th": "เริ่มต้นด้วยการสร้างองค์กรแรกของคุณ",
+    "zh": "从创建您的第一个组织开始"
+  },
+  "v2.orgs.errors.forbidden.title": {
+    "en": "Access Denied",
+    "th": "ไม่มีสิทธิ์เข้าถึง",
+    "zh": "访问被拒绝"
+  },
+  "v2.orgs.errors.forbidden.message": {
+    "en": "You don't have permission to view organizations",
+    "th": "คุณไม่มีสิทธิ์ดูองค์กร",
+    "zh": "您无权查看组织"
+  },
+  "v2.orgs.errors.general.title": {
+    "en": "Something went wrong",
+    "th": "เกิดข้อผิดพลาด",
+    "zh": "出现错误"
+  },
+  "v2.orgs.errors.general.message": {
+    "en": "Failed to load organizations. Please try again later.",
+    "th": "ไม่สามารถโหลดองค์กร กรุณาลองใหม่อีกครั้ง",
+    "zh": "加载组织失败。请稍后再试。"
+  },
+  "v2.orgs.modal.create.title": {
+    "en": "Create Organization",
+    "th": "สร้างองค์กร",
+    "zh": "创建组织"
+  },
+  "v2.orgs.modal.create.name.label": {
+    "en": "Organization Name",
+    "th": "ชื่อองค์กร",
+    "zh": "组织名称"
+  },
+  "v2.orgs.modal.create.name.placeholder": {
+    "en": "Enter organization name",
+    "th": "กรอกชื่อองค์กร",
+    "zh": "输入组织名称"
+  },
+  "v2.orgs.modal.create.slug.label": {
+    "en": "Slug",
+    "th": "รหัสองค์กร",
+    "zh": "标识符"
+  },
+  "v2.orgs.modal.create.slug.placeholder": {
+    "en": "organization-slug",
+    "th": "รหัส-องค์กร",
+    "zh": "组织标识"
+  },
+  "v2.orgs.modal.create.slug.helper": {
+    "en": "Only lowercase letters, numbers, and hyphens",
+    "th": "ตัวพิมพ์เล็ก ตัวเลข และขีด (-) เท่านั้น",
+    "zh": "仅小写字母、数字和连字符"
+  },
+  "v2.orgs.modal.create.plan.label": {
+    "en": "Plan",
+    "th": "แผน",
+    "zh": "计划"
+  },
+  "v2.orgs.modal.create.submit": {
+    "en": "Create",
+    "th": "สร้าง",
+    "zh": "创建"
+  },
+  "v2.orgs.modal.create.creating": {
+    "en": "Creating...",
+    "th": "กำลังสร้าง...",
+    "zh": "创建中..."
+  },
+  "v2.orgs.modal.edit.title": {
+    "en": "Edit Organization",
+    "th": "แก้ไของค์กร",
+    "zh": "编辑组织"
+  },
+  "v2.orgs.modal.edit.submit": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "v2.orgs.modal.edit.saving": {
+    "en": "Saving...",
+    "th": "กำลังบันทึก...",
+    "zh": "保存中..."
+  },
+  "v2.orgs.modal.disable.title": {
+    "en": "Disable Organization",
+    "th": "ปิดใช้งานองค์กร",
+    "zh": "禁用组织"
+  },
+  "v2.orgs.modal.disable.message": {
+    "en": "Are you sure you want to disable this organization?",
+    "th": "คุณแน่ใจหรือไม่ว่าต้องการปิดใช้งานองค์กรนี้?",
+    "zh": "您确定要禁用此组织吗？"
+  },
+  "v2.orgs.modal.disable.warning": {
+    "en": "This action cannot be undone",
+    "th": "การดำเนินการนี้ไม่สามารถยกเลิกได้",
+    "zh": "此操作无法撤消"
+  },
+  "v2.orgs.modal.disable.submit": {
+    "en": "Disable Organization",
+    "th": "ปิดใช้งานองค์กร",
+    "zh": "禁用组织"
+  },
+  "v2.orgs.modal.disable.disabling": {
+    "en": "Disabling...",
+    "th": "กำลังปิดใช้งาน...",
+    "zh": "禁用中..."
+  },
+  "v2.orgs.toast.createSuccess": {
+    "en": "Organization created successfully",
+    "th": "สร้างองค์กรสำเร็จ",
+    "zh": "组织创建成功"
+  },
+  "v2.orgs.toast.createError": {
+    "en": "Failed to create organization",
+    "th": "ไม่สามารถสร้างองค์กร",
+    "zh": "创建组织失败"
+  },
+  "v2.orgs.toast.editSuccess": {
+    "en": "Organization updated successfully",
+    "th": "อัปเดตองค์กรสำเร็จ",
+    "zh": "组织更新成功"
+  },
+  "v2.orgs.toast.editError": {
+    "en": "Failed to update organization",
+    "th": "ไม่สามารถอัปเดตองค์กร",
+    "zh": "更新组织失败"
+  },
+  "v2.orgs.toast.disableSuccess": {
+    "en": "Organization disabled successfully",
+    "th": "ปิดใช้งานองค์กรสำเร็จ",
+    "zh": "组织禁用成功"
+  },
+  "v2.orgs.toast.disableError": {
+    "en": "Failed to disable organization",
+    "th": "ไม่สามารถปิดใช้งานองค์กร",
+    "zh": "禁用组织失败"
+  },
+  "v2.orgs.toast.forbidden": {
+    "en": "You don't have permission to perform this action",
+    "th": "คุณไม่มีสิทธิ์ดำเนินการนี้",
+    "zh": "您没有权限执行此操作"
+  },
+  "v2.validation.required": {
+    "en": "This field is required",
+    "th": "ต้องกรอกข้อมูลนี้",
+    "zh": "此字段为必填项"
+  },
+  "v2.validation.invalidSlug": {
+    "en": "Slug must contain only lowercase letters, numbers, and hyphens",
+    "th": "รหัสต้องมีเฉพาะตัวพิมพ์เล็ก ตัวเลข และขีดกลาง (-) เท่านั้น",
+    "zh": "标识符只能包含小写字母、数字和连字符"
+  },
+  "v2.validation.duplicateSlug": {
+    "en": "This slug is already in use",
+    "th": "รหัสนี้ถูกใช้ไปแล้ว",
+    "zh": "此标识符已被使用"
+  },
+  "v2.common.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก",
+    "zh": "取消"
+  },  "v2.common.save": {
+    "en": "Save",
+    "th": "บันทึก",
+    "zh": "保存"
+  },
+  "v2.users.title": {
+    "en": "Users",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "v2.users.subtitle": {
+    "en": "Manage users in your organization",
+    "th": "จัดการผู้ใช้ในองค์กรของคุณ",
+    "zh": "管理组织中的用户"
+  },
+  "v2.users.actions.create": {
+    "en": "New User",
+    "th": "สร้างผู้ใช้ใหม่",
+    "zh": "新建用户"
+  },
+  "v2.users.comingSoon": {
+    "en": "Coming soon",
+    "th": "เร็วๆ นี้",
+    "zh": "即将推出"
+  },
+  "v2.users.table.name": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "v2.users.table.role": {
+    "en": "Role",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "v2.users.table.status": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "v2.users.table.createdAt": {
+    "en": "Created",
+    "th": "สร้างเมื่อ",
+    "zh": "创建时间"
+  },
+  "v2.users.table.actions": {
+    "en": "Actions",
+    "th": "การดำเนินการ",
+    "zh": "操作"
+  },
+  "v2.users.actions.view": {
+    "en": "View",
+    "th": "ดู",
+    "zh": "查看"
+  },
+  "v2.users.actions.edit": {
+    "en": "Edit",
+    "th": "แก้ไข",
+    "zh": "编辑"
+  },
+  "v2.users.actions.disable": {
+    "en": "Disable",
+    "th": "ปิดใช้งาน",
+    "zh": "禁用"
+  },
+  "v2.users.filters.search": {
+    "en": "Search users...",
+    "th": "ค้นหาผู้ใช้...",
+    "zh": "搜索用户..."
+  },
+  "v2.users.filters.role.all": {
+    "en": "All Roles",
+    "th": "ทุกบทบาท",
+    "zh": "所有角色"
+  },
+  "v2.users.filters.role.owner": {
+    "en": "Owner",
+    "th": "เจ้าของ",
+    "zh": "所有者"
+  },
+  "v2.users.filters.role.admin": {
+    "en": "Admin",
+    "th": "ผู้ดูแลระบบ",
+    "zh": "管理员"
+  },
+  "v2.users.filters.role.user": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "v2.users.filters.status.all": {
+    "en": "All Status",
+    "th": "ทุกสถานะ",
+    "zh": "所有状态"
+  },
+  "v2.users.filters.status.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "v2.users.filters.status.disabled": {
+    "en": "Disabled",
+    "th": "ปิดใช้งาน",
+    "zh": "已禁用"
+  },
+  "v2.users.empty.title": {
+    "en": "No users yet",
+    "th": "ยังไม่มีผู้ใช้",
+    "zh": "暂无用户"
+  },
+  "v2.users.empty.message": {
+    "en": "Get started by creating your first user",
+    "th": "เริ่มต้นด้วยการสร้างผู้ใช้แรกของคุณ",
+    "zh": "从创建您的第一个用户开始"
+  },
+  "v2.users.errors.forbidden.title": {
+    "en": "Access Denied",
+    "th": "ไม่มีสิทธิ์เข้าถึง",
+    "zh": "访问被拒绝"
+  },
+  "v2.users.errors.forbidden.message": {
+    "en": "You don't have permission to view users",
+    "th": "คุณไม่มีสิทธิ์ดูผู้ใช้",
+    "zh": "您无权查看用户"
+  },
+  "v2.users.errors.general.title": {
+    "en": "Something went wrong",
+    "th": "เกิดข้อผิดพลาด",
+    "zh": "出现错误"
+  },
+  "v2.users.errors.general.message": {
+    "en": "Failed to load users. Please try again later.",
+    "th": "ไม่สามารถโหลดผู้ใช้ กรุณาลองใหม่อีกครั้ง",
+    "zh": "加载用户失败。请稍后再试。"
+  }
+}
+  ,
+  "v2.users.modal.create.title": {
+    "en": "Create User",
+    "th": "สร้างผู้ใช้",
+    "zh": "创建用户"
+  },
+  "v2.users.modal.create.email.label": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮件"
+  },
+  "v2.users.modal.create.email.placeholder": {
+    "en": "user@example.com",
+    "th": "user@example.com",
+    "zh": "user@example.com"
+  },
+  "v2.users.modal.create.displayName.label": {
+    "en": "Display Name",
+    "th": "ชื่อที่แสดง",
+    "zh": "显示名称"
+  },
+  "v2.users.modal.create.displayName.placeholder": {
+    "en": "Enter user name",
+    "th": "กรอกชื่อผู้ใช้",
+    "zh": "输入用户名称"
+  },
+  "v2.users.modal.create.role.label": {
+    "en": "Role",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "v2.users.modal.create.role.note": {
+    "en": "You can only create users with roles lower than yours",
+    "th": "คุณสามารถสร้างผู้ใช้ที่มีบทบาทต่ำกว่าคุณเท่านั้น",
+    "zh": "您只能创建角色低于您的用户"
+  },
+  "v2.users.modal.create.submit": {
+    "en": "Create User",
+    "th": "สร้างผู้ใช้",
+    "zh": "创建用户"
+  },
+  "v2.users.modal.create.creating": {
+    "en": "Creating...",
+    "th": "กำลังสร้าง...",
+    "zh": "创建中..."
+  },
+  "v2.users.modal.create.success.title": {
+    "en": "User Created Successfully",
+    "th": "สร้างผู้ใช้สำเร็จ",
+    "zh": "用户创建成功"
+  },
+  "v2.users.modal.create.success.warning": {
+    "en": "Save these credentials - the password will not be shown again!",
+    "th": "บันทึกข้อมูลเหล่านี้ - รหัสผ่านจะไม่แสดงอีก!",
+    "zh": "保存这些凭据 - 密码不会再次显示！"
+  },
+  "v2.users.modal.create.success.email": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮件"
+  },
+  "v2.users.modal.create.success.password": {
+    "en": "Temporary Password",
+    "th": "รหัสผ่านชั่วคราว",
+    "zh": "临时密码"
+  },
+  "v2.users.modal.create.success.done": {
+    "en": "Done",
+    "th": "เสร็จสิ้น",
+    "zh": "完成"
+  },
+  "v2.users.toast.createSuccess": {
+    "en": "User created successfully",
+    "th": "สร้างผู้ใช้สำเร็จ",
+    "zh": "用户创建成功"
+  },
+  "v2.users.toast.createError": {
+    "en": "Failed to create user",
+    "th": "ไม่สามารถสร้างผู้ใช้",
+    "zh": "创建用户失败"
+  },
+  "v2.users.toast.forbidden": {
+    "en": "You don't have permission to create users",
+    "th": "คุณไม่มีสิทธิ์สร้างผู้ใช้",
+    "zh": "您没有权限创建用户"
+  },
+  "v2.users.validation.invalidEmail": {
+    "en": "Invalid email format",
+    "th": "รูปแบบอีเมลไม่ถูกต้อง",
+    "zh": "无效的电子邮件格式"
+  },
+  "v2.users.validation.emailInUse": {
+    "en": "This email is already in use",
+    "th": "อีเมลนี้ถูกใช้ไปแล้ว",
+    "zh": "此电子邮件已被使用"
+  }
+}
+  ,
+  "v2.users.modal.edit.title": {
+    "en": "Edit User",
+    "th": "แก้ไขผู้ใช้",
+    "zh": "编辑用户"
+  },
+  "v2.users.modal.edit.email.label": {
+    "en": "Email",
+    "th": "อีเมล",
+    "zh": "电子邮件"
+  },
+  "v2.users.modal.edit.displayName.label": {
+    "en": "Display Name",
+    "th": "ชื่อที่แสดง",
+    "zh": "显示名称"
+  },
+  "v2.users.modal.edit.displayName.placeholder": {
+    "en": "Enter user name",
+    "th": "กรอกชื่อผู้ใช้",
+    "zh": "输入用户名称"
+  },
+  "v2.users.modal.edit.role.label": {
+    "en": "Role",
+    "th": "บทบาท",
+    "zh": "角色"
+  },
+  "v2.users.modal.edit.status.label": {
+    "en": "Status",
+    "th": "สถานะ",
+    "zh": "状态"
+  },
+  "v2.users.modal.edit.status.active": {
+    "en": "Active",
+    "th": "ใช้งาน",
+    "zh": "活跃"
+  },
+  "v2.users.modal.edit.status.disabled": {
+    "en": "Disabled",
+    "th": "ปิดใช้งาน",
+    "zh": "已禁用"
+  },
+  "v2.users.modal.edit.submit": {
+    "en": "Save Changes",
+    "th": "บันทึกการเปลี่ยนแปลง",
+    "zh": "保存更改"
+  },
+  "v2.users.modal.edit.saving": {
+    "en": "Saving...",
+    "th": "กำลังบันทึก...",
+    "zh": "保存中..."
+  },
+  "v2.users.toast.editSuccess": {
+    "en": "User updated successfully",
+    "th": "อัปเดตผู้ใช้สำเร็จ",
+    "zh": "用户更新成功"
+  },
+  "v2.users.toast.editError": {
+    "en": "Failed to update user",
+    "th": "ไม่สามารถอัปเดตผู้ใช้",
+    "zh": "更新用户失败"
+  },
+  "v2.users.toast.notFound": {
+    "en": "User not found",
+    "th": "ไม่พบผู้ใช้",
+    "zh": "未找到用户"
+  }
+}
+  ,
+  "v2.users.toast.editForbidden": {
+    "en": "You don't have permission to edit users",
+    "th": "คุณไม่มีสิทธิ์แก้ไขผู้ใช้งาน",
+    "zh": "您没有权限编辑用户"
+  }
+}
+  ,
+  "v2.users.modal.disable.title": {
+    "en": "Disable User",
+    "th": "ปิดการใช้งานผู้ใช้",
+    "zh": "禁用用户"
+  },
+  "v2.users.modal.disable.message": {
+    "en": "This user will no longer be able to log in. You can re-enable them later through the Edit function.",
+    "th": "ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้อีก คุณสามารถเปิดใช้งานอีกครั้งได้ผ่านฟังก์ชัน Edit",
+    "zh": "此用户将无法再登录。您可以稍后通过编辑功能重新启用它们。"
+  },
+  "v2.users.modal.disable.userLabel": {
+    "en": "User",
+    "th": "ผู้ใช้",
+    "zh": "用户"
+  },
+  "v2.users.modal.disable.confirmLabel": {
+    "en": "Type DISABLE to confirm",
+    "th": "พิมพ์ DISABLE เพื่อยืนยัน",
+    "zh": "输入 DISABLE 以确认"
+  },
+  "v2.users.modal.disable.confirmPlaceholder": {
+    "en": "DISABLE",
+    "th": "DISABLE",
+    "zh": "DISABLE"
+  },
+  "v2.users.modal.disable.submit": {
+    "en": "Disable User",
+    "th": "ปิดการใช้งาน",
+    "zh": "禁用用户"
+  },
+  "v2.users.modal.disable.disabling": {
+    "en": "Disabling...",
+    "th": "กำลังปิดการใช้งาน...",
+    "zh": "禁用中..."
+  },
+  "v2.users.toast.disableSuccess": {
+    "en": "User disabled successfully",
+    "th": "ปิดการใช้งานผู้ใช้สำเร็จ",
+    "zh": "用户禁用成功"
+  },
+  "v2.users.toast.disableError": {
+    "en": "Failed to disable user",
+    "th": "ไม่สามารถปิดการใช้งานผู้ใช้",
+    "zh": "禁用用户失败"
+  },
+  "v2.users.toast.disableForbidden": {
+    "en": "You don't have permission to disable users",
+    "th": "คุณไม่มีสิทธิ์ปิดการใช้งานผู้ใช้",
+    "zh": "您没有权限禁用用户"
+  },
+  "v2.users.toast.selfDisableBlocked": {
+    "en": "You cannot disable your own account",
+    "th": "คุณไม่สามารถปิดการใช้งานบัญชีของคุณเอง",
+    "zh": "您无法禁用自己的账户"
+  }
+}
