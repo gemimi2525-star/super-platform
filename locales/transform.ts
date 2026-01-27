@@ -15,7 +15,7 @@
  */
 
 // Define Locale type here to avoid circular import
-type Locale = 'en' | 'th' | 'zh';
+type Locale = 'en' | 'th';
 
 type UnifiedMessages = Record<string, Record<string, string>>;
 type NestedMessages = Record<string, unknown>;

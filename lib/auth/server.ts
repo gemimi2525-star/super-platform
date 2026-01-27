@@ -81,7 +81,43 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
             return null;
         }
 
-        // 1. Priority: Verify with Firebase Admin (if configured)
+        // 1. Priority: Dev Mode Bypass (only if explicitly enabled)
+        // MOVED ABOVE FIREBASE CHECK to allow mocking in dev environment
+        // WARNING: This is insecure and should only be used for local dev!
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+
+            // STRICT SECURITY: Require Test Headers for Identity
+            // Even in bypass mode, we do NOT allow "anonymous" bypass.
+            // You must prove who you are trying to be via headers provided by the test harness.
+            const devTestEmail = await getHeader('x-dev-test-email', req);
+            const devTestRole = await getHeader('x-dev-test-role', req);
+
+            if (!devTestEmail) {
+                // If no identity headers, we CANNOT bypass.
+                // Fall through to real verification or return null.
+                // console.log('[AUTH] Bypass active but no ID headers -> falling back to real auth');
+            } else {
+                console.warn('[AUTH] ⚠️ DEV MODE: Bypassing token verification (AUTH_DEV_BYPASS=true)');
+
+                // Allow simple decoding if headers are present (Test Harness Flow)
+                // The Session API already validated these, so we trust them in Dev Mode
+
+                // Construct Dev Context from Headers directly (most reliable for testing)
+                const mockRole = (devTestRole as PlatformRole) || 'user';
+                const mockUid = `dev_${Date.now()}`; // Transient ID is fine for read-only tests
+
+                console.warn(`[AUTH] 🧪 Mock Context: ${devTestEmail} (${mockRole})`);
+
+                return {
+                    uid: mockUid,
+                    email: devTestEmail,
+                    role: mockRole,
+                    orgId: undefined // TODO: Add x-dev-test-org if needed later
+                };
+            }
+        }
+
+        // 2. Priority: Verify with Firebase Admin (if configured)
         if (IS_ADMIN_CONFIGURED) {
             const { verifyIdToken, getAdminFirestore } = await import('@/lib/firebase-admin');
             const decodedToken = await verifyIdToken(token);
@@ -149,51 +185,16 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
             };
         }
 
-        // 2. Fallback: Dev Mode Bypass (only if explicitly enabled)
-        // WARNING: This is insecure and should only be used for local dev!
-        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
-            console.warn('[AUTH] ⚠️ DEV MODE: Bypassing token verification (AUTH_DEV_BYPASS=true)');
-            const payload = decodeJwtPayload(token);
+        // (End of IS_ADMIN_CONFIGURED block)
 
-            if (!payload || !payload.user_id) {
-                // console.log('[AUTH] Invalid JWT payload in bypass mode');
-                return null;
-            }
-
-            const uid = payload.user_id || payload.sub;
-            let role: PlatformRole = 'user';
-
-            // DEV MODE: Check platform_users collection for role
-            try {
-                const { getAdminFirestore } = await import('@/lib/firebase-admin');
-                const db = getAdminFirestore();
-                const platformUserDoc = await db.collection('platform_users').doc(uid).get();
-
-                if (platformUserDoc.exists) {
-                    const platformUserData = platformUserDoc.data();
-                    if (platformUserData?.enabled !== false) {
-                        const dbRole = platformUserData?.role as PlatformRole;
-                        if (['owner', 'admin', 'user'].includes(dbRole)) {
-                            role = dbRole;
-                            // console.log(`[AUTH] DEV MODE: ${uid} has role: ${role}`);
-                        }
-                    }
-                }
-            } catch (error) {
-                const appError = handleError(error as Error);
-                console.error(`[AUTH] Failed to check platform_users [${appError.errorId}]:`, (error as Error).message || String(error));
-            }
-
-            return {
-                uid,
-                email: payload.email,
-                role,
-                orgId: payload.orgId
-            };
-        }
 
         // 3. Error: No verification method available
-        console.error('[AUTH] ❌ Setup Error: Firebase Admin not configured and AUTH_DEV_BYPASS not enabled.');
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS !== 'true') {
+            // Just a log, will return null below
+        } else if (!IS_ADMIN_CONFIGURED) {
+            console.error('[AUTH] ❌ Setup Error: Firebase Admin not configured and AUTH_DEV_BYPASS not enabled.');
+        }
+
         return null;
 
     } catch (error) {

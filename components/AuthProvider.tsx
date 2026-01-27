@@ -85,10 +85,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             } else {
                 // User logged out → ลบ session cookie
-                // WARNING: This forces logout if client SDK is not synced.
-                // We should ensure this doesn't run during initial load if possible?
-                // onAuthStateChanged runs with null only if truly no user found in storage.
-                await deleteSession();
+
+                // DEV BYPASS CHECK:
+                // If we are testing RBAC with a forged token (no real Firebase user),
+                // we must NOT delete the session cookie immediately.
+                if (typeof window !== 'undefined' && window.localStorage.getItem('AUTH_DEV_BYPASS') === 'true') {
+                    console.log('[AuthProvider] ⚠️ Skipping session deletion (AUTH_DEV_BYPASS active)');
+                } else {
+                    await deleteSession();
+                }
             }
 
             setFirebaseUser(firebaseUser);

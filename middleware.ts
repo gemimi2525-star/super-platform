@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { checkRateLimit, RateLimitType, logger } from '@super-platform/core';
 
-const locales = ['en', 'th', 'zh'];
+const locales = ['en', 'th'];
 const defaultLocale = 'en';
 
 export function middleware(request: NextRequest) {
@@ -97,13 +97,51 @@ export function middleware(request: NextRequest) {
         cookieNames: request.cookies.getAll().map(c => c.name)
     });
 
-    if (!isPublic && !hasSession) {
-        logger.info('Protected route access without session', {
+    // 5. Auth Check - Explicitly Protect Protected Routes
+    // Target: /[locale]/v2 and /api/platform
+    // We do NOT rely on "isPublic" blacklist alone anymore. We use whitelist protection.
+    const isProtectedRoute = pathWithoutLocale.startsWith('/v2') || pathWithoutLocale.startsWith('/platform');
+
+    // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)
+    // In dev mode, if headers are present, we consider it a "virtual session" for middleware purposes
+    // Real validation happens in lib/auth/server.ts
+    const isDev = process.env.NODE_ENV === 'development';
+    const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
+    const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
+
+    // Debug Log (Dev Only)
+    if (isDev && isProtectedRoute) {
+        console.log('[Middleware] 🛡️ Protected Route Access:', {
+            path: pathname,
+            hasSession,
+            bypassActive,
+            hasBypassHeaders,
+            decision: (hasSession || hasBypassHeaders) ? 'ALLOW' : 'DENY'
+        });
+    }
+
+    if (isProtectedRoute) {
+        // Must have either a session cookie OR be in a valid bypass state
+        if (!hasSession && !hasBypassHeaders) {
+            logger.info('Protected route access blocked (No Session)', {
+                action: 'redirect_login',
+                context: { ip, path: pathname }
+            });
+            const url = request.nextUrl.clone();
+            url.pathname = `/${locale}/auth/login`;
+            // Add ?callbackUrl to be nice
+            url.searchParams.set('callbackUrl', pathname);
+            return NextResponse.redirect(url);
+        }
+    }
+
+    // Legacy Public Path Check (Keep for backward compatibility)
+    if (!isPublic && !isProtectedRoute && !hasSession && !hasBypassHeaders) {
+        // Fallback for other non-public routes not covered by /v2
+        // ... existing logic ...
+        logger.info('Protected route access blocked (Legacy Check)', {
             action: 'redirect_login',
-            context: {
-                ip,
-                path: pathname,
-            }
+            context: { ip, path: pathname }
         });
         const url = request.nextUrl.clone();
         url.pathname = `/${locale}/auth/login`;
@@ -115,7 +153,7 @@ export function middleware(request: NextRequest) {
 
     // 7. Apply Security Headers
     // CSP: Strict in Prod, Relaxed in Dev
-    const isDev = process.env.NODE_ENV === 'development';
+    // isDev is already declared above
 
     // Generate Nonce for CSP
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');

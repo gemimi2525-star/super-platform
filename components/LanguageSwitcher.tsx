@@ -16,7 +16,6 @@ import { X, Globe, Check } from 'lucide-react';
 const languages = [
     { code: 'th', name: 'ไทย', flag: '🇹🇭' },
     { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
 ] as const;
 
 export type LanguageCode = typeof languages[number]['code'];

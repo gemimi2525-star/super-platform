@@ -42,8 +42,71 @@ export async function POST(request: NextRequest) {
 
         const { idToken } = validation.data;
 
-        // 1. Priority: Verify with Firebase Admin (if configured)
-        if (IS_ADMIN_CONFIGURED) {
+        // ============================================================
+        // PATCH A: Dev-Only Test Harness with Production Guards
+        // ============================================================
+        // CRITICAL: Production Guard - FORCE real verification in production
+        if (process.env.NODE_ENV === 'production' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.error('[Session API] 🚨 SECURITY: AUTH_DEV_BYPASS blocked in production!');
+            return ApiErrorResponse.unauthorized('Invalid configuration');
+        }
+
+        // Dev-Only Test Harness: Accept test identity from headers
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.warn('[Session API] ⚠️ DEV MODE: Test harness enabled (AUTH_DEV_BYPASS=true)');
+
+            // Check for dev test headers
+            const devTestEmail = request.headers.get('x-dev-test-email');
+            const devTestRole = request.headers.get('x-dev-test-role');
+
+            if (devTestEmail || devTestRole) {
+                // Sanitize and validate role
+                const allowedRoles = ['owner', 'admin', 'user'];
+                const sanitizedRole = devTestRole?.toLowerCase() || 'user';
+
+                if (!allowedRoles.includes(sanitizedRole)) {
+                    console.warn(`[Session API] Invalid dev role: ${devTestRole}, defaulting to 'user'`);
+                }
+
+                const finalRole = allowedRoles.includes(sanitizedRole) ? sanitizedRole : 'user';
+
+                console.warn(`[Session API] 🧪 Test Identity: ${devTestEmail || 'test@example.com'} (${finalRole})`);
+
+                // Create a test token that will be recognized by lib/auth/server.ts
+                // Format: base64(header).base64(payload).signature
+                const testPayload = {
+                    sub: `dev_${Date.now()}`,
+                    email: devTestEmail || `${finalRole}@test.com`,
+                    user_id: `dev_${Date.now()}`,
+                    // Store role hint in email for server.ts pattern matching
+                };
+
+                const encodedPayload = Buffer.from(JSON.stringify(testPayload)).toString('base64');
+                const testToken = `eyJhbGciOiJub25lIn0.${encodedPayload}.`;
+
+                // Create session with test token
+                const response = ApiSuccessResponse.ok({
+                    message: 'Test session created',
+                    testMode: true,
+                    testIdentity: { email: testPayload.email, role: finalRole }
+                });
+
+                response.cookies.set(COOKIE_NAME, testToken, {
+                    httpOnly: true,
+                    secure: false, // Dev only
+                    sameSite: 'lax',
+                    maxAge: COOKIE_MAX_AGE,
+                    path: '/',
+                });
+
+                return response;
+            }
+
+            // No test headers, proceed with bypass mode (existing behavior)
+            console.warn('[Session API] ⚠️ DEV MODE: Skipping token verification (no test headers)');
+
+            // Verify with Firebase Admin (if configured)
+        } else if (IS_ADMIN_CONFIGURED) {
             try {
                 const { verifyIdToken } = await import('@/lib/firebase-admin');
                 await verifyIdToken(idToken);
@@ -52,18 +115,13 @@ export async function POST(request: NextRequest) {
                 return ApiErrorResponse.unauthorized('Invalid token');
             }
 
-            // 2. Fallback: Dev Mode Bypass (only if explicitly enabled)
-            // Note: Removed NODE_ENV check to allow AUTH_DEV_BYPASS to work in local production builds
-        } else if (process.env.AUTH_DEV_BYPASS === 'true') {
-            console.warn('[Session API] ⚠️ DEV MODE: Skipping token verification (AUTH_DEV_BYPASS=true)');
-
-            // 3. Error: No verification method available
+            // Error: No verification method available
         } else {
             console.error('[Session API] ❌ Setup Error: Firebase Admin not configured and AUTH_DEV_BYPASS not enabled.');
             return ApiErrorResponse.internalError();
         }
 
-        // สร้าง session cookie
+        // สร้าง session cookie (normal flow)
         const response = ApiSuccessResponse.ok({ message: 'Session created' });
 
         response.cookies.set(COOKIE_NAME, idToken, {
@@ -74,7 +132,6 @@ export async function POST(request: NextRequest) {
             path: '/',
         });
 
-        // console.log('[Session API] Session cookie created successfully');
         return response;
 
     } catch (error) {

@@ -89,6 +89,7 @@ export default async function AuditLogsPage({ params }: PageProps) {
     }
 
     if (auth.role !== 'owner') {
+        // RBAC Policy: Non-owners redirected to Dashboard, NOT Login
         redirect(`/${locale}/v2`);
     }
 
