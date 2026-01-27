@@ -2853,7 +2853,8 @@
     "en": "Cancel",
     "th": "ยกเลิก",
     "zh": "取消"
-  },  "v2.common.save": {
+  },
+  "v2.common.save": {
     "en": "Save",
     "th": "บันทึก",
     "zh": "保存"
@@ -2987,9 +2988,7 @@
     "en": "Failed to load users. Please try again later.",
     "th": "ไม่สามารถโหลดผู้ใช้ กรุณาลองใหม่อีกครั้ง",
     "zh": "加载用户失败。请稍后再试。"
-  }
-}
-  ,
+  },
   "v2.users.modal.create.title": {
     "en": "Create User",
     "th": "สร้างผู้ใช้",
@@ -3084,9 +3083,7 @@
     "en": "This email is already in use",
     "th": "อีเมลนี้ถูกใช้ไปแล้ว",
     "zh": "此电子邮件已被使用"
-  }
-}
-  ,
+  },
   "v2.users.modal.edit.title": {
     "en": "Edit User",
     "th": "แก้ไขผู้ใช้",
@@ -3151,69 +3148,109 @@
     "en": "User not found",
     "th": "ไม่พบผู้ใช้",
     "zh": "未找到用户"
-  }
+  },
+"v2.users.toast.editForbidden": {
+  "en": "You don't have permission to edit users",
+  "th": "คุณไม่มีสิทธิ์แก้ไขผู้ใช้งาน",
+  "zh": "您没有权限编辑用户"  },
+"v2.users.modal.disable.title": {
+"en": "Disable User",
+"th": "ปิดการใช้งานผู้ใช้",
+"zh": "禁用用户"
+},
+"v2.users.modal.disable.message": {
+"en": "This user will no longer be able to log in. You can re-enable them later through the Edit function.",
+"th": "ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้อีก คุณสามารถเปิดใช้งานอีกครั้งได้ผ่านฟังก์ชัน Edit",
+"zh": "此用户将无法再登录。您可以稍后通过编辑功能重新启用它们。"
+},
+"v2.users.modal.disable.userLabel": {
+"en": "User",
+"th": "ผู้ใช้",
+"zh": "用户"
+},
+"v2.users.modal.disable.confirmLabel": {
+"en": "Type DISABLE to confirm",
+"th": "พิมพ์ DISABLE เพื่อยืนยัน",
+"zh": "输入 DISABLE 以确认"
+},
+"v2.users.modal.disable.confirmPlaceholder": {
+"en": "DISABLE",
+"th": "DISABLE",
+"zh": "DISABLE"
+},
+"v2.users.modal.disable.submit": {
+"en": "Disable User",
+"th": "ปิดการใช้งาน",
+"zh": "禁用用户"
+},
+"v2.users.modal.disable.disabling": {
+"en": "Disabling...",
+"th": "กำลังปิดการใช้งาน...",
+"zh": "禁用中..."
+},
+"v2.users.toast.disableSuccess": {
+"en": "User disabled successfully",
+"th": "ปิดการใช้งานผู้ใช้สำเร็จ",
+"zh": "用户禁用成功"
+},
+"v2.users.toast.disableError": {
+"en": "Failed to disable user",
+"th": "ไม่สามารถปิดการใช้งานผู้ใช้",
+"zh": "禁用用户失败"
+},
+"v2.users.toast.disableForbidden": {
+"en": "You don't have permission to disable users",
+"th": "คุณไม่มีสิทธิ์ปิดการใช้งานผู้ใช้",
+"zh": "您没有权限禁用用户"
+},
+"v2.users.toast.selfDisableBlocked": {
+"en": "You cannot disable your own account",
+"th": "คุณไม่สามารถปิดการใช้งานบัญชีของคุณเอง",
+"zh": "您无法禁用自己的账户"
+},
+"v2.audit.title": {
+"en": "Audit Logs",
+"th": "บันทึกการตรวจสอบ",
+"zh": "审计日志"
+},
+"v2.audit.subtitle": {
+"en": "Security event history for platform administrators",
+"th": "ประวัติเหตุการณ์ความปลอดภัยสำหรับผู้ดูแลระบบ",
+"zh": "平台管理员的安全事件历史"
+},
+"v2.audit.table.timestamp": {
+"en": "Timestamp",
+"th": "เวลา",
+"zh": "时间戳"
+},
+"v2.audit.table.actor": {
+"en": "Actor",
+"th": "ผู้กระทำ",
+"zh": "操作者"
+},
+"v2.audit.table.action": {
+"en": "Action",
+"th": "การกระทำ",
+"zh": "动作"
+},
+"v2.audit.table.target": {
+"en": "Target",
+"th": "เป้าหมาย",
+"zh": "目标"
+},
+"v2.audit.table.status": {
+"en": "Status",
+"th": "สถานะ",
+"zh": "状态"
+},
+"v2.audit.empty.title": {
+"en": "No Audit Logs",
+"th": "ไม่มีบันทึกการตรวจสอบ",
+"zh": "无审计日志"
+},
+"v2.audit.empty.description": {
+"en": "There are no audit log entries to display.",
+"th": "ไม่มีรายการบันทึกการตรวจสอบที่จะแสดง",
+"zh": "没有可显示的审计日志条目。"
 }
-  ,
-  "v2.users.toast.editForbidden": {
-    "en": "You don't have permission to edit users",
-    "th": "คุณไม่มีสิทธิ์แก้ไขผู้ใช้งาน",
-    "zh": "您没有权限编辑用户"
-  }
-}
-  ,
-  "v2.users.modal.disable.title": {
-    "en": "Disable User",
-    "th": "ปิดการใช้งานผู้ใช้",
-    "zh": "禁用用户"
-  },
-  "v2.users.modal.disable.message": {
-    "en": "This user will no longer be able to log in. You can re-enable them later through the Edit function.",
-    "th": "ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้อีก คุณสามารถเปิดใช้งานอีกครั้งได้ผ่านฟังก์ชัน Edit",
-    "zh": "此用户将无法再登录。您可以稍后通过编辑功能重新启用它们。"
-  },
-  "v2.users.modal.disable.userLabel": {
-    "en": "User",
-    "th": "ผู้ใช้",
-    "zh": "用户"
-  },
-  "v2.users.modal.disable.confirmLabel": {
-    "en": "Type DISABLE to confirm",
-    "th": "พิมพ์ DISABLE เพื่อยืนยัน",
-    "zh": "输入 DISABLE 以确认"
-  },
-  "v2.users.modal.disable.confirmPlaceholder": {
-    "en": "DISABLE",
-    "th": "DISABLE",
-    "zh": "DISABLE"
-  },
-  "v2.users.modal.disable.submit": {
-    "en": "Disable User",
-    "th": "ปิดการใช้งาน",
-    "zh": "禁用用户"
-  },
-  "v2.users.modal.disable.disabling": {
-    "en": "Disabling...",
-    "th": "กำลังปิดการใช้งาน...",
-    "zh": "禁用中..."
-  },
-  "v2.users.toast.disableSuccess": {
-    "en": "User disabled successfully",
-    "th": "ปิดการใช้งานผู้ใช้สำเร็จ",
-    "zh": "用户禁用成功"
-  },
-  "v2.users.toast.disableError": {
-    "en": "Failed to disable user",
-    "th": "ไม่สามารถปิดการใช้งานผู้ใช้",
-    "zh": "禁用用户失败"
-  },
-  "v2.users.toast.disableForbidden": {
-    "en": "You don't have permission to disable users",
-    "th": "คุณไม่มีสิทธิ์ปิดการใช้งานผู้ใช้",
-    "zh": "您没有权限禁用用户"
-  },
-  "v2.users.toast.selfDisableBlocked": {
-    "en": "You cannot disable your own account",
-    "th": "คุณไม่สามารถปิดการใช้งานบัญชีของคุณเอง",
-    "zh": "您无法禁用自己的账户"
-  }
 }

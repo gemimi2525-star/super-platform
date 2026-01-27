@@ -1,6 +1,7 @@
 import React from 'react';
-import { cookies } from 'next/headers';
-import { getAuthContext, requirePlatformAccess } from '@/lib/auth/server';
+import { cookies, headers } from 'next/headers';
+import { getAuthContext } from '@/lib/auth/server'; // requireOwner is available but we need custom redirect logic
+import { getDictionary, tFromDict } from '@/lib/i18n/server';
 import { PageHeader } from '@/modules/design-system/src/patterns/PageHeader';
 import { Table, TableColumn } from '@/modules/design-system/src/components/Table';
 import { Badge, BadgeVariant } from '@/modules/design-system/src/components/Badge';
@@ -35,9 +36,13 @@ interface ApiResponse {
 
 async function getAuditLogs(): Promise<AuditLog[]> {
     try {
-        const cookieStore = cookies();
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const cookieStore = await cookies();
+        const headersList = await headers();
+        const host = headersList.get('host');
+        const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+        const baseUrl = `${protocol}://${host}`;
 
+        // Relative fetch using absolute URL constructed from headers
         const response = await fetch(`${baseUrl}/api/platform/audit-logs?limit=50`, {
             headers: {
                 Cookie: cookieStore.toString(),
@@ -67,18 +72,24 @@ async function getAuditLogs(): Promise<AuditLog[]> {
     }
 }
 
-export default async function AuditLogsPage() {
-    const auth = await getAuthContext();
+interface PageProps {
+    params: Promise<{ locale: string }>;
+}
 
-    // RBAC Check: Only Owner can view audit logs
-    if (!auth || auth.role?.toLowerCase() !== 'owner') {
-        redirect('/platform'); // 403 Forbidden - Redirect for safety
+export default async function AuditLogsPage({ params }: PageProps) {
+    const { locale } = await params;
+    const auth = await getAuthContext();
+    const dict = await getDictionary(locale as any);
+    const t = (key: string) => tFromDict(dict, key);
+
+    // RBAC Check: Strict Owner Only with Locale-aware redirect
+    // We do not use requireOwner() here because it redirects to /platform (no locale)
+    if (!auth) {
+        redirect(`/${locale}/auth/login`);
     }
 
-    try {
-        await requirePlatformAccess();
-    } catch (error) {
-        redirect('/platform');
+    if (auth.role !== 'owner') {
+        redirect(`/${locale}/v2`);
     }
 
     const logs = await getAuditLogs();
@@ -86,12 +97,12 @@ export default async function AuditLogsPage() {
     const columns: TableColumn<AuditLog>[] = [
         {
             key: 'timestamp',
-            header: 'Timestamp',
+            header: t('v2.audit.table.timestamp'),
             sortable: true,
-            className: 'w-[200px]', // Keep existing width
+            className: 'w-[200px]',
             render: (value) => {
                 try {
-                    return new Date(String(value)).toLocaleString();
+                    return new Date(String(value)).toLocaleString(locale);
                 } catch {
                     return String(value);
                 }
@@ -99,25 +110,25 @@ export default async function AuditLogsPage() {
         },
         {
             key: 'actor',
-            header: 'Actor',
+            header: t('v2.audit.table.actor'),
             sortable: true,
             className: 'w-[250px]',
         },
         {
             key: 'action',
-            header: 'Action',
+            header: t('v2.audit.table.action'),
             sortable: true,
             className: 'w-[200px]',
             render: (value) => <span className="font-medium">{String(value)}</span>,
         },
         {
             key: 'target',
-            header: 'Target',
+            header: t('v2.audit.table.target'),
             className: 'w-[250px]',
         },
         {
             key: 'status',
-            header: 'Status',
+            header: t('v2.audit.table.status'),
             className: 'w-[150px]',
             render: (_, row) => {
                 const variant: BadgeVariant = row.status === 'success' ? 'success' : 'danger';
@@ -134,14 +145,14 @@ export default async function AuditLogsPage() {
         return (
             <div className="p-8">
                 <PageHeader
-                    title="Audit Logs"
-                    subtitle="Security event history for platform administrators"
+                    title={t('v2.audit.title')}
+                    subtitle={t('v2.audit.subtitle')}
                 />
                 <div className="mt-8 bg-white rounded-lg border border-neutral-200 shadow-sm">
                     <EmptyState
                         variant="empty"
-                        title="No Audit Logs"
-                        message="There are no audit log entries to display."
+                        title={t('v2.audit.empty.title')}
+                        message={t('v2.audit.empty.description')}
                     />
                 </div>
             </div>
@@ -151,8 +162,8 @@ export default async function AuditLogsPage() {
     return (
         <div className="p-8 space-y-6">
             <PageHeader
-                title="Audit Logs"
-                subtitle="Security event history for platform administrators"
+                title={t('v2.audit.title')}
+                subtitle={t('v2.audit.subtitle')}
             />
 
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
@@ -160,8 +171,6 @@ export default async function AuditLogsPage() {
                     columns={columns}
                     data={logs}
                     // Client-side sorting on the fetched set for now
-                    // Note: Ideally sorting should be server-side, but keeping UI unchanged
-                    // as Table supports client sort
                     sortKey="timestamp"
                     sortDirection="desc"
                 />
