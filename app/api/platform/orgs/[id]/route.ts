@@ -1,56 +1,62 @@
-/**
- * Platform Organization Detail API
- * 
- * GET - Get organization details by ID
- */
-
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requirePlatformAccess, requireOwner, requireAdmin } from '@/lib/auth/server';
-import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
+import {
+    ApiSuccessResponse,
+    ApiErrorResponse,
+    validateRequest // Added helper
+} from '@/lib/api';
 import { handleError } from '@super-platform/core';
-import { COLLECTION_ORGANIZATIONS } from '@/lib/firebase/collections';
-import { emitSuccessEvent } from '@/lib/audit/emit';
-
-interface RouteParams {
-    params: Promise<{ id: string }>;
-}
+import {
+    getAuthContext
+} from '@/lib/auth/server';
+import { hasPermission, PlatformUser, PlatformRole } from '@/lib/platform/types';
+import { getAdminFirestore } from '@/lib/firebase-admin';
+import { Organization } from '@/lib/types';
 
 // =============================================================================
-// GET - Get organization by ID
+// GET - Get organization details
 // =============================================================================
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
-        // Enforce security: Only Platform Owner can view org details
-        await requirePlatformAccess();
+        const { id } = await context.params;
+        const auth = await getAuthContext();
+        if (!auth) return ApiErrorResponse.unauthorized();
 
-        // Get organization ID from route params
-        const { id } = await params;
-
-        if (!id) {
-            return ApiErrorResponse.badRequest('Organization ID is required');
-        }
-
-        // Get Firestore instance
-        const { getAdminFirestore } = await import('@/lib/firebase-admin');
         const db = getAdminFirestore();
 
-        // Fetch organization document
-        const orgDoc = await db.collection(COLLECTION_ORGANIZATIONS).doc(id).get();
+        // Fetch full platform user to check permissions
+        const userDoc = await db.collection('platform_users').doc(auth.uid).get();
+        if (!userDoc.exists) return ApiErrorResponse.forbidden('Not a platform user');
 
-        if (!orgDoc.exists) {
-            return ApiErrorResponse.notFound('Organization');
+        const currentUser = userDoc.data() as PlatformUser;
+
+        // 1. Check permission
+        if (!hasPermission(currentUser, 'platform:orgs:read')) {
+            console.warn(`[API] Unauthorized org access attempt by ${auth.uid}`);
+            return ApiErrorResponse.forbidden('Insufficient permissions');
         }
 
-        // Build organization object
+        // 2. Fetch organization
+        const orgDoc = await db.collection('organizations').doc(id).get();
+        if (!orgDoc.exists) {
+            return ApiErrorResponse.notFound('Organization not found');
+        }
+
         const orgData = orgDoc.data();
-        const organization = {
+        if (orgData?.deleted) {
+            return ApiErrorResponse.notFound('Organization not found');
+        }
+
+        const organization: Organization = {
             id: orgDoc.id,
             ...orgData,
-            createdAt: orgData?.createdAt?.toDate?.()?.toISOString() || null,
-            updatedAt: orgData?.updatedAt?.toDate?.()?.toISOString() || null,
-        };
+            createdAt: orgData?.createdAt?.toDate ? orgData.createdAt.toDate().toISOString() : new Date().toISOString(),
+            updatedAt: orgData?.updatedAt?.toDate ? orgData.updatedAt.toDate().toISOString() : new Date().toISOString()
+        } as Organization;
 
         return ApiSuccessResponse.ok({
             organization
@@ -69,116 +75,63 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // Validation schema for PATCH
 const updateOrgSchema = z.object({
-    name: z.string().min(1, 'Organization name must not be empty').optional(),
-    slug: z.string().min(1, 'Slug must not be empty').regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens').optional(),
-    plan: z.enum(['free', 'starter', 'pro', 'enterprise']).optional(),
-    domain: z.string().nullable().optional(),
-    logoURL: z.string().nullable().optional(),
-    modules: z.array(z.string()).optional(),
-    settings: z.object({
-        timezone: z.string().optional(),
-        currency: z.string().optional(),
-        dateFormat: z.string().optional(),
-        language: z.string().optional(),
-    }).optional(),
+    name: z.string().min(2).optional(),
+    slug: z.string().min(2).regex(/^[a-z0-9-]+$/).optional(),
+    logoUrl: z.string().url().optional(),
 });
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
-        // Enforce security: Only Platform Owner/Admin can update orgs
-        const auth = await requireAdmin();
+        const { id } = await context.params;
+        const body = await request.json();
 
-        // Get organization ID from route params
-        const { id } = await params;
+        const auth = await getAuthContext();
+        if (!auth) return ApiErrorResponse.unauthorized();
 
-        if (!id) {
-            return ApiErrorResponse.badRequest('Organization ID is required');
+        const db = getAdminFirestore();
+        const userDoc = await db.collection('platform_users').doc(auth.uid).get();
+        if (!userDoc.exists) return ApiErrorResponse.forbidden('Not a platform user');
+
+        const currentUser = userDoc.data() as PlatformUser;
+
+        // 1. Check permission
+        if (!hasPermission(currentUser, 'platform:orgs:write')) {
+            return ApiErrorResponse.forbidden('Insufficient permissions');
         }
 
-        // Parse and validate request body
-        const body = await request.json();
+        // 2. Validate input using validateRequest helper for type safety
         const validation = validateRequest(updateOrgSchema, body);
-
         if (!validation.success) {
             return ApiErrorResponse.validationError(validation.errors);
         }
 
-        // Get Firestore instance
-        const { getAdminFirestore } = await import('@/lib/firebase-admin');
-        const db = getAdminFirestore();
+        const updates = validation.data;
 
-        // Fetch existing organization
-        const orgDoc = await db.collection(COLLECTION_ORGANIZATIONS).doc(id).get();
-
-        if (!orgDoc.exists) {
-            return ApiErrorResponse.notFound('Organization');
-        }
-
-        const existingOrg = orgDoc.data();
-
-        // Check slug uniqueness if slug is being changed
-        if (validation.data.slug && validation.data.slug !== existingOrg?.slug) {
-            const existingSlugSnapshot = await db.collection(COLLECTION_ORGANIZATIONS)
-                .where('slug', '==', validation.data.slug)
-                .limit(1)
+        // 3. Check slug uniqueness if changing
+        if (updates.slug) {
+            const slugCheck = await db.collection('organizations')
+                .where('slug', '==', updates.slug)
                 .get();
 
-            if (!existingSlugSnapshot.empty) {
-                return ApiErrorResponse.conflict('Organization with this slug already exists');
+            if (!slugCheck.empty && slugCheck.docs[0].id !== id) {
+                return ApiErrorResponse.badRequest('Slug already taken');
             }
         }
 
-        // Build update data with only provided fields
-        const admin = await import('firebase-admin');
-        const FieldValue = admin.firestore.FieldValue;
+        // 4. Update
+        await db.collection('organizations').doc(id).update({
+            ...updates,
+            updatedAt: new Date()
+        });
 
-        const updateData: Record<string, any> = {
-            updatedAt: FieldValue.serverTimestamp(),
-        };
+        // 5. Audit Log matches B3 pattern
+        console.log(`[Audit] Org updated: ${id} by ${auth.uid}`);
 
-        // Add provided fields
-        if (validation.data.name !== undefined) updateData.name = validation.data.name;
-        if (validation.data.slug !== undefined) updateData.slug = validation.data.slug;
-        if (validation.data.plan !== undefined) updateData.plan = validation.data.plan;
-        if (validation.data.domain !== undefined) updateData.domain = validation.data.domain;
-        if (validation.data.logoURL !== undefined) updateData.logoURL = validation.data.logoURL;
-        if (validation.data.modules !== undefined) updateData.modules = validation.data.modules;
-
-        // Merge settings if provided
-        if (validation.data.settings) {
-            const currentSettings = existingOrg?.settings || {};
-            updateData.settings = {
-                ...currentSettings,
-                ...validation.data.settings,
-            };
-        }
-
-        // Update document
-        await db.collection(COLLECTION_ORGANIZATIONS).doc(id).update(updateData);
-
-        // Fetch updated document
-        const updatedDoc = await db.collection(COLLECTION_ORGANIZATIONS).doc(id).get();
-        const updatedData = updatedDoc.data();
-
-        // Emit audit event (log-safe)
-        const changedFields = Object.keys(updateData).filter(k => k !== 'updatedAt');
-        await emitSuccessEvent(
-            'org',
-            'updated',
-            { uid: auth.uid, email: auth.email || '', role: auth.role },
-            { id, name: updatedData?.name, type: 'org' },
-            { changedFields },
-            { method: 'PATCH', path: `/api/platform/orgs/${id}` }
-        );
-
-        // Return updated organization
         return ApiSuccessResponse.ok({
-            organization: {
-                id: updatedDoc.id,
-                ...updatedData,
-                createdAt: updatedData?.createdAt?.toDate?.()?.toISOString() || null,
-                updatedAt: updatedData?.updatedAt?.toDate?.()?.toISOString() || null,
-            }
+            message: 'Organization updated successfully'
         });
 
     } catch (error) {
@@ -189,52 +142,38 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // =============================================================================
-// DELETE - Disable organization (soft delete)
+// DELETE - Delete (Disable) organization
 // =============================================================================
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
-        // Enforce security: Only Platform Owner can disable orgs
-        const auth = await requireOwner();
+        const { id } = await context.params;
 
-        // Get organization ID from route params
-        const { id } = await params;
+        const auth = await getAuthContext();
+        if (!auth) return ApiErrorResponse.unauthorized();
 
-        if (!id) {
-            return ApiErrorResponse.badRequest('Organization ID is required');
-        }
-
-        // Get Firestore instance
-        const { getAdminFirestore } = await import('@/lib/firebase-admin');
         const db = getAdminFirestore();
+        const userDoc = await db.collection('platform_users').doc(auth.uid).get();
+        if (!userDoc.exists) return ApiErrorResponse.forbidden('Not a platform user');
 
-        // Fetch organization to verify it exists
-        const orgDoc = await db.collection(COLLECTION_ORGANIZATIONS).doc(id).get();
+        const currentUser = userDoc.data() as PlatformUser;
 
-        if (!orgDoc.exists) {
-            return ApiErrorResponse.notFound('Organization');
+        // 1. Check permission
+        if (!hasPermission(currentUser, 'platform:orgs:delete')) {
+            return ApiErrorResponse.forbidden('Insufficient permissions');
         }
 
-        // Import FieldValue for server timestamps
-        const admin = await import('firebase-admin');
-        const FieldValue = admin.firestore.FieldValue;
-
-        // Update document to mark as disabled (soft delete)
-        await db.collection(COLLECTION_ORGANIZATIONS).doc(id).update({
+        // 2. Soft delete
+        await db.collection('organizations').doc(id).update({
             disabled: true,
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: new Date()
         });
 
-        // Emit audit event (log-safe)
-        const orgData = orgDoc.data();
-        await emitSuccessEvent(
-            'org',
-            'disabled',
-            { uid: auth.uid, email: auth.email || '', role: auth.role },
-            { id, name: orgData?.name, type: 'org' },
-            {},
-            { method: 'DELETE', path: `/api/platform/orgs/${id}` }
-        );
+        // 3. Audit Log
+        console.log(`[Audit] Org disabled: ${id} by ${auth.uid}`);
 
         return ApiSuccessResponse.ok({
             message: 'Organization disabled successfully'
