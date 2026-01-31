@@ -129,7 +129,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                             type="button"
                             onClick={fillDevCredentials}
                             style={{
-                                martinTop: 4, padding: '8px', borderRadius: 8, border: '1px dashed #666',
+                                marginTop: 4, padding: '8px', borderRadius: 8, border: '1px dashed #666',
                                 background: 'transparent', color: '#555', fontSize: 12, cursor: 'pointer',
                                 opacity: 0.7
                             }}
