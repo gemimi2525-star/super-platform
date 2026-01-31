@@ -2,6 +2,7 @@ import { CoreObject, OMSResolverInterface, OMSAdapter } from './types';
 import { SystemAdapter } from './adapters/system';
 import { UsersAdapter } from './adapters/users';
 import { AuditAdapter } from './adapters/audit';
+import { OrgsAdapter } from './adapters/orgs';
 
 // Synapse Stub
 const logPolicy = (action: string, resource: string) => {
@@ -14,12 +15,21 @@ export class OMSResolver implements OMSResolverInterface {
     private adapters: Map<string, OMSAdapter> = new Map();
 
     private constructor() {
-        this.adapters.set('/system', new SystemAdapter());
-        this.adapters.set('/data/users', new UsersAdapter());
-        this.adapters.set('/audit', new AuditAdapter());
-        // /data/orgs can use UsersAdapter for now or similar stub
-        this.adapters.set('/data/orgs', new UsersAdapter()); // Reusing for stub
-    }
+        // ... imports
+        import { OrgsAdapter } from './adapters/orgs';
+
+        // ... 
+
+        export class OMSResolver implements OMSResolverInterface {
+            // ...
+            private constructor() {
+                this.adapters.set('/system', new SystemAdapter());
+                this.adapters.set('/data/users', new UsersAdapter());
+                this.adapters.set('/audit', new AuditAdapter());
+                this.adapters.set('/data/orgs', new OrgsAdapter());
+            }
+            // ...
+        }
 
     public static getInstance(): OMSResolver {
         if (!OMSResolver.instance) {

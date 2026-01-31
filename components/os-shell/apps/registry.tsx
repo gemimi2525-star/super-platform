@@ -51,6 +51,10 @@ const AnalyticsAppLazy = lazy(() =>
     import('./analytics/AnalyticsApp').then(m => ({ default: m.AnalyticsApp }))
 );
 
+const ExplorerAppLazy = lazy(() =>
+    import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
+);
+
 function LoadingPlaceholder() {
     return (
         <div style={{
@@ -87,6 +91,9 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     'core.settings': createLazyApp(SettingsAppLazy),
     'org.manage': createLazyApp(OrganizationsAppLazy),
     'system.configure': createLazyApp(SystemConfigureAppLazy),
+
+    // Explorer (Finder)
+    'system.explorer': createLazyApp(ExplorerAppLazy),
 
     // Experimental Apps (hidden from Dock)
     'plugin.analytics': createLazyApp(AnalyticsAppLazy),
