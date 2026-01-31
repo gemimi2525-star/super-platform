@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
             }
         });
 
-    } catch (error) {
+    } catch (error: any) {
         if (error?.digest?.startsWith('NEXT_REDIRECT')) {
             return ApiErrorResponse.forbidden('Redirect blocked in API');
         }
