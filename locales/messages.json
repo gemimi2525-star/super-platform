@@ -263,6 +263,62 @@
     "en": "Sign Up",
     "th": "สมัครสมาชิก"
   },
+  "auth.welcomeBack": {
+    "en": "Welcome back",
+    "th": "ยินดีต้อนรับกลับ"
+  },
+  "auth.signInToWorkspace": {
+    "en": "Sign in to your workspace",
+    "th": "เข้าสู่พื้นที่ทำงานของคุณ"
+  },
+  "auth.invalidCredentials": {
+    "en": "Invalid email or password",
+    "th": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+  },
+  "auth.invalidEmail": {
+    "en": "Invalid email format",
+    "th": "รูปแบบอีเมลไม่ถูกต้อง"
+  },
+  "auth.tooManyAttempts": {
+    "en": "Too many attempts. Please wait and try again.",
+    "th": "พยายามหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่"
+  },
+  "auth.loginFailed": {
+    "en": "Login failed",
+    "th": "เข้าสู่ระบบล้มเหลว"
+  },
+  "auth.sessionFailed": {
+    "en": "Failed to create session. Please try again.",
+    "th": "สร้างเซสชันล้มเหลว กรุณาลองใหม่อีกครั้ง"
+  },
+  "auth.googleDisabled": {
+    "en": "Google Login Temporarily Disabled",
+    "th": "ปิดการเข้าสู่ระบบด้วย Google ชั่วคราว"
+  },
+  "auth.orContinueWith": {
+    "en": "Or continue with",
+    "th": "หรือดำเนินการต่อด้วย"
+  },
+  "auth.useEmailPassword": {
+    "en": "Please use Email/Password to sign in",
+    "th": "กรุณาใช้อีเมลและรหัสผ่านในการเข้าสู่ระบบ"
+  },
+  "auth.signingIn": {
+    "en": "Signing in...",
+    "th": "กำลังเข้าสู่ระบบ..."
+  },
+  "language.en": {
+    "en": "English",
+    "th": "อังกฤษ"
+  },
+  "language.th": {
+    "en": "Thai",
+    "th": "ไทย"
+  },
+  "language.switch": {
+    "en": "Switch Language",
+    "th": "เปลี่ยนภาษา"
+  },
   "common.actions": {
     "en": "Actions",
     "th": "จัดการ"
@@ -2602,5 +2658,697 @@
   "v2.audit.empty.description": {
     "en": "There are no audit log entries to display.",
     "th": "ไม่มีรายการบันทึกการตรวจสอบที่จะแสดง"
+  },
+  "v2.dashboard.welcome": {
+    "en": "Welcome, {name}",
+    "th": "ยินดีต้อนรับ, {name}"
+  },
+  "v2.dashboard.controlCenter": {
+    "en": "APICOREDATA OS Control Center",
+    "th": "ศูนย์ควบคุม APICOREDATA OS"
+  },
+  "v2.dashboard.applications": {
+    "en": "Applications",
+    "th": "แอปพลิเคชัน"
+  },
+  "v2.dashboard.overviewStatus": {
+    "en": "Overview & Status",
+    "th": "ภาพรวมและสถานะ"
+  },
+  "v2.dashboard.searchApps": {
+    "en": "Search apps...",
+    "th": "ค้นหาแอป..."
+  },
+  "v2.dashboard.widgets.users": {
+    "en": "Users",
+    "th": "ผู้ใช้"
+  },
+  "v2.dashboard.widgets.activeUsers": {
+    "en": "Active Users",
+    "th": "ผู้ใช้ที่ใช้งาน"
+  },
+  "v2.dashboard.widgets.organizations": {
+    "en": "Total Organizations",
+    "th": "องค์กรทั้งหมด"
+  },
+  "v2.dashboard.widgets.securityAudit": {
+    "en": "Security Audit",
+    "th": "การตรวจสอบความปลอดภัย"
+  },
+  "v2.dashboard.widgets.latestActivity": {
+    "en": "Latest Activity",
+    "th": "กิจกรรมล่าสุด"
+  },
+  "v2.dashboard.apps.userManagement": {
+    "en": "User Management",
+    "th": "จัดการผู้ใช้"
+  },
+  "v2.dashboard.apps.userManagementDesc": {
+    "en": "Access User Management features",
+    "th": "เข้าถึงฟีเจอร์การจัดการผู้ใช้"
+  },
+  "v2.dashboard.apps.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร"
+  },
+  "v2.dashboard.apps.organizationsDesc": {
+    "en": "Access Organizations features",
+    "th": "เข้าถึงฟีเจอร์องค์กร"
+  },
+  "v2.dashboard.apps.auditLogs": {
+    "en": "Audit Logs",
+    "th": "บันทึกการตรวจสอบ"
+  },
+  "v2.dashboard.apps.auditLogsDesc": {
+    "en": "Access Audit Logs features",
+    "th": "เข้าถึงฟีเจอร์บันทึกการตรวจสอบ"
+  },
+  "v2.topbar.logout": {
+    "en": "Logout",
+    "th": "ออกจากระบบ"
+  },
+  "v2.topbar.loggingOut": {
+    "en": "Logging out...",
+    "th": "กำลังออกจากระบบ..."
+  },
+  "v2.topbar.platformTitle": {
+    "en": "APICOREDATA Platform V2",
+    "th": "APICOREDATA Platform V2"
+  },
+  "v2.dashboard.noAppsFound": {
+    "en": "No apps found",
+    "th": "ไม่พบแอป"
+  },
+  "v2.dashboard.tryAdjustingSearch": {
+    "en": "Try adjusting your search terms",
+    "th": "ลองปรับคำค้นหาของคุณ"
+  },
+  "v2.dashboard.apps.settings": {
+    "en": "Settings",
+    "th": "ตั้งค่า"
+  },
+  "v2.dashboard.apps.settingsDesc": {
+    "en": "Access Settings features",
+    "th": "เข้าถึงฟีเจอร์ตั้งค่า"
+  },
+  "v2.common.home": {
+    "en": "Home",
+    "th": "หน้าหลัก"
+  },
+  "v2.desktop.welcome": {
+    "en": "Welcome, {name}",
+    "th": "ยินดีต้อนรับ, {name}"
+  },
+  "v2.desktop.subtitle": {
+    "en": "APICOREDATA OS Desktop",
+    "th": "เดสก์ท็อป APICOREDATA OS"
+  },
+  "v2.desktop.systemStatus": {
+    "en": "System Status",
+    "th": "สถานะระบบ"
+  },
+  "v2.desktop.appsSection": {
+    "en": "Apps",
+    "th": "แอป"
+  },
+  "v2.desktop.searchApps": {
+    "en": "Search apps...",
+    "th": "ค้นหาแอป..."
+  },
+  "v2.desktop.noAppsFound": {
+    "en": "No apps found",
+    "th": "ไม่พบแอป"
+  },
+  "v2.desktop.tryAdjustingSearch": {
+    "en": "Try adjusting your search terms",
+    "th": "ลองปรับคำค้นหาของคุณ"
+  },
+  "v2.desktop.apps.userManagement": {
+    "en": "User Management",
+    "th": "จัดการผู้ใช้"
+  },
+  "v2.desktop.apps.userManagementDesc": {
+    "en": "Manage users in your organization",
+    "th": "จัดการผู้ใช้ในองค์กรของคุณ"
+  },
+  "v2.desktop.apps.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร"
+  },
+  "v2.desktop.apps.organizationsDesc": {
+    "en": "Manage your organizations",
+    "th": "จัดการองค์กรของคุณ"
+  },
+  "v2.desktop.apps.auditLogs": {
+    "en": "Audit Logs",
+    "th": "บันทึกการตรวจสอบ"
+  },
+  "v2.desktop.apps.auditLogsDesc": {
+    "en": "View security audit trail",
+    "th": "ดูบันทึกความปลอดภัย"
+  },
+  "v2.desktop.apps.settings": {
+    "en": "Settings",
+    "th": "ตั้งค่า"
+  },
+  "v2.desktop.apps.settingsDesc": {
+    "en": "Configure system settings",
+    "th": "ตั้งค่าระบบ"
+  },
+  "v2.desktop.greetingMorning": {
+    "en": "Good morning, {name}",
+    "th": "สวัสดีตอนเช้า, {name}"
+  },
+  "v2.desktop.greetingAfternoon": {
+    "en": "Good afternoon, {name}",
+    "th": "สวัสดีตอนบ่าย, {name}"
+  },
+  "v2.desktop.greetingEvening": {
+    "en": "Good evening, {name}",
+    "th": "สวัสดีตอนเย็น, {name}"
+  },
+  "v2.desktop.calmSubtitle": {
+    "en": "Your workspace is ready",
+    "th": "พื้นที่ทำงานของคุณพร้อมแล้ว"
+  },
+  "v2.desktop.calmReady": {
+    "en": "Everything is ready",
+    "th": "ทุกอย่างพร้อมแล้ว"
+  },
+  "v2.desktop.calmStart": {
+    "en": "Start by opening an app",
+    "th": "เริ่มต้นด้วยการเปิดแอป"
+  },
+  "v2.desktop.snapshot.usersLabel": {
+    "en": "Team Members",
+    "th": "สมาชิกทีม"
+  },
+  "v2.desktop.snapshot.usersContext": {
+    "en": "Your team is organized and ready",
+    "th": "ทีมของคุณจัดระเบียบและพร้อมแล้ว"
+  },
+  "v2.desktop.snapshot.orgsLabel": {
+    "en": "Organizations",
+    "th": "องค์กร"
+  },
+  "v2.desktop.snapshot.orgsContext": {
+    "en": "All organizations are active",
+    "th": "องค์กรทั้งหมดทำงานอยู่"
+  },
+  "v2.desktop.snapshot.securityLabel": {
+    "en": "Security",
+    "th": "ความปลอดภัย"
+  },
+  "v2.desktop.snapshot.securityContext": {
+    "en": "No unusual activity detected",
+    "th": "ไม่พบกิจกรรมที่ผิดปกติ"
+  },
+  "v2.desktop.snapshot.calmEmpty": {
+    "en": "Everything is running smoothly",
+    "th": "ทุกอย่างทำงานราบรื่น"
+  },
+  "v2.contextTitle.coreDesktop": {
+    "en": "Core Desktop",
+    "th": "เดสก์ท็อปหลัก"
+  },
+  "v2.contextTitle.users": {
+    "en": "Users",
+    "th": "ผู้ใช้งาน"
+  },
+  "v2.contextTitle.organizations": {
+    "en": "Organizations",
+    "th": "องค์กร"
+  },
+  "v2.contextTitle.auditLogs": {
+    "en": "Audit Logs",
+    "th": "บันทึกกิจกรรม"
+  },
+  "v2.contextTitle.systemSettings": {
+    "en": "System Settings",
+    "th": "ตั้งค่าระบบ"
+  },
+  "v2.contextTitle.coreHub": {
+    "en": "Core Hub",
+    "th": "ศูนย์กลางแอป"
+  },
+  "v2.sidebar.osHome": {
+    "en": "OS Home",
+    "th": "เดสก์ท็อป"
+  },
+  "v2.sidebar.collapseSidebar": {
+    "en": "Collapse sidebar",
+    "th": "ย่อแถบด้านข้าง"
+  },
+  "v2.sidebar.expandSidebar": {
+    "en": "Expand sidebar",
+    "th": "ขยายแถบด้านข้าง"
+  },
+  "v2.breadcrumb.home": {
+    "en": "Home",
+    "th": "หน้าหลัก"
+  },
+  "v2.panel.close": {
+    "en": "Close",
+    "th": "ปิด"
+  },
+  "v2.panel.cancel": {
+    "en": "Cancel",
+    "th": "ยกเลิก"
+  },
+  "v2.panel.save": {
+    "en": "Save",
+    "th": "บันทึก"
+  },
+  "v2.panel.create": {
+    "en": "Create",
+    "th": "สร้าง"
+  },
+  "v2.panel.discardTitle": {
+    "en": "Discard changes?",
+    "th": "ยกเลิกการเปลี่ยนแปลง?"
+  },
+  "v2.panel.discardDesc": {
+    "en": "You have unsaved changes. Are you sure you want to discard them?",
+    "th": "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการยกเลิกหรือไม่?"
+  },
+  "v2.panel.discardConfirm": {
+    "en": "Discard",
+    "th": "ยกเลิก"
+  },
+  "v2.panel.discardKeepEditing": {
+    "en": "Keep editing",
+    "th": "แก้ไขต่อ"
+  },
+  "v2.users.panel.createTitle": {
+    "en": "New User",
+    "th": "สร้างผู้ใช้ใหม่"
+  },
+  "v2.users.panel.createSubtitle": {
+    "en": "Add a new user to your organization",
+    "th": "เพิ่มผู้ใช้ใหม่ในองค์กรของคุณ"
+  },
+  "v2.users.panel.editTitle": {
+    "en": "Edit User",
+    "th": "แก้ไขผู้ใช้"
+  },
+  "v2.users.panel.editSubtitle": {
+    "en": "Update user information and permissions",
+    "th": "อัปเดตข้อมูลและสิทธิ์ของผู้ใช้"
+  },
+  "v2.common.forbidden": {
+    "en": "Access Denied",
+    "th": "ไม่มีสิทธิ์เข้าถึง"
+  },
+  "v2.common.forbiddenMessage": {
+    "en": "You don't have permission to access this page.",
+    "th": "คุณไม่มีสิทธิ์เข้าถึงหน้านี้"
+  },
+  "v2.common.error": {
+    "en": "Something went wrong",
+    "th": "เกิดข้อผิดพลาด"
+  },
+  "v2.common.retry": {
+    "en": "Retry",
+    "th": "ลองอีกครั้ง"
+  },
+  "v2.coreSystem.menu.title": {
+    "en": "Core System",
+    "th": "ระบบหลัก"
+  },
+  "v2.coreSystem.menu.about": {
+    "en": "About Core OS",
+    "th": "เกี่ยวกับ Core OS"
+  },
+  "v2.coreSystem.menu.systemSettings": {
+    "en": "System Settings",
+    "th": "ตั้งค่าระบบ"
+  },
+  "v2.coreSystem.menu.coreApps": {
+    "en": "Core Apps",
+    "th": "แอปพลิเคชัน"
+  },
+  "v2.coreSystem.menu.recentItems": {
+    "en": "Recent Items",
+    "th": "รายการล่าสุด"
+  },
+  "v2.coreSystem.menu.brandAppearance": {
+    "en": "Brand & Appearance",
+    "th": "แบรนด์และรูปลักษณ์"
+  },
+  "v2.coreSystem.menu.lockDesktop": {
+    "en": "Lock Core Desktop",
+    "th": "ล็อกหน้าจอ"
+  },
+  "v2.coreSystem.menu.logOut": {
+    "en": "Log Out",
+    "th": "ออกจากระบบ"
+  },
+  "v2.coreSystem.settings.title": {
+    "en": "System Settings",
+    "th": "ตั้งค่าระบบ"
+  },
+  "v2.coreSystem.settings.sections.general": {
+    "en": "General",
+    "th": "ทั่วไป"
+  },
+  "v2.coreSystem.settings.sections.brand": {
+    "en": "Brand",
+    "th": "แบรนด์"
+  },
+  "v2.coreSystem.settings.sections.appearance": {
+    "en": "Appearance",
+    "th": "รูปลักษณ์"
+  },
+  "v2.coreSystem.settings.sections.session": {
+    "en": "Session",
+    "th": "เซสชัน"
+  },
+  "v2.coreSystem.settings.general.version": {
+    "en": "Version",
+    "th": "เวอร์ชัน"
+  },
+  "v2.coreSystem.settings.general.environment": {
+    "en": "Environment",
+    "th": "สภาพแวดล้อม"
+  },
+  "v2.coreSystem.settings.general.locale": {
+    "en": "Current Language",
+    "th": "ภาษาปัจจุบัน"
+  },
+  "v2.coreSystem.settings.brand.logo": {
+    "en": "Custom Logo",
+    "th": "โลโก้กำหนดเอง"
+  },
+  "v2.coreSystem.settings.brand.logoDescription": {
+    "en": "Upload your organization logo to customize the platform appearance.",
+    "th": "อัปโหลดโลโก้องค์กรของคุณเพื่อปรับแต่งรูปลักษณ์แพลตฟอร์ม"
+  },
+  "v2.coreSystem.settings.brand.upload": {
+    "en": "Upload Logo",
+    "th": "อัปโหลดโลโก้"
+  },
+  "v2.coreSystem.settings.brand.remove": {
+    "en": "Remove Logo",
+    "th": "ลบโลโก้"
+  },
+  "v2.coreSystem.settings.brand.previewLight": {
+    "en": "Light background",
+    "th": "พื้นหลังสว่าง"
+  },
+  "v2.coreSystem.settings.brand.previewDark": {
+    "en": "Dark background",
+    "th": "พื้นหลังมืด"
+  },
+  "v2.coreSystem.settings.brand.fileRequirements": {
+    "en": "PNG, SVG or JPEG. Max 2MB.",
+    "th": "PNG, SVG หรือ JPEG สูงสุด 2MB"
+  },
+  "v2.coreSystem.settings.brand.invalidFileType": {
+    "en": "Please upload an image file (PNG, SVG, or JPEG)",
+    "th": "กรุณาอัปโหลดไฟล์รูปภาพ (PNG, SVG หรือ JPEG)"
+  },
+  "v2.coreSystem.settings.brand.fileTooLarge": {
+    "en": "File size must be less than 2MB",
+    "th": "ขนาดไฟล์ต้องไม่เกิน 2MB"
+  },
+  "v2.coreSystem.settings.brandV2.title": {
+    "en": "Brand Logo Settings",
+    "th": "ตั้งค่าโลโก้แบรนด์"
+  },
+  "v2.coreSystem.settings.brandV2.description": {
+    "en": "Customize logo and branding for Header and Login screen separately.",
+    "th": "ปรับแต่งโลโก้และการแสดงผลแบรนด์สำหรับ Header และหน้า Login แยกกัน"
+  },
+  "v2.coreSystem.settings.brandV2.headerLogo": {
+    "en": "Header Logo",
+    "th": "โลโก้สำหรับ Header"
+  },
+  "v2.coreSystem.settings.brandV2.headerLogoDesc": {
+    "en": "Displayed in the main navigation bar across all pages.",
+    "th": "แสดงในแถบนำทางหลักทุกหน้า"
+  },
+  "v2.coreSystem.settings.brandV2.loginLogo": {
+    "en": "Login Screen Logo",
+    "th": "โลโก้สำหรับหน้า Login"
+  },
+  "v2.coreSystem.settings.brandV2.loginLogoDesc": {
+    "en": "Displayed on the login and lock screen.",
+    "th": "แสดงบนหน้าเข้าสู่ระบบและหน้าล็อก"
+  },
+  "v2.coreSystem.settings.brandV2.uploadLogo": {
+    "en": "Upload Logo",
+    "th": "อัปโหลดโลโก้"
+  },
+  "v2.coreSystem.settings.brandV2.uploading": {
+    "en": "Uploading...",
+    "th": "กำลังอัปโหลด..."
+  },
+  "v2.coreSystem.settings.brandV2.removeLogo": {
+    "en": "Remove",
+    "th": "ลบ"
+  },
+  "v2.coreSystem.settings.brandV2.logoSize": {
+    "en": "Logo Size",
+    "th": "ขนาดโลโก้"
+  },
+  "v2.coreSystem.settings.brandV2.spacingFromName": {
+    "en": "Spacing from Name",
+    "th": "ระยะห่างจากชื่อ"
+  },
+  "v2.coreSystem.settings.brandV2.showBrandName": {
+    "en": "Show Brand Name",
+    "th": "แสดงชื่อแบรนด์"
+  },
+  "v2.coreSystem.settings.brandV2.showBrandNameDesc": {
+    "en": "Display \"{name}\" next to the logo",
+    "th": "แสดง \"{name}\" ข้างโลโก้"
+  },
+  "v2.coreSystem.settings.brandV2.preview": {
+    "en": "Preview",
+    "th": "ตัวอย่าง"
+  },
+  "v2.coreSystem.settings.brandV2.lightBg": {
+    "en": "Light background",
+    "th": "พื้นหลังสว่าง"
+  },
+  "v2.coreSystem.settings.brandV2.darkBg": {
+    "en": "Dark background",
+    "th": "พื้นหลังมืด"
+  },
+  "v2.coreSystem.settings.brandV2.max2MB": {
+    "en": "Max 2MB",
+    "th": "ไม่เกิน 2MB"
+  },
+  "v2.coreSystem.settings.brandV2.fileTooLarge": {
+    "en": "File too large. Maximum size is 2MB.",
+    "th": "ไฟล์ใหญ่เกินไป ขนาดสูงสุดคือ 2MB"
+  },
+  "v2.coreSystem.settings.brandV2.invalidFileType": {
+    "en": "Invalid file type. Use PNG, JPG, SVG, or WebP.",
+    "th": "ประเภทไฟล์ไม่ถูกต้อง ใช้ PNG, JPG, SVG หรือ WebP"
+  },
+  "v2.coreSystem.settings.brandV2.uploadFailed": {
+    "en": "Failed to upload. Please try again.",
+    "th": "อัปโหลดไม่สำเร็จ กรุณาลองใหม่"
+  },
+  "v2.coreSystem.settings.appearance.desktopBackground": {
+    "en": "Desktop Background",
+    "th": "พื้นหลังเดสก์ท็อป"
+  },
+  "v2.coreSystem.settings.appearance.backgroundDescription": {
+    "en": "Choose a background for your Core Desktop. Text colors will adapt automatically.",
+    "th": "เลือกพื้นหลังสำหรับ Core Desktop ของคุณ สีตัวอักษรจะปรับอัตโนมัติ"
+  },
+  "v2.coreSystem.settings.appearance.autoContrastTitle": {
+    "en": "Auto Contrast",
+    "th": "ปรับความคมชัดอัตโนมัติ"
+  },
+  "v2.coreSystem.settings.appearance.autoContrastDescription": {
+    "en": "Text colors automatically adjust based on background darkness for optimal readability.",
+    "th": "สีข้อความปรับอัตโนมัติตามความมืดของพื้นหลังเพื่อให้อ่านได้ชัดเจน"
+  },
+  "v2.coreSystem.settings.appearance.reset": {
+    "en": "Reset to Default",
+    "th": "รีเซ็ตเป็นค่าเริ่มต้น"
+  },
+  "v2.coreSystem.settings.appearance.presets.default": {
+    "en": "Default",
+    "th": "ค่าเริ่มต้น"
+  },
+  "v2.coreSystem.settings.appearance.presets.white": {
+    "en": "White",
+    "th": "ขาว"
+  },
+  "v2.coreSystem.settings.appearance.presets.light-gray": {
+    "en": "Light Gray",
+    "th": "เทาอ่อน"
+  },
+  "v2.coreSystem.settings.appearance.presets.dark": {
+    "en": "Dark",
+    "th": "มืด"
+  },
+  "v2.coreSystem.settings.appearance.presets.midnight": {
+    "en": "Midnight",
+    "th": "มิดไนท์"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-light": {
+    "en": "Light Gradient",
+    "th": "ไล่สีอ่อน"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-blue": {
+    "en": "Blue Gradient",
+    "th": "ไล่สีน้ำเงิน"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-purple": {
+    "en": "Purple Gradient",
+    "th": "ไล่สีม่วง"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-dark": {
+    "en": "Dark Gradient",
+    "th": "ไล่สีมืด"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-ocean": {
+    "en": "Ocean",
+    "th": "มหาสมุทร"
+  },
+  "v2.coreSystem.settings.appearance.presets.gradient-sunset": {
+    "en": "Sunset",
+    "th": "พระอาทิตย์ตก"
+  },
+  "v2.coreSystem.settings.session.status": {
+    "en": "Session Status",
+    "th": "สถานะเซสชัน"
+  },
+  "v2.coreSystem.settings.session.signedIn": {
+    "en": "Signed In",
+    "th": "เข้าสู่ระบบแล้ว"
+  },
+  "v2.coreSystem.settings.session.currentLocale": {
+    "en": "Current Language",
+    "th": "ภาษาปัจจุบัน"
+  },
+  "v2.coreSystem.settings.session.preferencesNote": {
+    "en": "Your preferences (logo, background) are saved locally and persist after logout.",
+    "th": "การตั้งค่าของคุณ (โลโก้, พื้นหลัง) จะถูกบันทึกในเครื่องและคงอยู่หลังออกจากระบบ"
+  },
+  "v2.coreSystem.about.title": {
+    "en": "About Core OS",
+    "th": "เกี่ยวกับ Core OS"
+  },
+  "v2.coreSystem.about.version": {
+    "en": "Version",
+    "th": "เวอร์ชัน"
+  },
+  "v2.coreSystem.about.environment": {
+    "en": "Environment",
+    "th": "สภาพแวดล้อม"
+  },
+  "v2.coreSystem.about.locale": {
+    "en": "Language",
+    "th": "ภาษา"
+  },
+  "v2.coreSystem.about.session": {
+    "en": "Session",
+    "th": "เซสชัน"
+  },
+  "v2.coreSystem.about.sessionActive": {
+    "en": "Active",
+    "th": "ใช้งานอยู่"
+  },
+  "v2.coreSystem.about.buildDate": {
+    "en": "Build Date",
+    "th": "วันที่สร้าง"
+  },
+  "v2.coreSystem.about.documentation": {
+    "en": "Documentation",
+    "th": "เอกสาร"
+  },
+  "v2.coreSystem.about.credits": {
+    "en": "Credits",
+    "th": "เครดิต"
+  },
+  "v2.coreSystem.lock.message": {
+    "en": "Core Desktop is locked",
+    "th": "Core Desktop ถูกล็อก"
+  },
+  "v2.coreSystem.lock.unlock": {
+    "en": "Unlock",
+    "th": "ปลดล็อก"
+  },
+  "v2.coreSystem.lock.unlocking": {
+    "en": "Unlocking...",
+    "th": "กำลังปลดล็อก..."
+  },
+  "v2.authGate.signInTitle": {
+    "en": "Welcome",
+    "th": "ยินดีต้อนรับ"
+  },
+  "v2.authGate.signInSubtitle": {
+    "en": "Sign in to access your workspace",
+    "th": "ลงชื่อเข้าใช้เพื่อเข้าถึงพื้นที่ทำงาน"
+  },
+  "v2.authGate.unlockTitle": {
+    "en": "Welcome back, {name}",
+    "th": "ยินดีต้อนรับกลับ {name}"
+  },
+  "v2.authGate.unlockSubtitle": {
+    "en": "Enter password to unlock",
+    "th": "ใส่รหัสผ่านเพื่อปลดล็อก"
+  },
+  "v2.authGate.emailPlaceholder": {
+    "en": "Email",
+    "th": "อีเมล"
+  },
+  "v2.authGate.passwordPlaceholder": {
+    "en": "Password",
+    "th": "รหัสผ่าน"
+  },
+  "v2.authGate.unlockPasswordPlaceholder": {
+    "en": "Password",
+    "th": "รหัสผ่าน"
+  },
+  "v2.authGate.signIn": {
+    "en": "Sign In",
+    "th": "ลงชื่อเข้าใช้"
+  },
+  "v2.authGate.signingIn": {
+    "en": "Signing in...",
+    "th": "กำลังลงชื่อเข้าใช้..."
+  },
+  "v2.authGate.unlock": {
+    "en": "Unlock",
+    "th": "ปลดล็อก"
+  },
+  "v2.authGate.unlocking": {
+    "en": "Unlocking...",
+    "th": "กำลังปลดล็อก..."
+  },
+  "v2.authGate.errorEmailRequired": {
+    "en": "Please enter email and password",
+    "th": "กรุณาใส่อีเมลและรหัสผ่าน"
+  },
+  "v2.authGate.errorInvalidCredentials": {
+    "en": "Invalid email or password",
+    "th": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+  },
+  "v2.authGate.errorInvalidEmail": {
+    "en": "Invalid email format",
+    "th": "รูปแบบอีเมลไม่ถูกต้อง"
+  },
+  "v2.authGate.errorTooManyAttempts": {
+    "en": "Too many attempts. Please wait.",
+    "th": "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่"
+  },
+  "v2.authGate.errorLoginFailed": {
+    "en": "Login failed. Please try again.",
+    "th": "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่"
+  },
+  "v2.authGate.errorSessionFailed": {
+    "en": "Failed to create session. Please try again.",
+    "th": "สร้างเซสชันไม่สำเร็จ กรุณาลองใหม่"
+  },
+  "v2.authGate.googleDisabled": {
+    "en": "Google Login Temporarily Disabled",
+    "th": "ปิดการใช้งาน Google Login ชั่วคราว"
   }
 }

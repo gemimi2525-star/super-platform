@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-type Locale = 'en' | 'th' | 'zh';
+type Locale = 'en' | 'th';
 
 /**
  * Transform flat keys format to nested format

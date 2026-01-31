@@ -1,0 +1,15 @@
+{
+    "algorithm": "ed25519",
+    "chainId": "example-chain",
+    "createdAt": 1706630500000,
+    "headHash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b3c4d3",
+    "publicKeyId": "d4e5f6a7b8c9d0e1",
+    "recordCount": 3,
+    "segmentDigest": "e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5",
+    "segmentName": "example-segment.jsonl",
+    "seqEnd": 3,
+    "seqStart": 1,
+    "signature": "TUVXQVJFOlRoaXNJc0FuRXhhbXBsZVNpZ25hdHVyZUZvckRlbW9uc3RyYXRpb25QdXJwb3Nlc09ubHlOb3RWYWxpZA==",
+    "toolVersion": "coreos-attestation-1.0.0",
+    "version": "1.0"
+}

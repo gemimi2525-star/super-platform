@@ -1,23 +1,19 @@
 'use client';
 
 /**
- * Platform V2 Users Page - READ-ONLY
+ * Platform V2 Users Page - WORLD-CLASS ADMIN PANEL
  * Phase 17.1 - Users list with permission gating
  * 
- * Compliance: ZERO inline styles, NO legacy imports, 100% design-system
+ * FACELIFT: Enhanced UX with enterprise-grade design
+ * - Modern skeleton loading states
+ * - Stats overview cards
+ * - Premium empty state
+ * - Consistent filter bar layout
  * 
- * Features:
- * - READ-ONLY: View users list from API
- * - Permission-based UI gating (Owner/Admin/User)
- * - Forbidden UX (403 handling)
- * - Error handling (403/500/empty/network)
- * - Client-side search & filter (name, email, role, status)
- * - Pagination
- * - i18n EN/TH/ZH
- * - Create/Edit/Disable buttons DISABLED (coming soon)
+ * Compliance: ZERO inline styles, NO legacy imports, 100% design-system
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from '@/lib/i18n';
 import toast from 'react-hot-toast';
@@ -30,20 +26,122 @@ import { Badge } from '@/modules/design-system/src/components/Badge';
 import { EmptyState } from '@/modules/design-system/src/components/EmptyState';
 import { Pagination } from '@/modules/design-system/src/components/Pagination';
 import { Dialog } from '@/modules/design-system/src/components/Dialog';
+import { Users, UserCheck, UserX, Shield, Search, Filter, RefreshCw, Plus } from 'lucide-react';
+import { CreateUserPanel } from './_components/CreateUserPanel';
+import { EditUserPanel } from './_components/EditUserPanel';
 import type { PlatformUser, PlatformRole } from '@/lib/platform/types';
 
 interface UserRole {
     role: 'owner' | 'admin' | 'user' | null;
 }
 
+// =============================================================================
+// Stats Card Component
+// =============================================================================
+
+interface StatsCardProps {
+    title: string;
+    value: number | string;
+    icon: React.ReactNode;
+    trend?: { value: number; isUp: boolean };
+    variant?: 'default' | 'success' | 'warning' | 'danger';
+}
+
+function StatsCard({ title, value, icon, trend, variant = 'default' }: StatsCardProps) {
+    const variantClasses = {
+        default: 'bg-white border-neutral-200',
+        success: 'bg-emerald-50 border-emerald-200',
+        warning: 'bg-amber-50 border-amber-200',
+        danger: 'bg-red-50 border-red-200',
+    };
+
+    const iconVariantClasses = {
+        default: 'text-neutral-600 bg-neutral-100',
+        success: 'text-emerald-600 bg-emerald-100',
+        warning: 'text-amber-600 bg-amber-100',
+        danger: 'text-red-600 bg-red-100',
+    };
+
+    return (
+        <div className={`
+            flex items-center gap-4 p-4 rounded-xl border shadow-sm
+            transition-all duration-200 hover:shadow-md
+            ${variantClasses[variant]}
+        `}>
+            <div className={`
+                flex items-center justify-center w-12 h-12 rounded-lg
+                ${iconVariantClasses[variant]}
+            `}>
+                {icon}
+            </div>
+            <div className="flex-1">
+                <p className="text-sm font-medium text-neutral-500">{title}</p>
+                <p className="text-2xl font-bold text-neutral-900">{value}</p>
+            </div>
+            {trend && (
+                <div className={`text-sm font-medium ${trend.isUp ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {trend.isUp ? '↑' : '↓'} {trend.value}%
+                </div>
+            )}
+        </div>
+    );
+}
+
+// =============================================================================
+// Skeleton Loading Component
+// =============================================================================
+
+function TableSkeleton() {
+    return (
+        <div className="w-full rounded-lg border border-neutral-200 overflow-hidden shadow-sm bg-white">
+            {/* Header skeleton */}
+            <div className="bg-neutral-50 border-b border-neutral-200 px-5 py-3 flex gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-4 bg-neutral-200 rounded animate-pulse flex-1" />
+                ))}
+            </div>
+            {/* Row skeletons */}
+            {[1, 2, 3, 4, 5].map((row) => (
+                <div key={row} className="px-5 py-4 flex gap-4 border-b border-neutral-100">
+                    {[1, 2, 3, 4, 5].map((col) => (
+                        <div key={col} className="h-4 bg-neutral-100 rounded animate-pulse flex-1" />
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function StatsSkeleton() {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-neutral-200 bg-white">
+                    <div className="w-12 h-12 rounded-lg bg-neutral-100 animate-pulse" />
+                    <div className="flex-1">
+                        <div className="h-3 w-20 bg-neutral-100 rounded animate-pulse mb-2" />
+                        <div className="h-6 w-16 bg-neutral-200 rounded animate-pulse" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// =============================================================================
+// Main Component
+// =============================================================================
+
 export default function V2UsersPage() {
     const pathname = usePathname();
-    const locale = pathname?.match(/^\/(en|th|zh)\//)?.[1] || 'en';
+    const locale = pathname?.match(/^\/(en|th)\//)?.[1] || 'en';
     const t = useTranslations('v2.users');
+    const tCommon = useTranslations('v2.common');
 
     // State
     const [users, setUsers] = useState<PlatformUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [roleLoading, setRoleLoading] = useState(true); // Track role fetch separately
     const [error, setError] = useState<string | null>(null);
     const [forbidden, setForbidden] = useState(false);
     const [userRole, setUserRole] = useState<UserRole['role']>(null);
@@ -101,47 +199,67 @@ export default function V2UsersPage() {
 
     async function fetchUserRole() {
         try {
+            setRoleLoading(true);
             const response = await fetch('/api/platform/me');
+            console.log('[UsersPage] fetchUserRole response status:', response.status);
             if (response.ok) {
-                const data = await response.json();
+                const json = await response.json();
+                console.log('[UsersPage] fetchUserRole json:', json);
+                // API returns { success: true, data: { role, enabled, isPlatformUser } }
+                const data = json.data || json; // Handle both wrapped and unwrapped responses
+                console.log('[UsersPage] Setting userRole to:', data.role);
                 setUserRole(data.role || null);
                 setCurrentUserUid(data.uid || null);
             }
         } catch (err) {
             console.error('Error fetching user role:', err);
+        } finally {
+            setRoleLoading(false);
         }
     }
 
-    // Permission checks (READ-ONLY step - all mutation buttons are disabled/hidden)
+    // Permission checks
     const canCreate = userRole === 'owner' || userRole === 'admin';
     const canEdit = userRole === 'owner' || userRole === 'admin';
     const canDisable = userRole === 'owner';
 
+    // Stats calculation
+    const stats = useMemo(() => {
+        const total = users.length;
+        const active = users.filter(u => u.enabled).length;
+        const disabled = users.filter(u => !u.enabled).length;
+        const owners = users.filter(u => u.role === 'owner').length;
+        const admins = users.filter(u => u.role === 'admin').length;
+        return { total, active, disabled, owners, admins };
+    }, [users]);
+
     // Client-side filtering
-    const filteredUsers = users.filter((user) => {
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            const matchesSearch =
-                user.displayName.toLowerCase().includes(query) ||
-                user.email.toLowerCase().includes(query) ||
-                user.uid.toLowerCase().includes(query);
-            if (!matchesSearch) return false;
-        }
-
-        if (roleFilter !== 'all') {
-            if (user.role !== roleFilter) {
-                return false;
+    const filteredUsers = useMemo(() => {
+        return users.filter((user) => {
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                const matchesSearch =
+                    user.displayName.toLowerCase().includes(query) ||
+                    user.email.toLowerCase().includes(query) ||
+                    user.uid.toLowerCase().includes(query);
+                if (!matchesSearch) return false;
             }
-        }
 
-        if (statusFilter !== 'all') {
-            const isActive = user.enabled;
-            if (statusFilter === 'active' && !isActive) return false;
-            if (statusFilter === 'disabled' && isActive) return false;
-        }
+            if (roleFilter !== 'all') {
+                if (user.role !== roleFilter) {
+                    return false;
+                }
+            }
 
-        return true;
-    });
+            if (statusFilter !== 'all') {
+                const isActive = user.enabled;
+                if (statusFilter === 'active' && !isActive) return false;
+                if (statusFilter === 'disabled' && isActive) return false;
+            }
+
+            return true;
+        });
+    }, [users, searchQuery, roleFilter, statusFilter]);
 
     // Pagination
     const totalPages = Math.ceil(filteredUsers.length / pageSize);
@@ -154,76 +272,6 @@ export default function V2UsersPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, roleFilter, statusFilter]);
-
-    // Loading State
-    if (loading) {
-        return (
-            <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
-                <div className="p-8 text-center">
-                    <p className="text-lg text-neutral-600">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Forbidden State (403)
-    if (forbidden) {
-        return (
-            <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
-                <div className="p-8">
-                    <EmptyState
-                        variant="error"
-                        title={t('errors.forbidden.title')}
-                        message={t('errors.forbidden.message')}
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    // Error State (500/network)
-    if (error) {
-        return (
-            <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
-                <div className="p-8">
-                    <EmptyState
-                        variant="error"
-                        title={t('errors.general.title')}
-                        message={t('errors.general.message')}
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    // Empty State (no data)
-    if (users.length === 0) {
-        return (
-            <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
-                <div className="p-8">
-                    <EmptyState
-                        variant="empty"
-                        title={t('empty.title')}
-                        message={t('empty.message')}
-                        action={
-                            canCreate
-                                ? {
-                                    label: t('actions.create'),
-                                    onClick: () => {
-                                        // Coming soon
-                                    },
-                                }
-                                : undefined
-                        }
-                    />
-                </div>
-            </div>
-        );
-    }
 
     // Role badge variants
     const getRoleVariant = (
@@ -261,9 +309,14 @@ export default function V2UsersPage() {
                 header: t('table.name'),
                 sortable: false,
                 render: (_value: unknown, user: PlatformUser) => (
-                    <div>
-                        <div className="font-semibold text-neutral-900">{user.displayName}</div>
-                        <div className="text-xs text-neutral-500">{user.email}</div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                            {user.displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div className="font-semibold text-neutral-900">{user.displayName}</div>
+                            <div className="text-xs text-neutral-500">{user.email}</div>
+                        </div>
                     </div>
                 ),
             },
@@ -337,32 +390,204 @@ export default function V2UsersPage() {
             },
         ];
 
+    // Loading State - wait for both users AND role data
+    if (loading || roleLoading) {
+        return (
+            <div className="p-6">
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
+                <StatsSkeleton />
+                <div className="mb-6 flex gap-4">
+                    <div className="flex-1 h-10 bg-neutral-100 rounded-lg animate-pulse" />
+                    <div className="w-40 h-10 bg-neutral-100 rounded-lg animate-pulse" />
+                    <div className="w-40 h-10 bg-neutral-100 rounded-lg animate-pulse" />
+                </div>
+                <TableSkeleton />
+            </div>
+        );
+    }
+
+    // Forbidden State (403)
+    if (forbidden) {
+        return (
+            <div className="p-6">
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <EmptyState
+                        variant="error"
+                        title={t('errors.forbidden.title')}
+                        message={t('errors.forbidden.message')}
+                        icon={<Shield className="w-16 h-16 text-red-300" />}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // Error State (500/network)
+    if (error) {
+        return (
+            <div className="p-6">
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <EmptyState
+                        variant="error"
+                        title={t('errors.general.title')}
+                        message={t('errors.general.message')}
+                        action={{
+                            label: 'Retry',
+                            onClick: () => fetchUsers(),
+                        }}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // Empty State (no data)
+    if (users.length === 0) {
+        return (
+            <div className="p-6">
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                    actions={
+                        canCreate ? (
+                            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                {t('actions.create')}
+                            </Button>
+                        ) : undefined
+                    }
+                />
+                <div className="flex items-center justify-center min-h-[400px] bg-white rounded-xl border border-neutral-200">
+                    <div className="text-center max-w-md">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                            <Users className="w-10 h-10 text-blue-600" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-neutral-900 mb-2">{t('empty.title')}</h3>
+                        <p className="text-neutral-500 mb-6">{t('empty.message')}</p>
+                        {canCreate && (
+                            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                {t('actions.create')}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Create Panel (OS Overlay) */}
+                <CreateUserPanel
+                    isOpen={showCreateModal}
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={() => {
+                        fetchUsers();
+                    }}
+                    currentUserRole={userRole || 'user'}
+                />
+            </div>
+        );
+    }
+
+    // Main content with data
     return (
-        <div>
-            {/* Header */}
+        <div className="p-6">
+            {/* Header with breadcrumbs */}
             <PageHeader
                 title={t('title')}
                 subtitle={t('subtitle')}
+                breadcrumbs={[
+                    { label: tCommon('home'), href: `/${locale}/v2` },
+                    { label: t('title') },
+                ]}
                 actions={
-                    canCreate ? (
-                        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                            {t('actions.create')}
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => fetchUsers()}
+                            title="Refresh"
+                        >
+                            <RefreshCw className="w-4 h-4" />
                         </Button>
-                    ) : undefined
+                        {canCreate && (
+                            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                {t('actions.create')}
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <StatsCard
+                    title="Total Users"
+                    value={stats.total}
+                    icon={<Users className="w-6 h-6" />}
+                    variant="default"
+                />
+                <StatsCard
+                    title="Active Users"
+                    value={stats.active}
+                    icon={<UserCheck className="w-6 h-6" />}
+                    variant="success"
+                />
+                <StatsCard
+                    title="Disabled"
+                    value={stats.disabled}
+                    icon={<UserX className="w-6 h-6" />}
+                    variant={stats.disabled > 0 ? 'warning' : 'default'}
+                />
+                <StatsCard
+                    title="Admins & Owners"
+                    value={stats.admins + stats.owners}
+                    icon={<Shield className="w-6 h-6" />}
+                    variant="default"
+                />
+            </div>
+
             {/* Search & Filters */}
-            <div className="flex gap-4 mb-6 flex-wrap">
-                <div className="flex-1 min-w-[250px]">
+            <div className="flex gap-4 mb-6 flex-wrap items-center">
+                <div className="flex-1 min-w-[280px] relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <Input
                         placeholder={t('filters.search')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         fullWidth
+                        className="pl-10"
                     />
                 </div>
-                <div className="min-w-[180px]">
+                <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-neutral-400" />
+                </div>
+                <div className="min-w-[160px]">
                     <Select
                         value={roleFilter}
                         onChange={(value) => setRoleFilter(value)}
@@ -375,7 +600,7 @@ export default function V2UsersPage() {
                         fullWidth
                     />
                 </div>
-                <div className="min-w-[180px]">
+                <div className="min-w-[160px]">
                     <Select
                         value={statusFilter}
                         onChange={(value) => setStatusFilter(value)}
@@ -389,13 +614,28 @@ export default function V2UsersPage() {
                 </div>
             </div>
 
+            {/* Results count */}
+            <div className="mb-4 text-sm text-neutral-500">
+                Showing {paginatedUsers.length} of {filteredUsers.length} users
+                {searchQuery && <span className="ml-1">matching "{searchQuery}"</span>}
+            </div>
+
             {/* Table */}
             {filteredUsers.length === 0 ? (
-                <div className="p-8">
+                <div className="bg-white rounded-xl border border-neutral-200 min-h-[300px] flex items-center justify-center">
                     <EmptyState
-                        variant="empty"
+                        variant="no-results"
                         title="No results"
                         message={`No users match your search "${searchQuery}"`}
+                        icon={<Search className="w-12 h-12 text-neutral-300" />}
+                        action={{
+                            label: 'Clear filters',
+                            onClick: () => {
+                                setSearchQuery('');
+                                setRoleFilter('all');
+                                setStatusFilter('all');
+                            },
+                        }}
                     />
                 </div>
             ) : (
@@ -421,34 +661,29 @@ export default function V2UsersPage() {
                 </>
             )}
 
-            {/* Create Modal */}
-            {showCreateModal && (
-                <CreateUserModal
-                    onClose={() => setShowCreateModal(false)}
-                    onSuccess={() => {
-                        setShowCreateModal(false);
-                        fetchUsers();
-                    }}
-                    currentUserRole={userRole || 'user'}
-                />
-            )}
+            {/* Create Panel (OS Overlay) */}
+            <CreateUserPanel
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                    fetchUsers();
+                }}
+                currentUserRole={userRole || 'user'}
+            />
 
-            {/* Edit Modal */}
-            {showEditModal && editingUser && (
-                <EditUserModal
-                    user={editingUser}
-                    onClose={() => {
-                        setShowEditModal(false);
-                        setEditingUser(null);
-                    }}
-                    onSuccess={() => {
-                        setShowEditModal(false);
-                        setEditingUser(null);
-                        fetchUsers();
-                    }}
-                    currentUserRole={userRole || 'user'}
-                />
-            )}
+            {/* Edit Panel (OS Overlay) */}
+            <EditUserPanel
+                isOpen={showEditModal}
+                user={editingUser}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                }}
+                onSuccess={() => {
+                    fetchUsers();
+                }}
+                currentUserRole={userRole || 'user'}
+            />
 
             {/* Disable Modal */}
             {showDisableModal && disablingUser && (

@@ -15,42 +15,36 @@ export interface PlatformRole {
 
 const COLLECTION = 'platform_roles';
 
-// Role translations by locale
+// Role translations by locale (EN/TH only)
 const ROLE_TRANSLATIONS = {
     owner: {
         name: {
             en: 'Platform Owner',
             th: 'เจ้าของแพลตฟอร์ม',
-            zh: '平台所有者'
         },
         description: {
             en: 'Full access to all platform resources',
             th: 'เข้าถึงทรัพยากรแพลตฟอร์มทั้งหมด',
-            zh: '完全访问所有平台资源'
         }
     },
     admin: {
         name: {
             en: 'Platform Admin',
             th: 'ผู้ดูแลแพลตฟอร์ม',
-            zh: '平台管理员'
         },
         description: {
             en: 'Can manage users and organizations',
             th: 'สามารถจัดการผู้ใช้และองค์กร',
-            zh: '可以管理用户和组织'
         }
     },
     viewer: {
         name: {
             en: 'Platform Viewer',
             th: 'ผู้ดูแพลตฟอร์ม',
-            zh: '平台查看者'
         },
         description: {
             en: 'Read-only access to platform',
             th: 'สิทธิ์อ่านเท่านั้น',
-            zh: '平台的只读访问权限'
         }
     }
 };

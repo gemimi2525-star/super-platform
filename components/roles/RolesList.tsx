@@ -29,7 +29,7 @@ export default function RolesList({ initialRoles }: RolesListProps) {
     const t = useTranslations('platform.roles');
 
     // Extract locale from pathname
-    const localeMatch = pathname?.match(/^\/(en|th|zh)\//);
+    const localeMatch = pathname?.match(/^\/(en|th)\//);
     const locale = localeMatch?.[1] || 'en';
 
     // API state

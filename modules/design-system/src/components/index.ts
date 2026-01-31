@@ -14,3 +14,4 @@ export * from './Tabs';
 export * from './Pagination';
 export * from './EmptyState';
 export * from './Divider';
+export * from './DiscardChangesDialog';

@@ -29,6 +29,9 @@ const createSessionSchema = z.object({
 /**
  * POST /api/auth/session
  * สร้าง session cookie จาก ID token
+ * 
+ * NORMALIZED: Always uses createSessionCookie() for both DEV and PROD
+ * This ensures verifySessionCookie() works correctly without fallback
  */
 export async function POST(request: NextRequest) {
     try {
@@ -43,48 +46,37 @@ export async function POST(request: NextRequest) {
         const { idToken } = validation.data;
 
         // ============================================================
-        // PATCH A: Dev-Only Test Harness with Production Guards
+        // SECURITY: Block AUTH_DEV_BYPASS in production
         // ============================================================
-        // CRITICAL: Production Guard - FORCE real verification in production
         if (process.env.NODE_ENV === 'production' && process.env.AUTH_DEV_BYPASS === 'true') {
             console.error('[Session API] 🚨 SECURITY: AUTH_DEV_BYPASS blocked in production!');
             return ApiErrorResponse.unauthorized('Invalid configuration');
         }
 
-        // Dev-Only Test Harness: Accept test identity from headers
+        // ============================================================
+        // Dev-Only Test Harness (with test headers only)
+        // ============================================================
         if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
-            console.warn('[Session API] ⚠️ DEV MODE: Test harness enabled (AUTH_DEV_BYPASS=true)');
-
-            // Check for dev test headers
             const devTestEmail = request.headers.get('x-dev-test-email');
             const devTestRole = request.headers.get('x-dev-test-role');
 
+            // Only use test harness if explicit test headers are provided
             if (devTestEmail || devTestRole) {
-                // Sanitize and validate role
+                console.info('[Session API] 🧪 Test harness: Creating mock session');
+
                 const allowedRoles = ['owner', 'admin', 'user'];
                 const sanitizedRole = devTestRole?.toLowerCase() || 'user';
-
-                if (!allowedRoles.includes(sanitizedRole)) {
-                    console.warn(`[Session API] Invalid dev role: ${devTestRole}, defaulting to 'user'`);
-                }
-
                 const finalRole = allowedRoles.includes(sanitizedRole) ? sanitizedRole : 'user';
 
-                console.warn(`[Session API] 🧪 Test Identity: ${devTestEmail || 'test@example.com'} (${finalRole})`);
-
-                // Create a test token that will be recognized by lib/auth/server.ts
-                // Format: base64(header).base64(payload).signature
                 const testPayload = {
                     sub: `dev_${Date.now()}`,
                     email: devTestEmail || `${finalRole}@test.com`,
                     user_id: `dev_${Date.now()}`,
-                    // Store role hint in email for server.ts pattern matching
                 };
 
                 const encodedPayload = Buffer.from(JSON.stringify(testPayload)).toString('base64');
                 const testToken = `eyJhbGciOiJub25lIn0.${encodedPayload}.`;
 
-                // Create session with test token
                 const response = ApiSuccessResponse.ok({
                     message: 'Test session created',
                     testMode: true,
@@ -93,7 +85,7 @@ export async function POST(request: NextRequest) {
 
                 response.cookies.set(COOKIE_NAME, testToken, {
                     httpOnly: true,
-                    secure: false, // Dev only
+                    secure: false,
                     sameSite: 'lax',
                     maxAge: COOKIE_MAX_AGE,
                     path: '/',
@@ -101,41 +93,51 @@ export async function POST(request: NextRequest) {
 
                 return response;
             }
+            // No test headers → fall through to normal Firebase flow
+        }
 
-            // No test headers, proceed with bypass mode (existing behavior)
-            console.warn('[Session API] ⚠️ DEV MODE: Skipping token verification (no test headers)');
-
-            // Verify with Firebase Admin (if configured)
-        } else if (IS_ADMIN_CONFIGURED) {
-            try {
-                const { verifyIdToken } = await import('@/lib/firebase-admin');
-                await verifyIdToken(idToken);
-            } catch (error) {
-                console.error('[Session API] Invalid token:', error);
-                return ApiErrorResponse.unauthorized('Invalid token');
-            }
-
-            // Error: No verification method available
-        } else {
-            console.error('[Session API] ❌ Setup Error: Firebase Admin not configured and AUTH_DEV_BYPASS not enabled.');
+        // ============================================================
+        // NORMAL FLOW: Create proper Firebase Session Cookie
+        // Works for BOTH dev and prod (no more storing raw ID tokens)
+        // ============================================================
+        if (!IS_ADMIN_CONFIGURED) {
+            console.error('[Session API] ❌ Firebase Admin not configured');
             return ApiErrorResponse.internalError();
         }
 
-        // สร้าง session cookie (normal flow)
-        const response = ApiSuccessResponse.ok({ message: 'Session created' });
+        try {
+            const { getAdminAuth } = await import('@/lib/firebase-admin');
+            const auth = getAdminAuth();
 
-        response.cookies.set(COOKIE_NAME, idToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: COOKIE_MAX_AGE,
-            path: '/',
-        });
+            // Verify the ID token first
+            const decodedToken = await auth.verifyIdToken(idToken);
 
-        return response;
+            // Create a proper session cookie (valid for 5 days)
+            const expiresIn = COOKIE_MAX_AGE * 1000; // Convert to milliseconds
+            const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+
+            console.info(`[Session API] ✅ Session created for: ${decodedToken.email}`);
+
+            // Set the session cookie
+            const response = ApiSuccessResponse.ok({ message: 'Session created' });
+            response.cookies.set(COOKIE_NAME, sessionCookie, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: COOKIE_MAX_AGE,
+                path: '/',
+            });
+
+            return response;
+
+        } catch (error: any) {
+            const errorCode = error?.code || error?.errorInfo?.code || 'unknown';
+            console.error(`[Session API] Session creation failed (${errorCode}):`, error?.message || error);
+            return ApiErrorResponse.unauthorized('Invalid token or session creation failed');
+        }
 
     } catch (error) {
-        console.error('[Session API] Error:', error);
+        console.error('[Session API] Unexpected error:', error);
         return ApiErrorResponse.internalError();
     }
 }

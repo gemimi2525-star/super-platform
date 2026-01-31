@@ -3,7 +3,7 @@
 /**
  * 404 Not Found Page
  * Shown when user navigates to invalid route
- * Fully internationalized (EN/TH/ZH)
+ * Fully internationalized (EN/TH)
  */
 
 import { useRouter } from 'next/navigation';

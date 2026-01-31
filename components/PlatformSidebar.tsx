@@ -81,7 +81,7 @@ export function PlatformSidebar() {
     const [expandedSubMenu, setExpandedSubMenu] = useState<string | null>(null);
 
     const seg = pathname?.split('/')?.[1];
-    const locale = seg && ['en', 'th', 'zh'].includes(seg) ? seg : 'en';
+    const locale = seg && ['en', 'th'].includes(seg) ? seg : 'en';
 
     // --- Configurations ---
 

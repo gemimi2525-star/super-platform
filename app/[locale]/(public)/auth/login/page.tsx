@@ -1,199 +1,240 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * APICOREDATA — Login Page
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * PHASE 7.7: Lock-Style Login with AuthScreen Component
+ * 
+ * Routes:
+ * - /en/auth/login (English)
+ * - /th/auth/login (Thai with optional Buddhist Era)
+ * 
+ * Uses shared AuthScreen component for unified look with Lock overlay.
+ * 
+ * @version 3.0.0
+ * @date 2026-01-29
+ */
+
+import { useState, useCallback, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { auth, signInWithEmailAndPassword } from '@/lib/firebase/client';
-import { BrandLogo } from '@/components/BrandLogo';
-import { useAppearance } from '@/contexts/AppearanceContext';
-import { Eye, EyeOff, Globe } from 'lucide-react';
-import { useLocale } from '@/lib/i18n';
+import { useTranslations, useLocale } from '@/lib/i18n';
+import { AuthScreen } from '@/components/auth/AuthScreen';
+import type { User } from 'firebase/auth';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE FLAGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AUTH_GOOGLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED === 'true';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LANGUAGE CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LANGUAGES = [
+    { code: 'en', label: 'EN', fullName: 'English' },
+    { code: 'th', label: 'TH', fullName: 'ไทย' },
+] as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default function LoginPage() {
     const router = useRouter();
+    const pathname = usePathname();
     const locale = useLocale();
-    const { currentWallpaperClass } = useAppearance();
-    const [isLoading, setIsLoading] = useState(false);
+    const t = useTranslations('auth');
+
+    // Form state
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Processing guard
+    const isProcessingRef = useRef(false);
+
+    // Current language
+    const currentLang = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LANGUAGE SWITCH
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleLanguageChange = (langCode: string) => {
+        if (langCode === locale) return;
+        const newPath = pathname.replace(`/${locale}/`, `/${langCode}/`);
+        router.push(newPath);
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SESSION HELPER
+    // ─────────────────────────────────────────────────────────────────────────
+    const createSessionCookie = useCallback(async (idToken: string): Promise<boolean> => {
+        try {
+            const res = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+                credentials: 'include',
+            });
+            if (!res.ok) return false;
+            console.log('[Session] ✅ Cookie created');
+            return true;
+        } catch {
+            return false;
+        }
+    }, []);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOGIN SUCCESS
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleLoginSuccess = useCallback(async (user: User) => {
+        if (isProcessingRef.current) return;
+        isProcessingRef.current = true;
+
+        console.log('[Login] ▶️ Processing:', user.email);
         setIsLoading(true);
         setError('');
 
         try {
-            // AuthProvider will detect auth state change and create session cookie automatically
-            await signInWithEmailAndPassword(auth, email, password);
+            const token = await user.getIdToken(true);
+            const sessionCreated = await createSessionCookie(token);
 
-            // Wait a moment for session cookie to be created by AuthProvider
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Force router refresh to update server state (middleware awareness of cookie)
-            console.log('[Login] Refreshing router state...');
-            router.refresh();
-
-            // Small delay to ensure refresh propagates
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Redirect to platform
-            console.log('[Login] Redirecting to platform...');
-            router.push(`/${locale}/platform`);
-        } catch (err: any) {
-            console.error('Login error:', err);
-            if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-                setError('Invalid email or password');
-            } else if (err.code === 'auth/invalid-email') {
-                setError('Invalid email format');
-            } else {
-                setError('Login failed. Please try again.');
+            if (!sessionCreated) {
+                setError(t('sessionFailed'));
+                setIsLoading(false);
+                isProcessingRef.current = false;
+                return;
             }
-        } finally {
+
+            // Bootstrap user
+            try {
+                await fetch('/api/auth/bootstrap', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch {
+                // Continue anyway
+            }
+
+            // Redirect to desktop (canonical route)
+            console.log('[Login] ✅ Redirecting to desktop...');
+            router.push(`/${locale}/desktop`);
+        } catch (err: any) {
+            console.error('[Login] ❌ Error:', err);
+            setError(t('loginFailed'));
+            setIsLoading(false);
+            isProcessingRef.current = false;
+        }
+    }, [createSessionCookie, router, locale, t]);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOGIN HANDLER
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (isProcessingRef.current) return;
+
+        setIsLoading(true);
+        setError('');
+
+        if (!email || !password) {
+            setError(t('invalidCredentials'));
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            console.log('[Login] ✅ Firebase auth success');
+            await handleLoginSuccess(result.user);
+        } catch (err: any) {
+            console.error('[Login] ❌ Error:', err.code);
+
+            if (err.code === 'auth/user-not-found' ||
+                err.code === 'auth/wrong-password' ||
+                err.code === 'auth/invalid-credential') {
+                setError(t('invalidCredentials'));
+            } else if (err.code === 'auth/invalid-email') {
+                setError(t('invalidEmail'));
+            } else if (err.code === 'auth/too-many-requests') {
+                setError(t('tooManyAttempts'));
+            } else {
+                setError(t('loginFailed'));
+            }
             setIsLoading(false);
         }
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // GOOGLE LOGIN
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleGoogleLogin = async () => {
+        if (!AUTH_GOOGLE_ENABLED) {
+            setError(t('googleDisabled'));
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const { GoogleAuthProvider, signInWithRedirect } = await import('@/lib/firebase/client');
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            await signInWithRedirect(auth, provider);
+        } catch (err: any) {
+            setError(t('loginFailed'));
+            setIsLoading(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEV QUICK-FILL
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleDevQuickFill = () => {
+        setEmail('admin@apicoredata.com');
+        setPassword('Password@123');
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════════════
 
     return (
-        <div className={`
-            relative min-h-screen w-full overflow-hidden
-            flex items-center justify-center
-            ${currentWallpaperClass}
-            transition-all duration-700
-        `}>
-            {/* Subtle overlay */}
-            <div className="absolute inset-0 bg-black/5" />
-
-            {/* Language - Ultra minimal */}
-            <div className="absolute top-3 right-3 z-20">
-                <button className="text-white/30 hover:text-white/60 transition-colors flex items-center gap-0.5 text-[10px]">
-                    <Globe className="w-2.5 h-2.5" />
-                    <span>EN</span>
-                </button>
-            </div>
-
-            {/* Glass Login Panel - Ultra Quiet macOS */}
-            <div className="
-                relative z-10
-                w-full max-w-[320px]
-                p-6
-                rounded-2xl
-                bg-white/5 backdrop-blur-2xl
-                border border-white/[0.03]
-                shadow-[0_0_40px_rgba(0,0,0,0.1)]
-                flex flex-col items-center
-            ">
-                {/* Brand Area - Minimal Logo Only */}
-                <div className="mb-6 opacity-90 hover:opacity-100 transition-opacity">
-                    <BrandLogo size="lg" location="login" />
-                </div>
-
-                {/* Error Message - Quiet inline text */}
-                {error && (
-                    <div className="mb-4 w-full text-center">
-                        <span className="text-[11px] text-red-300/80">
-                            {error}
-                        </span>
-                    </div>
-                )}
-
-                <form onSubmit={handleLogin} className="w-full space-y-4">
-                    {/* Minimal Inputs (macOS Login Style) */}
-                    <div className="space-y-3">
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email"
-                            className="
-                                w-full h-9 px-3
-                                bg-white/3
-                                border border-white/5
-                                rounded-lg
-                                text-[13px] text-white/90 placeholder:text-white/30
-                                focus:outline-none focus:bg-white/6 focus:border-white/10
-                                transition-all
-                            "
-                        />
-
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Password"
-                                className="
-                                    w-full h-9 px-3 pr-9
-                                    bg-white/3
-                                    border border-white/5
-                                    rounded-lg
-                                    text-[13px] text-white/90 placeholder:text-white/30
-                                    focus:outline-none focus:bg-white/6 focus:border-white/10
-                                    transition-all
-                                "
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
-                            >
-                                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Primary Button - Ultra Quiet Glass */}
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="
-                            w-full h-9 mt-2
-                            rounded-lg
-                            bg-white/5 hover:bg-white/10
-                            active:bg-white/12
-                            text-white/80 text-[13px] font-medium
-                            transition-all
-                            disabled:opacity-30 disabled:cursor-not-allowed
-                            flex items-center justify-center
-                        "
-                    >
-                        {isLoading ? (
-                            <div className="w-3 h-3 border border-white/30 border-t-white/80 rounded-full animate-spin" />
-                        ) : (
-                            <span>Sign In</span>
-                        )}
-                    </button>
-                </form>
-
-                {/* Secondary Actions - Quieter */}
-                <div className="mt-6 w-full pt-4 border-t border-white/5 flex flex-col items-center gap-3">
-                    <span className="text-[11px] text-white/40">
-                        Or continue with
-                    </span>
-
-                    <button
-                        className="
-                            flex items-center justify-center gap-2 
-                            w-full h-8
-                            rounded-lg
-                            bg-white/5 hover:bg-white/10
-                            text-white/70 text-[12px]
-                            transition-all
-                        "
-                    >
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                        </svg>
-                        Google
-                    </button>
-                </div>
-            </div>
-        </div>
+        <AuthScreen
+            mode="signin"
+            texts={{
+                subtitle: t('signInToWorkspace'),
+                emailPlaceholder: t('email'),
+                passwordPlaceholder: t('password'),
+                submitButton: t('loginButton'),
+                loadingText: t('signingIn'),
+                googleDisabled: t('googleDisabled'),
+                useEmailPassword: t('useEmailPassword'),
+                orContinueWith: t('orContinueWith'),
+            }}
+            email={email}
+            password={password}
+            error={error}
+            isLoading={isLoading}
+            onEmailChange={setEmail}
+            onPasswordChange={setPassword}
+            onSubmit={handleLogin}
+            onGoogleLogin={handleGoogleLogin}
+            onDevQuickFill={handleDevQuickFill}
+            showLanguageSwitcher={true}
+            currentLanguage={currentLang.label}
+            languages={[...LANGUAGES]}
+            onLanguageChange={handleLanguageChange}
+            showGoogleLogin={true}
+            googleEnabled={AUTH_GOOGLE_ENABLED}
+            showLogo={true}
+        />
     );
 }

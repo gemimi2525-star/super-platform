@@ -45,8 +45,9 @@ interface UserRole {
 
 export default function V2OrgsPage() {
     const pathname = usePathname();
-    const locale = pathname?.match(/^\/(en|th|zh)\//)?.[1] || 'en';
+    const locale = pathname?.match(/^\/(en|th)\//)?.[1] || 'en';
     const t = useTranslations('v2.orgs');
+    const tCommon = useTranslations('v2.common');
 
     // State
     const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -157,7 +158,14 @@ export default function V2OrgsPage() {
     if (loading) {
         return (
             <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
                 <div className="p-8 text-center">
                     <p className="text-lg text-neutral-600">Loading...</p>
                 </div>
@@ -169,7 +177,14 @@ export default function V2OrgsPage() {
     if (forbidden) {
         return (
             <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
                 <div className="p-8">
                     <EmptyState
                         variant="error"
@@ -185,7 +200,14 @@ export default function V2OrgsPage() {
     if (error) {
         return (
             <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
                 <div className="p-8">
                     <EmptyState
                         variant="error"
@@ -201,7 +223,14 @@ export default function V2OrgsPage() {
     if (orgs.length === 0) {
         return (
             <div>
-                <PageHeader title={t('title')} subtitle={t('subtitle')} />
+                <PageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    breadcrumbs={[
+                        { label: tCommon('home'), href: `/${locale}/v2` },
+                        { label: t('title') },
+                    ]}
+                />
                 <div className="p-8">
                     <EmptyState
                         variant="empty"
@@ -329,6 +358,10 @@ export default function V2OrgsPage() {
             <PageHeader
                 title={t('title')}
                 subtitle={t('subtitle')}
+                breadcrumbs={[
+                    { label: tCommon('home'), href: `/${locale}/v2` },
+                    { label: t('title') },
+                ]}
                 actions={
                     canCreate ? (
                         <Button variant="primary" onClick={() => setShowCreateModal(true)}>

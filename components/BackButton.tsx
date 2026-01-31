@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 export default function BackButton() {
     const pathname = usePathname();
-    const locale = pathname?.match(/^\/(en|th|zh)\//)?.[1] || 'en';
+    const locale = pathname?.match(/^\/(en|th)\//)?.[1] || 'en';
 
     return (
         <Link

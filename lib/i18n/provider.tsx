@@ -3,7 +3,7 @@
 import { ReactNode, useMemo } from 'react';
 import { I18nContext } from './context';
 
-type Locale = 'en' | 'th' | 'zh';
+type Locale = 'en' | 'th';
 
 interface I18nProviderProps {
     locale: Locale;

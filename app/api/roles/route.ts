@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 
         // Extract locale from URL pathname (e.g., /th/api/roles -> th)
         const pathname = req.nextUrl.pathname;
-        const localeMatch = pathname.match(/^\/(en|th|zh)\//);
-        const locale = (localeMatch?.[1] as 'en' | 'th' | 'zh') || 'en';
+        const localeMatch = pathname.match(/^\/(en|th)\//);
+        const locale = (localeMatch?.[1] as 'en' | 'th') || 'en';
 
         const roles = await getRoles(locale);
         return ApiSuccessResponse.ok(roles);

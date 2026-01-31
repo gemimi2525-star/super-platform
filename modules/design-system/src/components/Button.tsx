@@ -32,11 +32,11 @@ export const Button: React.FC<ButtonProps> = ({
 
     // Variant classes
     const variantClasses = {
-        primary: 'bg-primary-600 text-white border-none shadow-sm hover:brightness-95 hover:shadow-md',
-        secondary: 'bg-neutral-100 text-neutral-900 border border-neutral-200 shadow-sm hover:brightness-95 hover:shadow-md',
-        outline: 'bg-transparent text-neutral-700 border border-neutral-300 hover:shadow-sm',
-        ghost: 'bg-transparent text-neutral-700 border-none hover:shadow-sm',
-        danger: 'bg-danger-600 text-white border-none shadow-sm hover:brightness-95 hover:shadow-md',
+        primary: 'bg-blue-600 text-white border-none shadow-sm hover:bg-blue-700 hover:shadow-md',
+        secondary: 'bg-neutral-100 text-neutral-900 border border-neutral-200 shadow-sm hover:bg-neutral-200 hover:shadow-md',
+        outline: 'bg-transparent text-neutral-700 border border-neutral-300 hover:bg-neutral-50 hover:shadow-sm',
+        ghost: 'bg-transparent text-neutral-700 border-none hover:bg-neutral-100 hover:shadow-sm',
+        danger: 'bg-red-600 text-white border-none shadow-sm hover:bg-red-700 hover:shadow-md',
     };
 
     // Size classes

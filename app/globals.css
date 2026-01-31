@@ -1,16 +1,240 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   APICOREDATA OS — CORE SYSTEM CSS VARIABLES
+   PHASE 7.1: Design Tokens as CSS Custom Properties
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
+  /* ═══════════════════════════════════════════════════════════════════════
+       1. COLOR TOKENS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Foreground (Text & Icons) */
+  --os-fg: rgb(23, 23, 23);
+  --os-fg-muted: rgb(82, 82, 82);
+  --os-fg-subtle: rgb(115, 115, 115);
+  --os-fg-inverse: rgb(255, 255, 255);
+  --os-fg-disabled: rgb(163, 163, 163);
+
+  /* Background (Surfaces) */
+  --os-bg: rgb(255, 255, 255);
+  --os-bg-subtle: rgb(250, 250, 250);
+  --os-bg-muted: rgb(245, 245, 245);
+  --os-bg-surface: rgb(255, 255, 255);
+  --os-bg-elevated: rgb(255, 255, 255);
+  --os-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Border & Divider */
+  --os-border: rgb(229, 229, 229);
+  --os-border-subtle: rgb(245, 245, 245);
+  --os-border-strong: rgb(212, 212, 212);
+  --os-border-focus: rgb(59, 130, 246);
+
+  /* Accent (Brand/Primary) */
+  --os-accent: rgb(37, 99, 235);
+  --os-accent-hover: rgb(29, 78, 216);
+  --os-accent-muted: rgb(191, 219, 254);
+  --os-accent-subtle: rgb(239, 246, 255);
+
+  /* Status Colors */
+  --os-success: rgb(22, 163, 74);
+  --os-success-bg: rgb(240, 253, 244);
+  --os-warning: rgb(217, 119, 6);
+  --os-warning-bg: rgb(255, 251, 235);
+  --os-error: rgb(220, 38, 38);
+  --os-error-bg: rgb(254, 242, 242);
+  --os-info: rgb(2, 132, 199);
+  --os-info-bg: rgb(240, 249, 255);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+       SEMANTIC COLOR ALIASES (for Core UI components)
+     ───────────────────────────────────────────────────────────────────────── */
+  --os-color-primary: var(--os-accent);
+  --os-color-primary-hover: var(--os-accent-hover);
+  --os-color-primary-subtle: var(--os-accent-subtle);
+  --os-color-danger: var(--os-error);
+  --os-color-success: var(--os-success);
+  --os-color-warning: var(--os-warning);
+  --os-color-info: var(--os-info);
+
+  --os-color-text: var(--os-fg);
+  --os-color-text-secondary: var(--os-fg-muted);
+  --os-color-text-muted: var(--os-fg-subtle);
+
+  --os-color-surface: var(--os-bg-surface);
+  --os-color-surface-alt: var(--os-bg-muted);
+
+  --os-color-border: var(--os-border);
+  --os-color-border-subtle: var(--os-border-subtle);
+
+  /* Motion aliases */
+  --os-motion-fast: var(--os-duration-fast);
+  --os-motion-normal: var(--os-duration-normal);
+
+  /* Shadow aliases */
+  --os-shadow-xs: var(--os-shadow-1);
+  --os-shadow-sm: var(--os-shadow-2);
+  --os-shadow-md: var(--os-shadow-3);
+  --os-shadow-lg: var(--os-shadow-4);
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       2. SPACING TOKENS (4px/8px Grid)
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-space-0: 0px;
+  --os-space-1: 4px;
+  --os-space-2: 8px;
+  --os-space-3: 12px;
+  --os-space-4: 16px;
+  --os-space-5: 20px;
+  --os-space-6: 24px;
+  --os-space-8: 32px;
+  --os-space-10: 40px;
+  --os-space-12: 48px;
+  --os-space-16: 64px;
+  --os-space-24: 96px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       3. RADIUS TOKENS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-radius-none: 0px;
+  --os-radius-sm: 4px;
+  --os-radius-md: 6px;
+  --os-radius-base: 8px;
+  --os-radius-lg: 10px;
+  --os-radius-xl: 12px;
+  --os-radius-2xl: 16px;
+  --os-radius-3xl: 24px;
+  --os-radius-full: 9999px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       4. SHADOW/ELEVATION TOKENS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-shadow-0: none;
+  --os-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --os-shadow-2: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --os-shadow-3: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --os-shadow-4: 0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --os-shadow-app: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04), 0 8px 16px rgba(0, 0, 0, 0.02);
+  --os-shadow-overlay: 0 24px 48px rgba(0, 0, 0, 0.16), 0 12px 24px rgba(0, 0, 0, 0.08);
+  --os-shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.15);
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       5. Z-INDEX LAYERS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-z-desktop: 0;
+  --os-z-app-surface: 10;
+  --os-z-app-header: 20;
+  --os-z-sidebar: 100;
+  --os-z-topbar: 100;
+  --os-z-dropdown: 200;
+  --os-z-overlay: 300;
+  --os-z-modal: 400;
+  --os-z-overlay-panel: 500;
+  --os-z-system-menu: 600;
+  --os-z-toast: 700;
+  --os-z-tooltip: 800;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       6. TYPOGRAPHY TOKENS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --os-font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --os-text-xs: 12px;
+  --os-text-sm: 14px;
+  --os-text-base: 16px;
+  --os-text-lg: 18px;
+  --os-text-xl: 20px;
+  --os-text-2xl: 24px;
+  --os-text-3xl: 30px;
+  --os-text-4xl: 36px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       7. MOTION TOKENS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-duration-instant: 80ms;
+  --os-duration-fast: 120ms;
+  --os-duration-normal: 180ms;
+  --os-duration-slow: 220ms;
+  --os-duration-entrance: 250ms;
+  --os-ease: cubic-bezier(0.25, 0.1, 0.25, 1.0);
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       8. RESPONSIVE BREAKPOINTS (for reference)
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-bp-mobile: 360px;
+  --os-bp-tablet-portrait: 640px;
+  --os-bp-tablet-landscape: 768px;
+  --os-bp-desktop-sm: 1024px;
+  --os-bp-desktop-md: 1280px;
+  --os-bp-desktop-lg: 1536px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+       9. LAYOUT CONSTANTS
+       ═══════════════════════════════════════════════════════════════════════ */
+  --os-sidebar-width: 240px;
+  --os-sidebar-collapsed: 64px;
+  --os-topbar-height: 56px;
+  --os-desktop-max-width: 1100px;
+  --os-app-max-width: 1280px;
+
+  /* Legacy compatibility */
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME INLINE (Tailwind 4 compatibility)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--os-font-sans);
+  --font-mono: var(--os-font-mono);
+
+  /* Primary Colors (Blue) */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  /* Danger Colors (Red) */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+
+  /* Neutral Colors */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE (Auto Contrast Support)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -19,11 +243,177 @@
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Dark mode class-based override */
+.os-dark {
+  --os-fg: rgb(237, 237, 237);
+  --os-fg-muted: rgb(163, 163, 163);
+  --os-fg-subtle: rgb(115, 115, 115);
+  --os-fg-inverse: rgb(23, 23, 23);
+
+  --os-bg: rgb(10, 10, 10);
+  --os-bg-subtle: rgb(23, 23, 23);
+  --os-bg-muted: rgb(38, 38, 38);
+  --os-bg-surface: rgb(23, 23, 23);
+  --os-bg-elevated: rgb(38, 38, 38);
+
+  --os-border: rgb(64, 64, 64);
+  --os-border-subtle: rgb(38, 38, 38);
+  --os-border-strong: rgb(82, 82, 82);
 }
+
+/* Light foreground on dark backgrounds (auto contrast) */
+.os-contrast-light {
+  --os-fg: rgb(255, 255, 255);
+  --os-fg-muted: rgba(255, 255, 255, 0.8);
+  --os-fg-subtle: rgba(255, 255, 255, 0.6);
+  --os-border: rgba(255, 255, 255, 0.2);
+  --os-border-subtle: rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES (Core System)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Text colors */
+.os-text {
+  color: var(--os-fg);
+}
+
+.os-text-muted {
+  color: var(--os-fg-muted);
+}
+
+.os-text-subtle {
+  color: var(--os-fg-subtle);
+}
+
+.os-text-inverse {
+  color: var(--os-fg-inverse);
+}
+
+.os-text-accent {
+  color: var(--os-accent);
+}
+
+.os-text-success {
+  color: var(--os-success);
+}
+
+.os-text-warning {
+  color: var(--os-warning);
+}
+
+.os-text-error {
+  color: var(--os-error);
+}
+
+/* Backgrounds */
+.os-bg {
+  background-color: var(--os-bg);
+}
+
+.os-bg-subtle {
+  background-color: var(--os-bg-subtle);
+}
+
+.os-bg-muted {
+  background-color: var(--os-bg-muted);
+}
+
+.os-bg-surface {
+  background-color: var(--os-bg-surface);
+}
+
+.os-bg-elevated {
+  background-color: var(--os-bg-elevated);
+}
+
+.os-bg-accent {
+  background-color: var(--os-accent);
+}
+
+/* Borders */
+.os-border {
+  border-color: var(--os-border);
+}
+
+.os-border-subtle {
+  border-color: var(--os-border-subtle);
+}
+
+.os-border-strong {
+  border-color: var(--os-border-strong);
+}
+
+/* Shadows */
+.os-shadow-1 {
+  box-shadow: var(--os-shadow-1);
+}
+
+.os-shadow-2 {
+  box-shadow: var(--os-shadow-2);
+}
+
+.os-shadow-3 {
+  box-shadow: var(--os-shadow-3);
+}
+
+.os-shadow-4 {
+  box-shadow: var(--os-shadow-4);
+}
+
+.os-shadow-app {
+  box-shadow: var(--os-shadow-app);
+}
+
+/* Transitions */
+.os-transition {
+  transition-duration: var(--os-duration-normal);
+  transition-timing-function: var(--os-ease);
+}
+
+.os-transition-fast {
+  transition-duration: var(--os-duration-fast);
+  transition-timing-function: var(--os-ease);
+}
+
+.os-transition-slow {
+  transition-duration: var(--os-duration-slow);
+  transition-timing-function: var(--os-ease);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Touch target minimum sizes */
+@media (max-width: 1023px) {
+  .os-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 639px) {
+  .os-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BODY DEFAULTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body {
+  background: var(--os-bg);
+  color: var(--os-fg);
+  font-family: var(--os-font-sans);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Toast Animation */
 @keyframes slide-in-right {
@@ -39,5 +429,110 @@ body {
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
+  animation: slide-in-right 0.3s var(--os-ease);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 7.2: CORE UI ANIMATIONS & INTERACTIVITY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Spin animation for loading spinners */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulse animation for skeleton loading */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORE BUTTON STATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.core-button:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.core-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.core-button:focus-visible {
+  box-shadow: var(--os-shadow-focus);
+}
+
+.core-button--primary:hover:not(:disabled) {
+  background-color: var(--os-accent-hover);
+}
+
+.core-button--danger:hover:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORE INPUT STATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.core-input input:focus {
+  border-color: var(--os-border-focus);
+  box-shadow: var(--os-shadow-focus);
+}
+
+.core-input--error input:focus {
+  border-color: var(--os-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORE CARD STATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.core-card--hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--os-shadow-3);
+}
+
+.core-card--clickable:hover {
+  background-color: var(--os-bg-muted);
+}
+
+.core-card--clickable:active {
+  transform: scale(0.99);
+}
+
+.core-card--clickable:focus-visible {
+  box-shadow: var(--os-shadow-focus);
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORE TABLE STATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.core-table--hoverable .core-table__row:hover {
+  background-color: var(--os-bg-muted);
+}
+
+.core-table--striped .core-table__row:nth-child(even) {
+  background-color: var(--os-bg-subtle);
+}
+
+.core-table--compact .core-table__header,
+.core-table--compact .core-table__cell {
+  padding: var(--os-space-2) var(--os-space-3);
 }

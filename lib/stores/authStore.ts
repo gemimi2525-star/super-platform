@@ -49,3 +49,26 @@ export const useAuthStore = create<AuthState>()(
         }
     )
 );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SELECTORS (for AuthGate)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if user has an active session
+ */
+export const selectHasSession = (state: AuthState) => state.user !== null;
+
+/**
+ * Get display name for AuthGate
+ */
+export const selectDisplayName = (state: AuthState) => {
+    if (state.user?.email) {
+        return state.user.email.split('@')[0];
+    }
+    if (state.firebaseUser?.email) {
+        return state.firebaseUser.email.split('@')[0];
+    }
+    return 'User';
+};
+

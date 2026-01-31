@@ -144,6 +144,9 @@ export function getAdminFirestore() {
 /**
  * Verify Firebase ID token
  * Returns decoded token with custom claims
+ * 
+ * WARNING: ID tokens expire after 1 hour!
+ * For server-side auth, prefer verifySessionCookie() instead.
  */
 export async function verifyIdToken(idToken: string) {
     const auth = getAdminAuth();
@@ -154,6 +157,47 @@ export async function verifyIdToken(idToken: string) {
         const appError = handleError(error as Error);
         console.error(`[AUTH] Token verification failed [${appError.errorId}]:`, (error as Error).message);
         throw new Error('Invalid or expired token');
+    }
+}
+
+/**
+ * Verify Firebase Session Cookie
+ * 
+ * RECOMMENDED for server-side auth:
+ * - Session cookies can have expiry up to 14 days
+ * - More suitable for web apps than short-lived ID tokens
+ * - Survives browser refresh and tab closures
+ * 
+ * @param sessionCookie - The __session cookie value
+ * @param checkRevoked - Whether to check if session was revoked (default: false for perf)
+ */
+export async function verifySessionCookie(sessionCookie: string, checkRevoked = false) {
+    const auth = getAdminAuth();
+    try {
+        const decodedClaims = await auth.verifySessionCookie(sessionCookie, checkRevoked);
+        return decodedClaims;
+    } catch (error: any) {
+        const errorCode = error?.code || error?.errorInfo?.code || '';
+
+        // All session verification failures are expected auth flow events
+        // Use info/warn level to avoid error noise and Next.js overlay
+        if (errorCode === 'auth/session-cookie-expired') {
+            console.info(`[AUTH] Session expired - redirect to login`);
+        } else if (errorCode === 'auth/session-cookie-revoked') {
+            console.info(`[AUTH] Session revoked - user signed out elsewhere`);
+        } else if (errorCode === 'auth/argument-error' || error?.message?.includes('iss')) {
+            // This happens when old raw ID token cookie is still present
+            // Will be fixed after user re-logins with new session flow
+            console.info(`[AUTH] Invalid session format - needs re-login`);
+        } else {
+            // Unknown but still expected auth flow
+            console.warn(`[AUTH] Session verify failed (${errorCode})`);
+        }
+
+        // Throw with specific error code for upstream handling
+        const err = new Error('Invalid or expired session');
+        (err as any).code = errorCode || 'auth/session-invalid';
+        throw err;
     }
 }
 

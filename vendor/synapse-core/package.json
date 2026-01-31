@@ -1,0 +1,40 @@
+{
+    "name": "synapse-core",
+    "version": "1.0.0",
+    "description": "SYNAPSE Governance Kernel - Explainable, Verifiable Access Control",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "npx tsx tests/scenario-runner.ts",
+        "clean": "rm -rf dist"
+    },
+    "keywords": [
+        "governance",
+        "audit",
+        "attestation",
+        "access-control",
+        "explainable"
+    ],
+    "author": "",
+    "license": "UNLICENSED",
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "tsx": "^4.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "CORE_FREEZE.md"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        }
+    }
+}

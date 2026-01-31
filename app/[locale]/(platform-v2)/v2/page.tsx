@@ -1,76 +1,133 @@
 /**
- * Platform V2 Dashboard Page
- * Static placeholder using design system
- * Zero inline styles - Phase 15/16 compliant
+ * APICOREDATA OS Home Page (Desktop)
+ * 
+ * This is the main entry point of APICOREDATA OS.
+ * Renders the OS Desktop experience (not a traditional dashboard).
+ * 
+ * ARCHITECTURE:
+ * - Server Component: Auth, Entitlements, Registry Resolution
+ * - Client Component (OSHomeDesktop): i18n, Rendering
+ * 
+ * DATA FLOW:
+ * 1. Auth & Access Check → requirePlatformAccess()
+ * 2. Org Context Resolution → Firestore lookup
+ * 3. Entitlements Resolution → getOrgEntitlements()
+ * 4. App Resolution → resolveNavigation() (from App Registry)
+ * 5. Widget Resolution → resolveWidgets() (from Widget Registry)
+ * 6. Serialize & Pass → OSHomeDesktop (client)
+ * 
+ * PRINCIPLES:
+ * - Apps from Registry only (no hardcoding)
+ * - Serializable data only (no functions passed to client)
+ * - Entitlement-aware (filtered by user policies)
  */
 
 import React from 'react';
-import { requirePlatformAccess } from '@/lib/auth/server';
-import { PageHeader } from '@/modules/design-system/src/patterns/PageHeader';
-import { Button } from '@/modules/design-system/src/components/Button';
-import { Badge } from '@/modules/design-system/src/components/Badge';
+import { getAuthContext, requirePlatformAccess } from '@/lib/auth/server';
+import { getAdminFirestore } from '@/lib/firebase-admin';
+import { getOrgEntitlements } from '@super-platform/core/src/os/entitlements/get-org-entitlements';
+import { resolveNavigation } from '@super-platform/core/src/os/navigation/resolve-navigation';
+import { resolveWidgets } from '@super-platform/core/src/os/widgets/resolve-widgets';
+import { OSShellRenderer } from './_components/OSShellRenderer';
 
-export default async function PlatformV2DashboardPage() {
-    // Add server-side auth check
+interface PageProps {
+    params: Promise<{ locale: string }>;
+}
+
+// Serializable app data to pass to client
+interface SerializableApp {
+    appId: string;
+    i18nKey: string;
+    iconKey: string;
+    basePath: string;
+    status: string;
+    availability: string;
+}
+
+export default async function OSHomePage({ params }: PageProps) {
+    const { locale } = await params;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 1. AUTH & ACCESS CHECK
+    // ═══════════════════════════════════════════════════════════════════════
     await requirePlatformAccess();
+    const auth = await getAuthContext();
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 2. RESOLVE ORG CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════
+    let currentOrgId = '';
+    let role = 'user';
+
+    if (auth?.uid) {
+        try {
+            const db = getAdminFirestore();
+            const userDoc = await db.collection('platform_users').doc(auth.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                currentOrgId = userData?.defaultOrgId || '';
+                role = userData?.role || 'user';
+            }
+        } catch (e) {
+            // Ignore context errors - fallback to defaults
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 3. RESOLVE ENTITLEMENTS (Source of Truth)
+    // ═══════════════════════════════════════════════════════════════════════
+    const entitlements = await getOrgEntitlements(currentOrgId);
+
+    // Map role to policies
+    const userPolicies: string[] = [];
+    if (role === 'owner') {
+        userPolicies.push('users.read', 'orgs.read', 'audit.view', 'settings.read');
+    } else if (role === 'admin') {
+        userPolicies.push('users.read', 'orgs.read');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 4. RESOLVE APPS (from App Registry)
+    // ═══════════════════════════════════════════════════════════════════════
+    const { apps } = resolveNavigation({
+        enabledFlags: entitlements.flags,
+        userPolicies,
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 5. RESOLVE WIDGETS (from Widget Registry)
+    // ═══════════════════════════════════════════════════════════════════════
+    const widgets = resolveWidgets({
+        enabledFlags: entitlements.flags,
+        userPolicies,
+    });
+    const widgetIds = widgets.map(w => w.widgetId);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 6. SERIALIZE APP DATA (no functions)
+    // ═══════════════════════════════════════════════════════════════════════
+    const serializableApps: SerializableApp[] = apps.map(app => ({
+        appId: app.appId,
+        i18nKey: app.i18nKey,
+        iconKey: app.iconKey,
+        basePath: app.mount?.basePath || '',
+        status: app.lifecycle?.status || 'active',
+        availability: app.entitlement?.availability || 'ga',
+    }));
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 7. RENDER OS SHELL (Single Surface)
+    // ═══════════════════════════════════════════════════════════════════════
     return (
-        <div>
-            <PageHeader
-                title="Dashboard"
-                subtitle="Welcome to Platform V2 - MacOS-grade UI"
-                actions={
-                    <div className="flex gap-2">
-                        <Button variant="secondary" size="md">
-                            Settings
-                        </Button>
-                        <Button variant="primary" size="md">
-                            Create New
-                        </Button>
-                    </div>
-                }
-            />
-
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Stats Card 1 */}
-                <div className="bg-white p-6 rounded-lg border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="text-sm font-medium text-neutral-500">Total Revenue</div>
-                        <Badge variant="success" size="sm">+12.5%</Badge>
-                    </div>
-                    <div className="text-3xl font-bold text-neutral-900">$45,231</div>
-                    <div className="mt-2 text-sm text-neutral-500">vs last month</div>
-                </div>
-
-                {/* Stats Card 2 */}
-                <div className="bg-white p-6 rounded-lg border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="text-sm font-medium text-neutral-500">Active Users</div>
-                        <Badge variant="neutral" size="sm">+2.1%</Badge>
-                    </div>
-                    <div className="text-3xl font-bold text-neutral-900">12,345</div>
-                    <div className="mt-2 text-sm text-neutral-500">vs last month</div>
-                </div>
-
-                {/* Stats Card 3 */}
-                <div className="bg-white p-6 rounded-lg border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="text-sm font-medium text-neutral-500">System Status</div>
-                        <Badge variant="success" size="sm" dot>Operational</Badge>
-                    </div>
-                    <div className="text-3xl font-bold text-neutral-900">99.9%</div>
-                    <div className="mt-2 text-sm text-neutral-500">Uptime (30 days)</div>
-                </div>
-            </div>
-
-            <div className="mt-8 bg-neutral-50 p-8 rounded-lg border border-neutral-200 text-center">
-                <div className="text-lg font-medium text-neutral-900 mb-2">
-                    Work in Progress
-                </div>
-                <div className="text-neutral-500 max-w-md mx-auto">
-                    This dashboard is a placeholder. Real charts and data visualization widgets will be implemented in subsequent phases.
-                </div>
-            </div>
-        </div>
+        <OSShellRenderer
+            apps={serializableApps}
+            widgetIds={widgetIds}
+            widgetCount={widgets.length}
+            appCount={apps.length}
+            userName={auth?.email || 'User'}
+            locale={locale}
+        />
     );
 }
+
+

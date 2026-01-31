@@ -62,6 +62,10 @@ export {
 export {
     // Re-export common Auth functions
     signInWithEmailAndPassword,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    GoogleAuthProvider,
     createUserWithEmailAndPassword,
     signOut,
     onAuthStateChanged,

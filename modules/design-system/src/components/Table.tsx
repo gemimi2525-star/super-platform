@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Table Component
  * Base table with sorting and hover states

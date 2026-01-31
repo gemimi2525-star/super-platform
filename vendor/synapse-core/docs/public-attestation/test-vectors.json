@@ -1,0 +1,120 @@
+{
+    "description": "Test vectors for SYNAPSE verification implementation",
+    "version": "1.0",
+    "vectors": [
+        {
+            "id": "hash-chain-genesis",
+            "description": "First record in chain has prevHash = GENESIS",
+            "input": {
+                "record": {
+                    "chainId": "test",
+                    "seq": 1,
+                    "prevHash": "GENESIS"
+                }
+            },
+            "expected": {
+                "valid": true,
+                "reason": "First record must have GENESIS as prevHash"
+            }
+        },
+        {
+            "id": "hash-chain-link",
+            "description": "Second record prevHash must match first recordHash",
+            "input": {
+                "record1_hash": "abc123",
+                "record2_prevHash": "abc123"
+            },
+            "expected": {
+                "valid": true,
+                "reason": "prevHash links to previous recordHash"
+            }
+        },
+        {
+            "id": "hash-chain-broken",
+            "description": "Broken chain is detected",
+            "input": {
+                "record1_hash": "abc123",
+                "record2_prevHash": "wrong"
+            },
+            "expected": {
+                "valid": false,
+                "reason": "prevHash does not match previous recordHash"
+            }
+        },
+        {
+            "id": "canonical-json-sorted",
+            "description": "Keys must be sorted alphabetically",
+            "input": {
+                "object": {
+                    "z": 1,
+                    "a": 2,
+                    "m": 3
+                }
+            },
+            "expected": {
+                "canonical": "{\"a\":2,\"m\":3,\"z\":1}"
+            }
+        },
+        {
+            "id": "sha256-digest",
+            "description": "SHA-256 digest of known input",
+            "input": {
+                "data": "hello"
+            },
+            "expected": {
+                "digest": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+            }
+        },
+        {
+            "id": "ed25519-verify",
+            "description": "Ed25519 signature verification",
+            "input": {
+                "message": "test message",
+                "note": "Use standard Ed25519 test vectors from RFC 8032"
+            },
+            "expected": {
+                "valid": true
+            }
+        },
+        {
+            "id": "seq-continuous",
+            "description": "Sequence numbers must be continuous",
+            "input": {
+                "sequences": [
+                    1,
+                    2,
+                    3
+                ]
+            },
+            "expected": {
+                "valid": true
+            }
+        },
+        {
+            "id": "seq-gap",
+            "description": "Gap in sequence is detected",
+            "input": {
+                "sequences": [
+                    1,
+                    2,
+                    4
+                ]
+            },
+            "expected": {
+                "valid": false,
+                "reason": "Gap between seq 2 and 4"
+            }
+        },
+        {
+            "id": "line-terminator",
+            "description": "JSONL uses LF only",
+            "input": {
+                "terminator": "\\n"
+            },
+            "expected": {
+                "valid": true,
+                "note": "CRLF and CR are not allowed"
+            }
+        }
+    ]
+}

@@ -118,9 +118,32 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
         }
 
         // 2. Priority: Verify with Firebase Admin (if configured)
+        // NORMALIZED: Now using verifySessionCookie exclusively
+        // Session API always creates proper session cookies (no more raw ID tokens)
         if (IS_ADMIN_CONFIGURED) {
-            const { verifyIdToken, getAdminFirestore } = await import('@/lib/firebase-admin');
-            const decodedToken = await verifyIdToken(token);
+            const { verifySessionCookie, getAdminFirestore } = await import('@/lib/firebase-admin');
+
+            let decodedToken;
+            try {
+                // Verify session cookie (works for both dev and prod now)
+                decodedToken = await verifySessionCookie(token, false);
+            } catch (sessionError: any) {
+                const errorCode = sessionError?.code || '';
+
+                // Session expired or invalid - this is expected auth flow, not an error
+                // Use info/warn level to avoid noise
+                if (errorCode === 'auth/session-cookie-expired') {
+                    console.info(`[AUTH] Session expired - user needs to re-login`);
+                } else if (errorCode === 'auth/session-cookie-revoked') {
+                    console.info(`[AUTH] Session revoked - user was signed out elsewhere`);
+                } else {
+                    // Unknown error - still warn level (not error) to avoid overlay
+                    console.warn(`[AUTH] Session verification failed (${errorCode}) - redirecting to login`);
+                }
+
+                // Return null to trigger redirect to login
+                return null;
+            }
 
             // Default role
             let role: PlatformRole = 'user';
@@ -238,7 +261,7 @@ export async function requireOwner(): Promise<AuthContext> {
             { method: 'unknown', path: 'unknown' }, // Guards don't have access to request details
             { action: 'requireOwner' }
         );
-        redirect('/platform');
+        redirect('/v2');
     }
 
     return context;
@@ -264,7 +287,7 @@ export async function requireAdmin(): Promise<AuthContext> {
             { method: 'unknown', path: 'unknown' },
             { action: 'requireAdmin' }
         );
-        redirect('/platform');
+        redirect('/v2');
     }
 
     return context;

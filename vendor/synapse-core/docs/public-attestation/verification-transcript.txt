@@ -1,0 +1,99 @@
+# SYNAPSE Verification Transcript — Example
+
+This transcript shows the expected output when verifying
+the example-segment.jsonl against the example-manifest.json.
+
+═══════════════════════════════════════════════════════════════
+SYNAPSE SEGMENT VERIFICATION v1.0
+═══════════════════════════════════════════════════════════════
+
+Input:
+  Segment: example-segment.jsonl
+  Manifest: example-manifest.json
+  Public Key: d4e5f6a7b8c9d0e1...
+
+═══════════════════════════════════════════════════════════════
+STEP 1: Parse JSONL
+═══════════════════════════════════════════════════════════════
+
+  ✅ Line 1: Parsed successfully
+  ✅ Line 2: Parsed successfully
+  ✅ Line 3: Parsed successfully
+  
+  Records found: 3
+
+═══════════════════════════════════════════════════════════════
+STEP 2: Validate Hash Chain
+═══════════════════════════════════════════════════════════════
+
+  Record 1:
+    seq: 1 ✅
+    prevHash: GENESIS ✅
+    recordHash: a1b2c3d4... (verified) ✅
+  
+  Record 2:
+    seq: 2 ✅
+    prevHash: a1b2c3d4... (matches R1) ✅
+    recordHash: b2c3d4e5... (verified) ✅
+  
+  Record 3:
+    seq: 3 ✅
+    prevHash: b2c3d4e5... (matches R2) ✅
+    recordHash: c3d4e5f6... (verified) ✅
+  
+  Hash chain: VALID ✅
+
+═══════════════════════════════════════════════════════════════
+STEP 3: Compute Segment Digest
+═══════════════════════════════════════════════════════════════
+
+  File bytes: 1847
+  SHA-256: e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5
+  
+  Manifest digest: e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5
+  
+  Digest match: VALID ✅
+
+═══════════════════════════════════════════════════════════════
+STEP 4: Verify Signature
+═══════════════════════════════════════════════════════════════
+
+  Algorithm: ed25519
+  Public Key ID: d4e5f6a7b8c9d0e1
+  Signature: TUVXQVJFOlRoaXNJc0FuRXhh... (base64)
+  
+  Ed25519.verify(): VALID ✅
+
+═══════════════════════════════════════════════════════════════
+STEP 5: Check Manifest Consistency
+═══════════════════════════════════════════════════════════════
+
+  seqStart: manifest=1, data=1 ✅
+  seqEnd: manifest=3, data=3 ✅
+  recordCount: manifest=3, data=3 ✅
+  chainId: manifest=example-chain, data=example-chain ✅
+  headHash: manifest=c3d4e5f6..., data=c3d4e5f6... ✅
+  
+  Manifest consistency: VALID ✅
+
+═══════════════════════════════════════════════════════════════
+VERIFICATION RESULT
+═══════════════════════════════════════════════════════════════
+
+{
+  "ok": true,
+  "failures": [],
+  "stats": {
+    "seqStart": 1,
+    "seqEnd": 3,
+    "recordCount": 3,
+    "chainId": "example-chain"
+  }
+}
+
+═══════════════════════════════════════════════════════════════
+✅ SEGMENT VERIFIED SUCCESSFULLY
+═══════════════════════════════════════════════════════════════
+
+Note: This is an EXAMPLE transcript. Your implementation should
+produce equivalent results when processing the same inputs.

@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from 'react';
 
-type Locale = 'en' | 'th' | 'zh';
+type Locale = 'en' | 'th';
 
 interface I18nContextType {
     locale: Locale;

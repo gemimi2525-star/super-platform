@@ -2,7 +2,11 @@ import { getAuthContext } from '@/lib/auth/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 // import { AppShell } from '@/modules/design-system/src/patterns/AppShell'; // Direct import fails (no 'use client')
 import { V2AppShell } from './_components/V2AppShell'; // Use wrapper
+import { OSTopBar } from './_components/OSTopBar'; // OS Control Plane component
 import { Divider } from '@/modules/design-system/src/components/Divider';
+import { resolveNavigation } from '@super-platform/core/src/os/navigation/resolve-navigation';
+import { OSSidebar } from '@/modules/design-system/src/patterns/OSSidebar';
+import { getOrgEntitlements } from '@super-platform/core/src/os/entitlements/get-org-entitlements';
 
 // Helper to check permissions
 function canViewOrgs(role?: string) {
@@ -40,81 +44,63 @@ export default async function PlatformV2Layout({ children, params }: PlatformV2L
             // Fallback to 'user' role on error
         }
     }
-    // Simple sidebar for v2
+    // --- START OS NAVIGATION ENGINE (Phase A-2 & A-3) ---
+    // 1. Resolve Entitlements (Real DB Check)
+    // Try to find an orgId context. Ideally this comes from path params or user preference.
+    // For Phase A, we'll look at the user's primary org if available, or just mock for now if user doc doesn't have it.
+    // NOTE: In Phase A-4, we will have a clearer 'currentOrg' context.
+
+    let currentOrgId = '';
+    // Quick attempt to find an orgId from user data (if we fetched it)
+    try {
+        if (auth?.uid) {
+            const db = getAdminFirestore();
+            const userDoc = await db.collection('platform_users').doc(auth.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                // Assuming user might have 'defaultOrgId' or we pick the first one
+                currentOrgId = userData?.defaultOrgId || '';
+            }
+        }
+    } catch (e) {
+        // Ignore errors in context resolution
+    }
+
+    const entitlements = await getOrgEntitlements(currentOrgId);
+    const enabledFlags = entitlements.flags;
+
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[OS] Entitlements for org '${currentOrgId}':`, entitlements.flags, `(Source: ${entitlements.source})`);
+    }
+
+    // Map role to policies (Backward compatibility logic)
+    const userPolicies: string[] = [];
+    if (role === 'owner') {
+        userPolicies.push('users.read', 'orgs.read', 'audit.view', 'settings.read');
+    } else if (role === 'admin') {
+        userPolicies.push('users.read', 'orgs.read');
+    } else {
+        // User has minimal access
+        userPolicies.push();
+    }
+
+    // 2. Resolve Navigation
+    const navigation = resolveNavigation({
+        enabledFlags,
+        userPolicies,
+        locale
+    });
+
     const sidebar = (
-        <div className="p-6">
-            <div className="text-lg font-bold text-neutral-900 mb-8">
-                Platform V2
-            </div>
-            <nav className="flex flex-col gap-2">
-                <a
-                    href={`/${locale}/v2`}
-                    className="px-4 py-3 text-neutral-700 no-underline rounded-md hover:bg-neutral-100 transition-colors"
-                >
-                    Dashboard
-                </a>
-
-                {/* Organizations - Admin/Owner Only */}
-                {canViewOrgs(role) && (
-                    <a
-                        href={`/${locale}/v2/orgs`}
-                        className="px-4 py-3 text-neutral-700 no-underline rounded-md hover:bg-neutral-100 transition-colors"
-                    >
-                        Organizations
-                    </a>
-                )}
-
-                {/* Users - Admin/Owner Only */}
-                {canViewUsers(role) && (
-                    <a
-                        href={`/${locale}/v2/users`}
-                        className="px-4 py-3 text-neutral-700 no-underline rounded-md hover:bg-neutral-100 transition-colors"
-                    >
-                        Users
-                    </a>
-                )}
-
-                {/* Audit Logs - Owner Only */}
-                {canViewAuditLogs(role) && (
-                    <a
-                        href={`/${locale}/v2/audit-logs`}
-                        className="px-4 py-3 text-neutral-700 no-underline rounded-md hover:bg-neutral-100 transition-colors"
-                    >
-                        Audit Logs
-                    </a>
-                )}
-
-
-                {/* Test Login Link (DEV only) */}
-                {process.env.ENABLE_TEST_LOGIN === 'true' && process.env.NODE_ENV !== 'production' && (
-                    <>
-                        <Divider spacing="md" />
-                        <a
-                            href={`/${locale}/v2/test-login`}
-                            className="px-4 py-3 text-primary-600 no-underline rounded-md hover:bg-primary-50 transition-colors text-sm font-medium"
-                        >
-                            🧪 Test Login
-                        </a>
-                    </>
-                )}
-            </nav>
-        </div>
+        <OSSidebar
+            navigation={navigation}
+            locale={locale}
+        />
     );
+    // --- END OS NAVIGATION ENGINE ---
 
-    // Simple topbar
-    const topbar = (
-        <div className="flex justify-between items-center w-full">
-            <div className="text-base font-medium text-neutral-700">
-                APICOREDATA Platform V2
-            </div>
-            <div className="flex gap-4 items-center">
-                <span className="text-sm text-neutral-600">English</span>
-                <button className="px-4 py-1 bg-white border border-neutral-300 rounded-md cursor-pointer hover:bg-neutral-50 transition-colors">
-                    Logout
-                </button>
-            </div>
-        </div>
-    );
+    // OS TopBar with Language Switcher and Logout
+    const topbar = <OSTopBar locale={locale} />;
 
     return (
         <V2AppShell

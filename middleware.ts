@@ -98,9 +98,12 @@ export function middleware(request: NextRequest) {
     });
 
     // 5. Auth Check - Explicitly Protect Protected Routes
-    // Target: /[locale]/v2 and /api/platform
+    // Target: /[locale]/v2, /[locale]/desktop, /[locale]/home and /api/platform
     // We do NOT rely on "isPublic" blacklist alone anymore. We use whitelist protection.
-    const isProtectedRoute = pathWithoutLocale.startsWith('/v2') || pathWithoutLocale.startsWith('/platform');
+    const isProtectedRoute = pathWithoutLocale.startsWith('/v2') ||
+        pathWithoutLocale.startsWith('/desktop') ||
+        pathWithoutLocale.startsWith('/home') ||
+        pathWithoutLocale.startsWith('/platform');
 
     // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)
     // In dev mode, if headers are present, we consider it a "virtual session" for middleware purposes

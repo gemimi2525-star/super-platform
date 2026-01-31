@@ -18,17 +18,23 @@ import { ProgramSwitcher } from '@/components/ProgramSwitcher';
 import { BrandLogo } from '@/components/BrandLogo';
 import { SearchPanel } from '@/components/SearchPanel';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useBrand } from '@/contexts/BrandContext';
+import { useBrandStore } from '@/lib/stores/brandStore';
 import { Menu, Search } from 'lucide-react';
+import Image from 'next/image';
+import { BRAND } from '@/config/brand';
 
 export function PlatformHeader() {
     const { toggleMobile, toggleDesktopSidebar, isDesktopHidden, toggleSearchPanel, isSearchOpen } = useSidebar();
-    const { header } = useBrand();
 
-    // Calculate sizes based on per-location settings
-    const logoSize = Math.round(36 * (header.logoScale / 100));
-    const fontSize = Math.round(16 * (header.brandNameScale / 100));
-    const gap = header.gap;
+    // Use store directly for reactive updates (bypassing context for direct subscription)
+    const headerSettings = useBrandStore((state) => state.settings.header);
+    const brandName = BRAND.name;
+
+    // Logo URL: localStorage > default
+    const headerLogoUrl = headerSettings.logoDataUrl || BRAND.logo;
+    const logoSize = headerSettings.logoSizePx;
+    const gap = headerSettings.brandGapPx;
+    const showBrandName = headerSettings.showBrandName;
 
     return (
         <>
@@ -59,18 +65,29 @@ export function PlatformHeader() {
 
                         {/* CENTER ZONE: Logo + Brand Name */}
                         <div className="flex-1 flex items-center justify-center">
-                            <a href="/platform" className="flex items-center group">
-                                <BrandLogo
-                                    size="sm"
-                                    location="header"
-                                    className="transition-transform group-hover:scale-105"
-                                />
-                                <span
-                                    className="font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors whitespace-nowrap"
-                                    style={{ fontSize: `${fontSize}px`, marginLeft: `${gap}px` }}
+                            <a href="/platform" className="flex items-center group" style={{ gap: `${gap}px` }}>
+                                {/* Use logoUrl from context - includes localStorage override */}
+                                <div
+                                    className="rounded-full overflow-hidden flex-shrink-0 transition-transform group-hover:scale-105"
+                                    style={{ width: logoSize, height: logoSize }}
                                 >
-                                    {header.brandName}
-                                </span>
+                                    <Image
+                                        src={headerLogoUrl}
+                                        alt={brandName}
+                                        width={logoSize}
+                                        height={logoSize}
+                                        className="object-cover w-full h-full"
+                                        priority
+                                        unoptimized={headerLogoUrl.startsWith('data:') || headerLogoUrl.startsWith('http')}
+                                    />
+                                </div>
+                                {showBrandName && (
+                                    <span
+                                        className="font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors whitespace-nowrap text-base"
+                                    >
+                                        {brandName}
+                                    </span>
+                                )}
                             </a>
                         </div>
 
@@ -124,18 +141,29 @@ export function PlatformHeader() {
 
                         {/* CENTER: Logo + Brand */}
                         <div className="flex-1 flex items-center justify-center">
-                            <a href="/platform" className="flex items-center group">
-                                <BrandLogo
-                                    size="sm"
-                                    location="header"
-                                    className="transition-transform group-hover:scale-105"
-                                />
-                                <span
-                                    className="font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors whitespace-nowrap text-sm sm:text-base"
-                                    style={{ fontSize: `${Math.max(fontSize * 0.85, 12)}px`, marginLeft: `${gap}px` }}
+                            <a href="/platform" className="flex items-center group" style={{ gap: `${gap}px` }}>
+                                {/* Use smaller logo for mobile */}
+                                <div
+                                    className="rounded-full overflow-hidden flex-shrink-0 transition-transform group-hover:scale-105"
+                                    style={{ width: Math.round(logoSize * 0.8), height: Math.round(logoSize * 0.8) }}
                                 >
-                                    {header.brandName}
-                                </span>
+                                    <Image
+                                        src={headerLogoUrl}
+                                        alt={brandName}
+                                        width={Math.round(logoSize * 0.8)}
+                                        height={Math.round(logoSize * 0.8)}
+                                        className="object-cover w-full h-full"
+                                        priority
+                                        unoptimized={headerLogoUrl.startsWith('data:') || headerLogoUrl.startsWith('http')}
+                                    />
+                                </div>
+                                {showBrandName && (
+                                    <span
+                                        className="font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors whitespace-nowrap text-sm sm:text-base"
+                                    >
+                                        {brandName}
+                                    </span>
+                                )}
                             </a>
                         </div>
 

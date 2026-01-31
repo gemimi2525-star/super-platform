@@ -25,8 +25,8 @@ export async function GET(
 
         // Extract locale from URL pathname
         const pathname = request.nextUrl.pathname;
-        const localeMatch = pathname.match(/^\/(en|th|zh)\//);
-        const locale = (localeMatch?.[1] as 'en' | 'th' | 'zh') || 'en';
+        const localeMatch = pathname.match(/^\/(en|th)\//);
+        const locale = (localeMatch?.[1] as 'en' | 'th') || 'en';
 
         const role = await getRole(id, locale);
 
