@@ -22,13 +22,84 @@ export class OrgsAdapter extends BaseAdapter {
         // Collection: /data/orgs
         if (path === '/data/orgs') {
             try {
-                // Call the Hardened API
-                const res = await fetch('/api/platform/orgs');
-                // Note: API returns 401 if unauth, 503 if degraded.
-                // We should handle these status codes if possible, 
-                // but fetch doesn't throw on 401/503 automatically.
+                // Call the Hardened API (F4)
+                const res = await fetch('/api/platform/orgs', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include' // Ensure cookies are sent
+                });
 
+                // F4: Check Content-Type (Defensive Parse)
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Start of Defensive Logic
+                    const text = await res.text();
+                    const preview = text.slice(0, 80).replace(/\n/g, ' ');
+                    console.error(`[OMS] Invalid API response (Not JSON). Status: ${res.status}. Preview: ${preview}`);
+
+                    if (res.status === 401 || res.status === 403 || res.url.includes('/login')) {
+                        // Handle session expiry logic
+                        console.warn('[OMS] Session expired during fetch');
+                        return {
+                            id: 'orgs-error',
+                            type: 'collection',
+                            path: '/data/orgs',
+                            name: 'Session Expired',
+                            meta: {
+                                icon: 'lock',
+                                error: 'unauthorized',
+                                description: 'Please login to view organizations'
+                            },
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            capabilities: [],
+                            children: []
+                        };
+                    }
+
+                    throw new Error(`API returned ${contentType} instead of JSON`);
+                }
+
+                // If JSON, parse it
                 const data = await res.json() as ApiResponse;
+
+                // Handle Error Logic from API (401/503) embedded in JSON logic or status
+                if (!res.ok) {
+                    // Check if it is Degraded Mode 503
+                    if (res.status === 503) {
+                        return {
+                            id: 'data-orgs',
+                            type: 'collection',
+                            path: '/data/orgs',
+                            name: 'Organizations (Offline)',
+                            meta: {
+                                icon: 'cloud-off',
+                                degraded: true,
+                                error: data.error?.message || 'Service Unavailable'
+                            },
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            capabilities: [],
+                            children: []
+                        };
+                    }
+
+                    // 401 check again just in case JSON returned 401
+                    if (res.status === 401) {
+                        return {
+                            id: 'orgs-error',
+                            type: 'collection',
+                            path: '/data/orgs',
+                            name: 'Session Expired',
+                            meta: { icon: 'lock', error: 'unauthorized' },
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            capabilities: [],
+                            children: []
+                        };
+                    }
+
+                    console.error('[OMS] API Error:', data.error);
+                }
 
                 let children: CoreObject[] = [];
 
@@ -80,11 +151,6 @@ export class OrgsAdapter extends BaseAdapter {
             }
         }
 
-        // Single Object: /data/orgs/[id]
-        // For v1, we only implement list. Single resolve can be added later or purely via children.
-        // But to be complete, let's allow resolving a child if we knew how to fetch one efficiently.
-        // The API /api/platform/orgs returns list. 
-        // We can implement finding by ID if we wanted, but let's stick to List View first.
         return null;
     }
 }
