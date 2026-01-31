@@ -623,14 +623,35 @@ This document tracks real-time progress through the 6 Commands in `DAY0_EXECUTIO
   - Result: Created `admin@apicoredata.com` in new Firebase project.
   - Login: Use `admin@apicoredata.com` / `Password@123`
 
+- [x] **13:50 — Deploy Public Demo Config** (5 min)
+  - Change: Redirect `/` to `/core-os-demo` & Bypass Auth.
+  - Commit: `e723326`
+  - Status: [x] **SUCCESS**
+
+- [x] **13:55 — Configure Custom Domain** (5 min)
+  - Domain: `apicoredata.com`
+  - Action: **Removed** from Vercel (User decision to stay in Testing Phase).
+  - Status: [x] **SKIPPED**
+
+## 7. SIGN-OFF & LAUNCH
+- [x] **System Owner Sign-off**: Verified Public Demo on Vercel Subdomain.
+- [x] **Go-Live Announcement**: Public Demo Live at https://apicoredata-core-os.vercel.app**SUCCESS**
+
 - [x] **13:35 — Smoke Test** (20 min)
   - Open production URL: https://apicoredata-core-os.vercel.app
   - Login with Owner account: [x] **SUCCESS**
   - Desktop loads: [x] **SUCCESS** (Verified "Good afternoon, admin")
   - Open User Management app: [x] **SUCCESS**
   - Verify "Lavender" Theme: [x] **SUCCESS**
-  - Check Audit Logs app: Recent logs visible [ ] YES
-  - **Result**: [ ] GO [ ] NO-GO
+  - Check Audit Logs app: Recent logs visible [x] **YES** (Logged `USER_LOGIN_SUCCESS`)
+  - **Result**: [x] GO [ ] NO-GO
+
+## 8. PHASE XI: CORE OS EVOLUTION (Current Focus)
+- [x] **Implement In-App Login System**
+  - Component: `LoginScreen.tsx` (Lavender Theme)
+  - Logic: Simulated "Unlock" with Audit Integration
+  - Status: [x] **VERIFIED LOCALLY**
+
 
 - [ ] **10:50 — FINAL GO/NO-GO** (10 min)
   - **Jukkrit**: [ ] GO [ ] NO-GO

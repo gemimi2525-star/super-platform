@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
 
     // 5. Auth Check - remove locale prefix to check path
     const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
-    const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/', '/core-os-demo'];
+    const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/', '/core-os-demo', '/home'];
     const isPublic = publicPaths.some(p => pathWithoutLocale === p || pathWithoutLocale.startsWith(p + '/'));
 
     // Rate Limiting Logic

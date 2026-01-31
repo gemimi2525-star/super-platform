@@ -14,6 +14,7 @@
 
 import React from 'react';
 import { tokens } from './tokens';
+import { LoginScreen } from './LoginScreen';
 import { CalmDesktop } from './CalmDesktop';
 import { TopBar } from './TopBar';
 import { DockBar } from './DockBar';
@@ -39,6 +40,25 @@ export function OSShell() {
     const bootstrap = useKernelBootstrap();
     const state = useSystemState();
     const focusedWindowId = state.focusedWindowId;
+
+    // Lock Screen State (Phase XI)
+    const [isLocked, setIsLocked] = React.useState(true);
+
+    const handleUnlock = () => {
+        setIsLocked(false);
+
+        // Log the login event
+        addDecisionLog({
+            timestamp: Date.now(),
+            action: 'USER_LOGIN_SUCCESS',
+            capabilityId: 'auth',
+            decision: 'ALLOW',
+            reasonChain: [
+                'User authenticated via lock screen',
+                'Simulated session started'
+            ],
+        });
+    };
 
     // Log panel visibility
     const [isLogPanelOpen, setIsLogPanelOpen] = React.useState(false);
@@ -105,6 +125,11 @@ export function OSShell() {
             overflow: 'hidden',
             fontFamily: tokens.fontFamily,
         }}>
+            {/* Phase XI: Lock Screen */}
+            {isLocked && (
+                <LoginScreen onLoginSuccess={handleUnlock} />
+            )}
+
             {/* Background */}
             <CalmDesktop />
 
