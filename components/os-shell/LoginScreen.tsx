@@ -8,10 +8,13 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-    const [email, setEmail] = React.useState('admin@apicoredata.com');
-    const [password, setPassword] = React.useState('Password@123'); // Pre-fill
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
     const [error, setError] = React.useState('');
     const [loading, setLoading] = React.useState(false);
+
+    // Check for Dev Environment
+    const isDev = process.env.NODE_ENV !== 'production';
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,14 +23,19 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         // Simulate network delay
         setTimeout(() => {
-            if (password === 'Password@123' || password === 'admin') {
+            if ((password === 'Password@123' || password === 'admin') && (email === 'admin@apicoredata.com')) {
                 setLoading(false);
                 onLoginSuccess();
             } else {
                 setLoading(false);
-                setError('Invalid password');
+                setError('Invalid credentials');
             }
         }, 800);
+    };
+
+    const fillDevCredentials = () => {
+        setEmail('admin@apicoredata.com');
+        setPassword('Password@123');
     };
 
     return (
@@ -70,7 +78,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 </div>
 
                 <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 600, color: '#1a1a1a' }}>
-                    Admin User
+                    Sign In
                 </h2>
                 <p style={{ margin: '0 0 32px', fontSize: 14, color: '#4a4a4a', opacity: 0.8 }}>
                     Core OS v1.0
@@ -78,9 +86,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <input
-                        type="text"
+                        type="email"
+                        placeholder="Email Address"
                         value={email}
-                        readOnly
+                        onChange={(e) => setEmail(e.target.value)}
                         style={{
                             padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.4)',
                             background: 'rgba(255,255,255,0.5)', fontSize: 14, outline: 'none', color: '#333', textAlign: 'center'
@@ -90,7 +99,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                     <div style={{ position: 'relative' }}>
                         <input
                             type="password"
-                            placeholder="Enter Password"
+                            placeholder="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             style={{
@@ -112,8 +121,22 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                             cursor: loading ? 'wait' : 'pointer', transition: 'all 0.2s',
                         }}
                     >
-                        {loading ? 'Unlocking...' : 'Unlock System'}
+                        {loading ? 'Verifying...' : 'Unlock System'}
                     </button>
+
+                    {isDev && (
+                        <button
+                            type="button"
+                            onClick={fillDevCredentials}
+                            style={{
+                                martinTop: 4, padding: '8px', borderRadius: 8, border: '1px dashed #666',
+                                background: 'transparent', color: '#555', fontSize: 12, cursor: 'pointer',
+                                opacity: 0.7
+                            }}
+                        >
+                            [DEV] Quick Fill
+                        </button>
+                    )}
                 </form>
             </div>
         </div>

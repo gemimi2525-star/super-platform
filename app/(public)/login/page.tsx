@@ -12,7 +12,7 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/session', { method: 'POST' });
             if (res.ok) {
                 // Redirect to /os
-                router.push('/os');
+                router.replace('/os');
                 router.refresh(); // Refresh to ensure middleware picks up the new cookie status
             } else {
                 console.error('Failed to create session');
