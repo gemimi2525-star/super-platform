@@ -612,14 +612,19 @@ This document tracks real-time progress through the 6 Commands in `DAY0_EXECUTIO
   - Thanabun (Security): Audit verification confirmed
   - LINE Group: All 3 active and responsive
 
-- [ ] **10:00 — Deploy to Production** (30 min)
-  - Method: [Vercel deploy / Firebase deploy / Manual]
-  - Domain: [YOUR_PRODUCTION_URL]
-  - Deployment log: ________________
-  - Status: [ ] SUCCESS [ ] FAILED
+- [x] **12:55 — Deploy to Production (Retry 3: Fix PEM)** (10 min)
+  - Project/Domain: https://apicoredata-core-os.vercel.app
+  - Fix: Fixed `FIREBASE_PRIVATE_KEY` PEM format (Removed quotes, real newlines).
+  - Deployment log: Redeploying...
+  - Status: 🚀 **BUILDING**
 
-- [ ] **10:30 — Smoke Test** (20 min)
-  - Open production URL: ________________
+- [x] **13:20 — Admin User Seeding** (5 min)
+  - Action: Ran `scripts/create-admin.ts` locally.
+  - Result: Created `admin@apicoredata.com` in new Firebase project.
+  - Login: Use `admin@apicoredata.com` / `Password@123`
+
+- [ ] **13:25 — Smoke Test** (20 min)
+  - Open production URL: https://apicoredata-core-os.vercel.app
   - Login with Owner account: [ ] SUCCESS
   - Desktop loads: [ ] SUCCESS
   - Open User Management app: [ ] SUCCESS
