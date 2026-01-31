@@ -41,24 +41,9 @@ export function OSShell() {
     const state = useSystemState();
     const focusedWindowId = state.focusedWindowId;
 
-    // Lock Screen State (Phase XI)
-    const [isLocked, setIsLocked] = React.useState(true);
-
-    const handleUnlock = () => {
-        setIsLocked(false);
-
-        // Log the login event
-        addDecisionLog({
-            timestamp: Date.now(),
-            action: 'USER_LOGIN_SUCCESS',
-            capabilityId: 'auth',
-            decision: 'ALLOW',
-            reasonChain: [
-                'User authenticated via lock screen',
-                'Simulated session started'
-            ],
-        });
-    };
+    // Lock Screen decoupled to /login page
+    // const [isLocked, setIsLocked] = React.useState(true);
+    // handleUnlock removed in favor of middleware protection
 
     // Log panel visibility
     const [isLogPanelOpen, setIsLogPanelOpen] = React.useState(false);
@@ -125,10 +110,8 @@ export function OSShell() {
             overflow: 'hidden',
             fontFamily: tokens.fontFamily,
         }}>
-            {/* Phase XI: Lock Screen */}
-            {isLocked && (
-                <LoginScreen onLoginSuccess={handleUnlock} />
-            )}
+            {/* Phase XI: Lock Screen - Removed in favor of /login page */}
+            {/* isLocked logic removed */}
 
             {/* Background */}
             <CalmDesktop />

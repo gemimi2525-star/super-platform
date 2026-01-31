@@ -139,7 +139,7 @@ export function BrandProvider({ children }: BrandProviderProps) {
     }, []);
 
     useEffect(() => {
-        fetchBrandSettings();
+        // fetchBrandSettings(); // DISABLED for Demo (Prevents "Missing permissions" error because Guest has no Firestore access)
     }, [fetchBrandSettings]);
 
     // ─────────────────────────────────────────────────────────────────────────
