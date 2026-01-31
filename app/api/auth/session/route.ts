@@ -26,7 +26,11 @@ export async function POST(request: Request) {
         return response;
     } catch (error) {
         console.error('[Session API] Failed to create session:', error);
-        return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({
+            success: false,
+            error: (error as Error).message || 'Internal Server Error',
+            details: String(error)
+        }, { status: 500 });
     }
 }
 
