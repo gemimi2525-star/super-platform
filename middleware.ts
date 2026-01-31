@@ -28,24 +28,52 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // 1. API routes, static files pass through
+    // SPECIAL HANDLING: /os (Single Entry Point)
+    // 1. If accessing /os directly -> Check Auth -> Allow or Login
+    if (pathname === '/os') {
+        const hasSession = request.cookies.has('__session');
+        // Dev Bypass
+        const isDev = process.env.NODE_ENV === 'development';
+        const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
+        const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
+
+        if (!hasSession && !hasBypassHeaders) {
+            const url = request.nextUrl.clone();
+            // Redirect to default locale login
+            // We can read NEXT_LOCALE cookie to decide preference, or default
+            const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value || defaultLocale;
+            url.pathname = `/${cookieLocale}/login`;
+            url.searchParams.set('callbackUrl', '/os');
+            return NextResponse.redirect(url);
+        }
+        return NextResponse.next();
+    }
+
+    // 2. If accessing /{locale}/os -> Redirect to /os (Canonicalize)
+    const localeOsMatch = pathname.match(/^\/(en|th)\/os/);
+    if (localeOsMatch) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/os';
+        return NextResponse.redirect(url, 301);
+    }
+
+    // 3. API routes, static files pass through
     if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.includes('.')) {
         return NextResponse.next();
     }
 
-    // 2. Check if pathname has locale
+    // 4. Standard Locale Handling for Public Pages
+    // Check if pathname has locale
     const pathnameHasLocale = locales.some(
         (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
     );
 
-    // 3. If no locale in pathname, redirect to defaultLocale
+    // If no locale in pathname (and not /os checked above), redirect to defaultLocale
     if (!pathnameHasLocale) {
-        // Special Case: root / -> /en/login (instead of /en/) if we want strict entry
-        // User requirement: /os is main entry.
-        // Let standard logic handle it mostly, but if /core-os-demo -> redirect to /os
+        // Special Case: /core-os-demo -> /os (Legacy redirect)
         if (pathname === '/core-os-demo') {
             const url = request.nextUrl.clone();
-            url.pathname = `/${defaultLocale}/os`;
+            url.pathname = '/os';
             return NextResponse.redirect(url, 301);
         }
 
@@ -62,28 +90,23 @@ export function middleware(request: NextRequest) {
         return response;
     }
 
-    // 4. Extract locale from pathname
+    // Extract locale from pathname
     const localeMatch = pathname.match(/^\/([^/]+)/);
     const locale = localeMatch ? localeMatch[1] : defaultLocale;
-
-    // 5. Route Normalization & Redirects (Phase S2)
     const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
 
-    // S2) Replace/Deprecate Demo Routes
-    if (pathWithoutLocale === '/core-os-demo' || pathWithoutLocale === '/core-os-demo/') {
+    // Legacy Auth Redirects
+    if (pathWithoutLocale.startsWith('/auth/')) {
         const url = request.nextUrl.clone();
-        url.pathname = `/${locale}/os`;
+        url.pathname = `/${locale}/login`;
         return NextResponse.redirect(url, 301);
     }
 
-    // 6. Auth Check & Secure Gate (Phase S4)
-    // Public whitelist: /login, /auth/*, /, /api/auth/*
-    const publicPaths = ['/login', '/auth/login', '/auth/register', '/'];
-    const isPublic = publicPaths.some(p => pathWithoutLocale === p || pathWithoutLocale.startsWith(p + '/'));
-
-    // Protected Routes: /os, /v2, /desktop
-    const protectedPrefixes = ['/os', '/v2', '/desktop', '/home'];
-    const isProtectedRoute = protectedPrefixes.some(p => pathWithoutLocale === p || pathWithoutLocale.startsWith(p + '/'));
+    // Explicit Public Whitelist for localized routes (Login, Home)
+    const publicPaths = ['/login', '/'];
+    // We already handle /os separately. 
+    // If strict secure gate is needed for landing page, add logic here.
+    // Current requirement: Public Gate = /login, Public Root = /
 
     // Rate Limiting Logic
     const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -121,46 +144,26 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    const hasSession = request.cookies.has('__session');
-
     // DEBUG LOGGING
     if (process.env.NODE_ENV === 'development') {
         console.log('[Middleware] Request:', {
             pathname,
             pathWithoutLocale,
-            isPublic,
-            isProtectedRoute,
-            hasSession
+            // isPublic, // Removed as publicPaths logic is simplified
+            // isProtectedRoute, // Removed as /os is handled explicitly
+            hasSession: request.cookies.has('__session') // Re-evaluate hasSession here if needed
         });
     }
 
     // Secure Gate v1 Decision
     // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)
-    const isDev = process.env.NODE_ENV === 'development';
+    // isDev is already declared above
     const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
     const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
 
-    if (isProtectedRoute) {
-        // Must have either a session cookie OR be in a valid bypass state
-        if (!hasSession && !hasBypassHeaders) {
-            logger.info('Protected route access blocked (No Session)', {
-                action: 'redirect_login',
-                context: { ip, path: pathname }
-            });
-            const url = request.nextUrl.clone();
-            url.pathname = `/${locale}/login`; // Redirect to dedicated login page
-            // Add ?callbackUrl to be nice
-            url.searchParams.set('callbackUrl', pathname);
-            return NextResponse.redirect(url);
-        }
-    }
-
-    // Fallback: If not public and not explicitly protected (but essentially private app territory)
-    // We treat everything else as potentially needing auth if it's not in public list?
-    // For now, strict protection on /os is the Main Goal. Other routes might be landing pages.
-    // Ensure / is public (landing).
-
-    // Legacy Check Removal: We now rely on explicit isProtectedRoute lists for the OS.
+    // The explicit /os protection is now at the top.
+    // This section is for other potentially protected routes, if any.
+    // For now, we assume everything else is public unless explicitly protected by other means.
     // If strict security is needed for *everything*, we would flip logic to "block unless public".
     // User requested "Secure Gate" for /os. I will stick to explicit protection for now to avoid breaking landing pages.
 
