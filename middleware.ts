@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
 
     // 5. Auth Check - remove locale prefix to check path
     const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
-    const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/', '/core-os-demo', '/home'];
+    const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/', '/core-os-demo'];
     const isPublic = publicPaths.some(p => pathWithoutLocale === p || pathWithoutLocale.startsWith(p + '/'));
 
     // Rate Limiting Logic
@@ -102,7 +102,6 @@ export function middleware(request: NextRequest) {
     // We do NOT rely on "isPublic" blacklist alone anymore. We use whitelist protection.
     const isProtectedRoute = pathWithoutLocale.startsWith('/v2') ||
         pathWithoutLocale.startsWith('/desktop') ||
-        pathWithoutLocale.startsWith('/home') ||
         pathWithoutLocale.startsWith('/platform');
 
     // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)

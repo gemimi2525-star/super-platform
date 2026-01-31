@@ -646,11 +646,19 @@ This document tracks real-time progress through the 6 Commands in `DAY0_EXECUTIO
   - Check Audit Logs app: Recent logs visible [x] **YES** (Logged `USER_LOGIN_SUCCESS`)
   - **Result**: [x] GO [ ] NO-GO
 
+- [x] **14:15 — Deploy Phase XI + Home Migration** (5 min)
+  - Change: Added Login Screen & Moved to `/home`.
+  - Commit: `c78a221`
+  - Status: 🚀 **BUILDING**
+
 ## 8. PHASE XI: CORE OS EVOLUTION (Current Focus)
 - [x] **Implement In-App Login System**
-  - Component: `LoginScreen.tsx` (Lavender Theme)
-  - Logic: Simulated "Unlock" with Audit Integration
-  - Status: [x] **VERIFIED LOCALLY**
+  - Component: `LoginScreen.tsx` (Lavender)
+  - Status: [x] **DEPLOYED** (Commit `c78a221`)
+- [x] **Migrate to `/home` Entry Point**
+  - Redirect: `/` -> `/home`
+  - Logic: `<OSShell />` with Lock Screen
+  - Status: [x] **DEPLOYED**
 
 
 - [ ] **10:50 — FINAL GO/NO-GO** (10 min)
