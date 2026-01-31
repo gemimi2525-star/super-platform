@@ -656,9 +656,12 @@ This document tracks real-time progress through the 6 Commands in `DAY0_EXECUTIO
   - Component: `LoginScreen.tsx` (Lavender)
   - Status: [x] **DEPLOYED** (Commit `c78a221`)
 - [x] **Migrate to `/home` Entry Point**
-  - Redirect: `/` -> `/home`
-  - Logic: `<OSShell />` with Lock Screen
-  - Status: [x] **DEPLOYED**
+  - Status: [x] **REVERTED** (Consolidated to `/core-os-demo`)
+
+- [x] **14:30 — Single Route Consolidation** (5 min)
+  - Action: Removed `/home`, Redirect `/` -> `/core-os-demo`.
+  - Commit: `71a7401`
+  - Status: 🚀 **BUILDING**
 
 
 - [ ] **10:50 — FINAL GO/NO-GO** (10 min)

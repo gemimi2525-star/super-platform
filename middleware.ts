@@ -100,9 +100,9 @@ export function middleware(request: NextRequest) {
     // 5. Auth Check - Explicitly Protect Protected Routes
     // Target: /[locale]/v2, /[locale]/desktop, /[locale]/home and /api/platform
     // We do NOT rely on "isPublic" blacklist alone anymore. We use whitelist protection.
-    const isProtectedRoute = pathWithoutLocale.startsWith('/v2') ||
-        pathWithoutLocale.startsWith('/desktop') ||
-        pathWithoutLocale.startsWith('/platform');
+    // Core OS Demo is public (has its own Lock Screen), so strictly we might not need this anymore for the demo.
+    // But keeping variable for future use.
+    const isProtectedRoute = false;
 
     // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)
     // In dev mode, if headers are present, we consider it a "virtual session" for middleware purposes
