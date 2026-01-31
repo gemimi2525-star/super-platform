@@ -15,6 +15,7 @@ const defaultLocale = 'en';
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const isDev = process.env.NODE_ENV === 'development';
 
     // S0) Canonical Host Decision (Production Only)
     // Enforce www.apicoredata.com
@@ -33,7 +34,6 @@ export function middleware(request: NextRequest) {
     if (pathname === '/os') {
         const hasSession = request.cookies.has('__session');
         // Dev Bypass
-        const isDev = process.env.NODE_ENV === 'development';
         const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
         const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
 
