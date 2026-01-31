@@ -14,3 +14,18 @@ export async function POST() {
 
     return response;
 }
+
+export async function GET(request: Request) {
+    const { getAuthContext } = await import('@/lib/auth/server');
+    // Import NextRequest to be safe or cast
+    const auth = await getAuthContext(request as any);
+
+    if (!auth) {
+        return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
+    return NextResponse.json({
+        authenticated: true,
+        user: auth
+    });
+}
