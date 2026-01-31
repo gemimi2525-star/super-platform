@@ -1,18 +1,33 @@
 import { NextResponse } from 'next/server';
 
-export async function POST() {
-    const response = NextResponse.json({ success: true });
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { idToken } = body;
 
-    // Set the session cookie
-    response.cookies.set('__session', 'authenticated', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-    });
+        if (!idToken) {
+            return NextResponse.json({ success: false, error: 'Missing ID token' }, { status: 400 });
+        }
 
-    return response;
+        const { createSessionCookie } = await import('@/lib/firebase-admin');
+        const sessionCookie = await createSessionCookie(idToken);
+
+        const response = NextResponse.json({ success: true });
+
+        // Set the session cookie
+        response.cookies.set('__session', sessionCookie, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 5, // 5 days
+        });
+
+        return response;
+    } catch (error) {
+        console.error('[Session API] Failed to create session:', error);
+        return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    }
 }
 
 export async function GET(request: Request) {

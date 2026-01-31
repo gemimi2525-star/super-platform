@@ -233,3 +233,22 @@ export async function setUserClaims(uid: string, claims: {
         throw error;
     }
 }
+
+/**
+ * Create Firebase Session Cookie
+ * Exchange an ID token for a long-lived session cookie
+ * 
+ * @param idToken - The ID token from the client
+ * @param expiresIn - Duration in milliseconds (default 5 days)
+ */
+export async function createSessionCookie(idToken: string, expiresIn = 60 * 60 * 24 * 5 * 1000) {
+    const auth = getAdminAuth();
+    try {
+        const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+        return sessionCookie;
+    } catch (error) {
+        const appError = handleError(error as Error);
+        console.error(`[AUTH] Failed to create session cookie [${appError.errorId}]:`, (error as Error).message);
+        throw error;
+    }
+}
