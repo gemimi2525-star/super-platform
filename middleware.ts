@@ -33,16 +33,14 @@ export function middleware(request: NextRequest) {
     // 1. If accessing /os directly -> Check Auth -> Allow or Login
     if (pathname === '/os') {
         const hasSession = request.cookies.has('__session');
-        // Dev Bypass
+        // Dev Bypass (isDev defined at top)
         const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
         const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
 
         if (!hasSession && !hasBypassHeaders) {
             const url = request.nextUrl.clone();
-            // Redirect to default locale login
-            // We can read NEXT_LOCALE cookie to decide preference, or default
-            const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value || defaultLocale;
-            url.pathname = `/${cookieLocale}/login`;
+            // Redirect to root public login (no locale prefix)
+            url.pathname = '/login';
             url.searchParams.set('callbackUrl', '/os');
             return NextResponse.redirect(url);
         }
@@ -62,13 +60,20 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // 4. Standard Locale Handling for Public Pages
+    // A1) Public Root + Public Gate Bypass (Phase S Fix)
+    // Must bypass locale redirection for these strict public routes
+    if (pathname === '/' || pathname === '/login') {
+        // Allow Next.js to handle these via app/(public)/... (Root Layout)
+        return NextResponse.next();
+    }
+
+    // 4. Standard Locale Handling for Public Pages (Legacy / localized pages like /en/about)
     // Check if pathname has locale
     const pathnameHasLocale = locales.some(
         (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
     );
 
-    // If no locale in pathname (and not /os checked above), redirect to defaultLocale
+    // If no locale in pathname (and not bypassed above), redirect to defaultLocale
     if (!pathnameHasLocale) {
         // Special Case: /core-os-demo -> /os (Legacy redirect)
         if (pathname === '/core-os-demo') {
