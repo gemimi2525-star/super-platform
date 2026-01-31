@@ -7,7 +7,7 @@ import { LoginScreen } from '@/components/os-shell/LoginScreen';
 export default function LoginPage() {
     const router = useRouter();
 
-    const handleLoginSuccess = async () => {
+    const handleLoginSuccess = async (idToken: string) => {
         // Set a session cookie to satisfy Middleware
         // In a real app, this would be an API call to /api/auth/login
         // For now, we simulate it via document.cookie for the client-side
@@ -25,7 +25,13 @@ export default function LoginPage() {
         // So I cannot set it on client. I MUST use an API.
 
         try {
-            const res = await fetch('/api/auth/session', { method: 'POST' });
+            const res = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            });
             if (res.ok) {
                 // Redirect to /os
                 router.push('/os');

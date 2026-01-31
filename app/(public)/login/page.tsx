@@ -7,9 +7,15 @@ import { LoginScreen } from '@/components/os-shell/LoginScreen';
 export default function LoginPage() {
     const router = useRouter();
 
-    const handleLoginSuccess = async () => {
+    const handleLoginSuccess = async (idToken: string) => {
         try {
-            const res = await fetch('/api/auth/session', { method: 'POST' });
+            const res = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            });
             if (res.ok) {
                 // Redirect to /os
                 router.replace('/os');

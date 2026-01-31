@@ -4,7 +4,7 @@ import React from 'react';
 import { tokens } from './tokens';
 
 interface LoginScreenProps {
-    onLoginSuccess: () => void;
+    onLoginSuccess: (idToken: string) => void;
 }
 
 export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
@@ -16,21 +16,25 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     // Check for Dev Environment
     const isDev = process.env.NODE_ENV !== 'production';
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Simulate network delay
-        setTimeout(() => {
-            if ((password === 'Password@123' || password === 'admin') && (email === 'admin@apicoredata.com')) {
-                setLoading(false);
-                onLoginSuccess();
-            } else {
-                setLoading(false);
-                setError('Invalid credentials');
-            }
-        }, 800);
+        try {
+            // Dynamically import to ensure client-side execution
+            const { auth, signInWithEmailAndPassword } = await import('@/lib/firebase/client');
+
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const idToken = await userCredential.user.getIdToken();
+
+            setLoading(false);
+            onLoginSuccess(idToken);
+        } catch (err: any) {
+            console.error('Login failed:', err);
+            setLoading(false);
+            setError('Invalid email or password');
+        }
     };
 
     const fillDevCredentials = () => {
