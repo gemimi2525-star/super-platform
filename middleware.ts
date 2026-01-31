@@ -182,7 +182,7 @@ export function middleware(request: NextRequest) {
 
     const styleSrc = isDev
         ? "'self' 'unsafe-inline' https://fonts.googleapis.com"
-        : `'self' 'nonce-${nonce}' https://fonts.googleapis.com`;
+        : "'self' 'unsafe-inline' https://fonts.googleapis.com"; // Phase S: Allow inline styles for React components
 
     const cspHeader = `
         default-src 'self';
