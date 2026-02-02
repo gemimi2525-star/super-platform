@@ -19,6 +19,7 @@
         "test:coverage": "vitest run --coverage",
         "validate:consistency": "npx tsx coreos/validation/consistency-gate.ts",
         "validate": "npm run validate:consistency",
+        "ops:smoke": "npx tsx scripts/smoke-test.ts",
         "check:no-inline-styles:v2": "bash -c 'set -e; echo \"Checking for inline styles in v2 zone...\"; RESULT=$(grep -rn \"style={\" app/\\[locale\\]/\\(platform-v2\\) modules/design-system 2>/dev/null || true); if [ -n \"$RESULT\" ]; then echo \"ERROR: Inline styles found:\"; echo \"$RESULT\"; exit 1; else echo \"✓ No inline styles found\"; fi'",
         "check:no-legacy-imports:v2": "bash scripts/check-no-legacy-imports.sh",
         "content:check": "npx tsx scripts/content-check.ts",
