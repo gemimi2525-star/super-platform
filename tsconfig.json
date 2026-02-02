@@ -43,6 +43,12 @@
       ],
       "@super-platform/business/*": [
         "./packages/business/src/*"
+      ],
+      "@synapse/web": [
+        "./packages/synapse-web/src/index.ts"
+      ],
+      "@synapse/web/*": [
+        "./packages/synapse-web/src/*"
       ]
     }
   },
