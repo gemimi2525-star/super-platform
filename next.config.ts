@@ -130,6 +130,35 @@ const nextConfig: NextConfig = {
         destination: '/th/desktop?app=settings',
         permanent: true,
       },
+
+      // ─────────────────────────────────────────────────────────────────
+      // AUTH ROUTE NORMALIZATION (P0 - FIX LOGIN)
+      // ─────────────────────────────────────────────────────────────────
+
+      // Legacy /login -> /en/login (Default)
+      {
+        source: '/login',
+        destination: '/en/login',
+        permanent: false, // 302 for now to allow future changes, change to 301 later
+      },
+      // /auth/login -> /en/login
+      {
+        source: '/auth/login',
+        destination: '/en/login',
+        permanent: true,
+      },
+      // /en/auth/login -> /en/login
+      {
+        source: '/en/auth/login',
+        destination: '/en/login',
+        permanent: true,
+      },
+      // /th/auth/login -> /th/login
+      {
+        source: '/th/auth/login',
+        destination: '/th/login',
+        permanent: true,
+      },
     ];
 
     // ─────────────────────────────────────────────────────────────────
