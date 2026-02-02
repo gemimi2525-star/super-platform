@@ -130,6 +130,59 @@ const nextConfig: NextConfig = {
         destination: '/th/desktop?app=settings',
         permanent: true,
       },
+
+      // ─────────────────────────────────────────────────────────────────
+      // TRUST CENTER DOMAIN MIGRATION → synapsegovernance.com
+      // TC-1.2: Redirect old Trust Center paths to new dedicated domain
+      // ─────────────────────────────────────────────────────────────────
+
+      // Trust home pages
+      {
+        source: '/en/trust',
+        destination: 'https://www.synapsegovernance.com/en/trust',
+        permanent: true,
+      },
+      {
+        source: '/th/trust',
+        destination: 'https://www.synapsegovernance.com/th/trust',
+        permanent: true,
+      },
+
+      // Trust governance
+      {
+        source: '/en/trust/governance',
+        destination: 'https://www.synapsegovernance.com/en/trust/governance',
+        permanent: true,
+      },
+      {
+        source: '/th/trust/governance',
+        destination: 'https://www.synapsegovernance.com/th/trust/governance',
+        permanent: true,
+      },
+
+      // Trust news (all paths)
+      {
+        source: '/en/trust/news/:path*',
+        destination: 'https://www.synapsegovernance.com/en/trust/news/:path*',
+        permanent: true,
+      },
+      {
+        source: '/th/trust/news/:path*',
+        destination: 'https://www.synapsegovernance.com/th/trust/news/:path*',
+        permanent: true,
+      },
+
+      // Other trust paths (support, verify, etc.)
+      {
+        source: '/en/trust/:path*',
+        destination: 'https://www.synapsegovernance.com/en/trust/:path*',
+        permanent: true,
+      },
+      {
+        source: '/th/trust/:path*',
+        destination: 'https://www.synapsegovernance.com/th/trust/:path*',
+        permanent: true,
+      },
     ];
   },
 };
