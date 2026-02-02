@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Proof - SYNAPSE Trust Center</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">🔐 SYNAPSE Trust Center</div>
+            <div class="nav-links">
+                <a href="index.html">Overview</a>
+                <a href="verify.html" class="active">Verify Proof</a>
+                <a href="audit.html">Audit Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="content">
+            <div class="container">
+                <div class="card">
+                    <h1>🔍 Verify Proof Bundle</h1>
+                    <p>Paste a ProofBundle JSON to verify its cryptographic integrity.</p>
+                    <p class="note">⚠️ This verification runs entirely in your browser. No data is sent to any server.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h2>Proof Bundle JSON</h2>
+                    <textarea id="proofInput" placeholder='Paste ProofBundle JSON here, e.g.:
+{
+  "decisionId": "dec-...",
+  "policyId": "core.finder",
+  "policyVersion": "1.0.0",
+  "intentHash": "58363d...",
+  "decision": "ALLOW",
+  "ledgerHash": "7f4250...",
+  "signature": "524fea...",
+  "issuedAt": 1770009711467,
+  "authorityId": "synapse-authority-v1"
+}'></textarea>
+                    <button id="verifyBtn" class="btn-primary">Verify Proof</button>
+                </div>
+
+                <div id="resultCard" class="card" style="display: none;">
+                    <h2>Verification Result</h2>
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>SYNAPSE Governance Kernel v1.3 - Immutable Policy Governance</p>
+            <p class="note">Client-side verification only. No server communication.</p>
+        </div>
+    </footer>
+
+    <script src="js/verify.js"></script>
+</body>
+
+</html>

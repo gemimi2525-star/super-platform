@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Demo - SYNAPSE Trust Center</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">🔐 SYNAPSE Trust Center</div>
+            <div class="nav-links">
+                <a href="index.html">Overview</a>
+                <a href="verify.html">Verify Proof</a>
+                <a href="audit.html" class="active">Audit Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="content">
+            <div class="container">
+                <div class="card">
+                    <h1>📊 Decision Audit Timeline (Demo)</h1>
+                    <p>This page demonstrates how decision audit trails are structured in SYNAPSE.</p>
+                    <p class="note">⚠️ This is a mock timeline for demonstration purposes. Real audit access requires
+                        authentication.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Sample Decision: <code>dec-1770009711467-zog636zsa</code></h2>
+
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker">1</div>
+                            <div class="timeline-content">
+                                <h3>📤 Intent Received</h3>
+                                <p><strong>Timestamp:</strong> 2026-02-02 12:15:11</p>
+                                <p><strong>Actor:</strong> <code>user-external-test</code></p>
+                                <p><strong>Action:</strong> <code>OPEN_CAPABILITY</code></p>
+                                <p><strong>Target:</strong> <code>core.finder</code></p>
+                                <p><strong>Intent Hash:</strong> <code>58363d70cce124d0...</code></p>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker">2</div>
+                            <div class="timeline-content">
+                                <h3>🔍 Policy Evaluation</h3>
+                                <p><strong>Policy ID:</strong> <code>core.finder</code></p>
+                                <p><strong>Policy Version:</strong> <code>1.0.0</code></p>
+                                <p><strong>Engine:</strong> Synapse Policy Engine v1.3</p>
+                                <p><strong>Checks:</strong></p>
+                                <ul>
+                                    <li>✅ Registry existence check</li>
+                                    <li>✅ Required policies check</li>
+                                    <li>✅ Step-up requirements (none)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker">3</div>
+                            <div class="timeline-content">
+                                <h3>⚖️ Decision Issued</h3>
+                                <p><strong>Decision:</strong> <span class="badge badge-allow">ALLOW</span></p>
+                                <p><strong>Authority:</strong> <code>synapse-authority-v1</code></p>
+                                <p><strong>Signature:</strong> <code>524fea11af8762ac...</code></p>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker">4</div>
+                            <div class="timeline-content">
+                                <h3>🔐 Gate Verification</h3>
+                                <p><strong>Status:</strong> PASSED</p>
+                                <p><strong>Checks:</strong></p>
+                                <ul>
+                                    <li>✅ Schema version match</li>
+                                    <li>✅ Signature valid</li>
+                                    <li>✅ Intent scope match</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="timeline-marker">5</div>
+                            <div class="timeline-content">
+                                <h3>📝 Ledger Entry</h3>
+                                <p><strong>Ledger Hash:</strong> <code>7f4250233a38d12b...</code></p>
+                                <p><strong>Previous Hash:</strong> <code>b1c555b6fce818df...</code></p>
+                                <p><strong>Chain Index:</strong> #1</p>
+                                <p><strong>Chain Valid:</strong> ✅ Yes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🔗 Export Proof</h2>
+                    <p>The following ProofBundle can be verified independently:</p>
+                    <pre><code>{
+  "decisionId": "dec-1770009711467-zog636zsa",
+  "policyId": "core.finder",
+  "policyVersion": "1.0.0",
+  "intentHash": "58363d70cce124d007a73375227f083ccc38c35bd1c555b6fce818df008ae577",
+  "decision": "ALLOW",
+  "ledgerHash": "7f4250233a38d12be90cecf5c788c478db6c215900b6f2dc16db1de2588e136c",
+  "signature": "524fea11af8762ac2f7ccb3250cf565c02b7597a1c21f141a2323f11ade1ac99",
+  "issuedAt": 1770009711467,
+  "authorityId": "synapse-authority-v1"
+}</code></pre>
+                    <a href="verify.html" class="btn-primary">Verify This Proof →</a>
+                </div>
+
+                <div class="card">
+                    <h2>🔒 Access Control</h2>
+                    <p>In a production environment, detailed audit trails are protected:</p>
+                    <ul>
+                        <li><strong>Public:</strong> ProofBundles (as shown above)</li>
+                        <li><strong>Restricted:</strong> Full decision context, internal parameters</li>
+                        <li><strong>Admin Only:</strong> Raw ledger access, signer keys</li>
+                    </ul>
+                    <p class="note">This demo page shows public information only. No authentication is required because
+                        no sensitive data is exposed.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>SYNAPSE Governance Kernel v1.3 - Immutable Policy Governance</p>
+            <p class="note">Demo page - showing mock data for illustration.</p>
+        </div>
+    </footer>
+
+    <style>
+        .timeline {
+            position: relative;
+            padding: var(--space-md) 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--neutral-300);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 60px;
+            margin-bottom: var(--space-lg);
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            z-index: 1;
+        }
+
+        .timeline-content {
+            background: var(--neutral-100);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+        }
+
+        .timeline-content h3 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        .timeline-content ul {
+            margin: var(--space-sm) 0 0 var(--space-md);
+        }
+    </style>
+</body>
+
+</html>

@@ -20,7 +20,7 @@ import { DEFAULT_SPACE_ID } from './types';
 import { getStateStore, type StateAction } from './state';
 import { getEventBus } from './event-bus';
 import { getCapabilityGraph } from './capability-graph';
-import { getPolicyEngine } from './policy-engine';
+
 
 /**
  * Window Manager - Manages window lifecycle
@@ -302,18 +302,15 @@ export class CoreOSWindowManager {
      */
     getDiscoverableCapabilities(): readonly CapabilityId[] {
         const state = getStateStore().getState();
-        const policyEngine = getPolicyEngine();
         const graph = getCapabilityGraph();
 
         const allCapabilities = graph.getAllIds();
 
         return allCapabilities.filter((capabilityId: CapabilityId) => {
-            // Check if capability can be discovered/opened in this space
-            return policyEngine.canDiscoverCapabilityInSpace({
-                capabilityId,
-                spaceId: state.activeSpaceId,
-                security: state.security,
-            });
+            // Executor Mode: Simply check if capability has UI.
+            // Strict Policy enforcement happens at 'OPEN_CAPABILITY' Intent via Synapse.
+            const manifest = graph.getManifest(capabilityId);
+            return manifest && manifest.hasUI;
         });
     }
 

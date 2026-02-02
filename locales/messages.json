@@ -3350,5 +3350,273 @@
   "v2.authGate.googleDisabled": {
     "en": "Google Login Temporarily Disabled",
     "th": "ปิดการใช้งาน Google Login ชั่วคราว"
+  },
+  "trust.common.nav.home": {
+    "en": "Home",
+    "th": "หน้าหลัก"
+  },
+  "trust.common.nav.verify": {
+    "en": "Verify Proof",
+    "th": "ตรวจสอบหลักฐาน"
+  },
+  "trust.common.nav.governance": {
+    "en": "Governance",
+    "th": "ระบบกำกับดูแล"
+  },
+  "trust.common.nav.support": {
+    "en": "Support",
+    "th": "ติดต่อเรา"
+  },
+  "trust.home.hero.title": {
+    "en": "Trust, but Verify",
+    "th": "เชื่อ แต่ตรวจสอบ"
+  },
+  "trust.home.hero.subtitle": {
+    "en": "Cryptographically verifiable governance decisions",
+    "th": "การตัดสินใจที่ตรวจสอบได้ทางคริปโตกราฟี"
+  },
+  "trust.home.what.title": {
+    "en": "What is SYNAPSE?",
+    "th": "SYNAPSE คืออะไร?"
+  },
+  "trust.home.what.desc": {
+    "en": "SYNAPSE is a governance kernel that ensures every decision is:",
+    "th": "SYNAPSE คือระบบกำกับดูแลที่รับประกันว่าทุกการตัดสินใจ:"
+  },
+  "trust.home.what.verifiable": {
+    "en": "Verifiable - Cryptographically signed and auditable",
+    "th": "ตรวจสอบได้ - มีลายเซ็นดิจิทัลและสามารถตรวจสอบได้"
+  },
+  "trust.home.what.immutable": {
+    "en": "Immutable - Bound to specific policy versions",
+    "th": "ไม่เปลี่ยนแปลง - ผูกกับเวอร์ชันนโยบายที่เฉพาะเจาะจง"
+  },
+  "trust.home.what.transparent": {
+    "en": "Transparent - Public proof bundles for external verification",
+    "th": "โปร่งใส - หลักฐานสาธารณะสำหรับการตรวจสอบจากภายนอก"
+  },
+  "trust.home.what.humancontrolled": {
+    "en": "Human-Controlled - High-risk actions require approval",
+    "th": "ควบคุมโดยมนุษย์ - การกระทำเสี่ยงสูงต้องได้รับการอนุมัติ"
+  },
+  "trust.home.what.note": {
+    "en": "SYNAPSE is not a tool. It is a sovereign authority that issues cryptographic decisions.",
+    "th": "SYNAPSE ไม่ใช่เครื่องมือ แต่เป็นองค์กรอำนาจอธิปไตยที่ออกการตัดสินใจแบบคริปโตกราฟี"
+  },
+  "trust.home.flow.title": {
+    "en": "Decision Flow",
+    "th": "ขั้นตอนการตัดสินใจ"
+  },
+  "trust.home.flow.intent.title": {
+    "en": "Intent",
+    "th": "ความตั้งใจ"
+  },
+  "trust.home.flow.intent.desc": {
+    "en": "User requests action",
+    "th": "ผู้ใช้ร้องขอการกระทำ"
+  },
+  "trust.home.flow.policy.title": {
+    "en": "Policy Check",
+    "th": "ตรวจสอบนโยบาย"
+  },
+  "trust.home.flow.policy.desc": {
+    "en": "Versioned policy evaluation",
+    "th": "การประเมินนโยบายที่มีเวอร์ชัน"
+  },
+  "trust.home.flow.decision.title": {
+    "en": "Decision",
+    "th": "การตัดสินใจ"
+  },
+  "trust.home.flow.decision.desc": {
+    "en": "ALLOW / DENY / ESCALATE",
+    "th": "อนุมัติ / ปฏิเสธ / ขออนุญาตเพิ่ม"
+  },
+  "trust.home.flow.audit.title": {
+    "en": "Audit",
+    "th": "ตรวจสอบ"
+  },
+  "trust.home.flow.audit.desc": {
+    "en": "Signed & chained ledger",
+    "th": "บันทึกที่เซ็นและเชื่อมโยง"
+  },
+  "trust.home.principles.title": {
+    "en": "Governance Principles",
+    "th": "หลักการกำกับดูแล"
+  },
+  "trust.home.principles.zerotrust.title": {
+    "en": "Zero Trust",
+    "th": "ศูนย์ความไว้วางใจ"
+  },
+  "trust.home.principles.zerotrust.desc": {
+    "en": "No component has inherent authority. Every decision requires explicit authorization.",
+    "th": "ไม่มีส่วนประกอบใดมีอำนาจโดยธรรมชาติ ทุกการตัดสินใจต้องได้รับอนุญาตชัดเจน"
+  },
+  "trust.home.principles.immutable.title": {
+    "en": "Immutable Policy",
+    "th": "นโยบายไม่เปลี่ยนแปลง"
+  },
+  "trust.home.principles.immutable.desc": {
+    "en": "Every decision is bound to a specific policyId and policyVersion.",
+    "th": "ทุกการตัดสินใจผูกกับ policyId และ policyVersion เฉพาะ"
+  },
+  "trust.home.principles.human.title": {
+    "en": "Human-in-the-loop",
+    "th": "มนุษย์อยู่ในวงจร"
+  },
+  "trust.home.principles.human.desc": {
+    "en": "High-risk actions require approval tokens from authorized humans.",
+    "th": "การกระทำเสี่ยงสูงต้องมีโทเค็นอนุมัติจากมนุษย์ที่ได้รับอนุญาต"
+  },
+  "trust.home.principles.verifiable.title": {
+    "en": "Verifiable Audit",
+    "th": "การตรวจสอบที่พิสูจน์ได้"
+  },
+  "trust.home.principles.verifiable.desc": {
+    "en": "All decisions are cryptographically signed and externally verifiable.",
+    "th": "ทุกการตัดสินใจมีลายเซ็นดิจิทัลและตรวจสอบได้จากภายนอก"
+  },
+  "trust.verify.title": {
+    "en": "Verify Proof Bundle",
+    "th": "ตรวจสอบหลักฐาน"
+  },
+  "trust.verify.subtitle": {
+    "en": "Paste a ProofBundle JSON to verify its cryptographic integrity.",
+    "th": "วาง ProofBundle JSON เพื่อตรวจสอบความถูกต้องทางคริปโตกราฟี"
+  },
+  "trust.verify.note": {
+    "en": "This verification runs entirely in your browser. No data is sent to any server.",
+    "th": "การตรวจสอบนี้ทำงานในเบราว์เซอร์ของคุณทั้งหมด ไม่มีการส่งข้อมูลไปยังเซิร์ฟเวอร์ใด ๆ"
+  },
+  "trust.verify.input.label": {
+    "en": "Proof Bundle JSON",
+    "th": "ProofBundle JSON"
+  },
+  "trust.verify.input.placeholder": {
+    "en": "Paste ProofBundle JSON here...",
+    "th": "วาง ProofBundle JSON ที่นี่..."
+  },
+  "trust.verify.button": {
+    "en": "Verify Proof",
+    "th": "ตรวจสอบหลักฐาน"
+  },
+  "trust.verify.result.valid": {
+    "en": "VALID PROOF",
+    "th": "หลักฐานถูกต้อง"
+  },
+  "trust.verify.result.invalid": {
+    "en": "INVALID PROOF",
+    "th": "หลักฐานไม่ถูกต้อง"
+  },
+  "trust.verify.result.validDesc": {
+    "en": "This proof bundle has been verified successfully.",
+    "th": "หลักฐานนี้ได้รับการตรวจสอบแล้วและถูกต้อง"
+  },
+  "trust.verify.result.invalidDesc": {
+    "en": "This proof bundle failed verification.",
+    "th": "หลักฐานนี้ตรวจสอบไม่ผ่าน"
+  },
+  "trust.verify.field.decisionId": {
+    "en": "Decision ID",
+    "th": "รหัสการตัดสินใจ"
+  },
+  "trust.verify.field.policy": {
+    "en": "Policy",
+    "th": "นโยบาย"
+  },
+  "trust.verify.field.decision": {
+    "en": "Decision",
+    "th": "การตัดสินใจ"
+  },
+  "trust.verify.field.intentHash": {
+    "en": "Intent Hash",
+    "th": "แฮชความตั้งใจ"
+  },
+  "trust.verify.field.ledgerHash": {
+    "en": "Ledger Hash",
+    "th": "แฮชบันทึก"
+  },
+  "trust.verify.field.signature": {
+    "en": "Signature",
+    "th": "ลายเซ็น"
+  },
+  "trust.verify.field.issuedAt": {
+    "en": "Issued At",
+    "th": "ออกเมื่อ"
+  },
+  "trust.verify.field.authority": {
+    "en": "Authority",
+    "th": "องค์กรผู้ออก"
+  },
+  "trust.verify.copy": {
+    "en": "Copy",
+    "th": "คัดลอก"
+  },
+  "trust.verify.copied": {
+    "en": "Copied!",
+    "th": "คัดลอกแล้ว!"
+  },
+  "trust.governance.title": {
+    "en": "Governance Model",
+    "th": "โมเดลการกำกับดูแล"
+  },
+  "trust.governance.subtitle": {
+    "en": "How SYNAPSE ensures cryptographic governance",
+    "th": "SYNAPSE รับประกันการกำกับดูแลแบบคริปโตกราฟีอย่างไร"
+  },
+  "trust.governance.authority.title": {
+    "en": "Authority",
+    "th": "องค์กรอำนาจ"
+  },
+  "trust.governance.authority.desc": {
+    "en": "The sole decision-maker that issues cryptographically signed decisions. No other component has authority to make governance decisions.",
+    "th": "ผู้ตัดสินใจเพียงคนเดียวที่ออกการตัดสินใจที่เซ็นด้วยคริปโตกราฟี ไม่มีส่วนประกอบอื่นมีอำนาจในการตัดสินใจกำกับดูแล"
+  },
+  "trust.governance.policy.title": {
+    "en": "Policy Versioning",
+    "th": "การกำหนดเวอร์ชันนโยบาย"
+  },
+  "trust.governance.policy.desc": {
+    "en": "Every decision is bound to a specific policy version, preventing policy drift and ensuring audit integrity over time.",
+    "th": "ทุกการตัดสินใจผูกกับเวอร์ชันนโยบายเฉพาะ ป้องกันการเปลี่ยนแปลงนโยบายและรับประกันความสมบูรณ์ของการตรวจสอบตลอดเวลา"
+  },
+  "trust.governance.escalation.title": {
+    "en": "Escalation Flow",
+    "th": "กระบวนการขออนุมัติ"
+  },
+  "trust.governance.escalation.desc": {
+    "en": "High-risk actions trigger ESCALATE decisions, requiring human approval via signed tokens before execution.",
+    "th": "การกระทำเสี่ยงสูงจะทริกเกอร์การตัดสินใจแบบ ESCALATE ซึ่งต้องมีการอนุมัติจากมนุษย์ผ่านโทเค็นที่เซ็นก่อนดำเนินการ"
+  },
+  "trust.governance.audit.title": {
+    "en": "Audit Ledger",
+    "th": "บันทึกการตรวจสอบ"
+  },
+  "trust.governance.audit.desc": {
+    "en": "All decisions are recorded in a cryptographic hash chain, preventing retroactive tampering and ensuring non-repudiation.",
+    "th": "ทุกการตัดสินใจถูกบันทึกในแฮชเชนแบบคริปโตกราฟี ป้องกันการปลอมแปลงย้อนหลังและรับประกันการไม่ปฏิเสธ"
+  },
+  "trust.support.title": {
+    "en": "Support & Contact",
+    "th": "ติดต่อและสนับสนุน"
+  },
+  "trust.support.subtitle": {
+    "en": "Get help with SYNAPSE Trust Center",
+    "th": "ขอความช่วยเหลือเกี่ยวกับ SYNAPSE Trust Center"
+  },
+  "trust.support.contact.title": {
+    "en": "Contact Information",
+    "th": "ข้อมูลติดต่อ"
+  },
+  "trust.support.contact.email": {
+    "en": "Email",
+    "th": "อีเมล"
+  },
+  "trust.support.docs.title": {
+    "en": "Documentation",
+    "th": "เอกสาร"
+  },
+  "trust.support.docs.desc": {
+    "en": "Learn more about SYNAPSE governance",
+    "th": "เรียนรู้เพิ่มเติมเกี่ยวกับการกำกับดูแลของ SYNAPSE"
   }
 }

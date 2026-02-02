@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNAPSE Trust Center - Verifiable Governance</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">🔐 SYNAPSE Trust Center</div>
+            <div class="nav-links">
+                <a href="index.html" class="active">Overview</a>
+                <a href="verify.html">Verify Proof</a>
+                <a href="audit.html">Audit Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Trust, but Verify</h1>
+                <p class="subtitle">Cryptographically verifiable governance decisions</p>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container">
+                <div class="card">
+                    <h2>🛡️ What is SYNAPSE?</h2>
+                    <p>SYNAPSE is a <strong>governance kernel</strong> that ensures every decision is:</p>
+                    <ul>
+                        <li><strong>Verifiable</strong> - Cryptographically signed and auditable</li>
+                        <li><strong>Immutable</strong> - Bound to specific policy versions</li>
+                        <li><strong>Transparent</strong> - Public proof bundles for external verification</li>
+                        <li><strong>Human-Controlled</strong> - High-risk actions require approval</li>
+                    </ul>
+                    <p class="note">💡 SYNAPSE is <em>not</em> a tool. It is a <strong>sovereign authority</strong> that issues cryptographic decisions.</p>
+                </div>
+
+                <div class="card">
+                    <h2>🔄 Decision Flow</h2>
+                    <div class="flow-diagram">
+                        <div class="flow-step">
+                            <div class="step-number">1</div>
+                            <h3>Intent</h3>
+                            <p>User requests action</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-number">2</div>
+                            <h3>Policy Check</h3>
+                            <p>Versioned policy evaluation</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-number">3</div>
+                            <h3>Decision</h3>
+                            <p>ALLOW / DENY / ESCALATE</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-number">4</div>
+                            <h3>Audit</h3>
+                            <p>Signed & chained ledger</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📋 Governance Principles</h2>
+                    <div class="principles-grid">
+                        <div class="principle">
+                            <h3>🔒 Zero Trust</h3>
+                            <p>No component has inherent authority. Every decision requires explicit authorization.</p>
+                        </div>
+                        <div class="principle">
+                            <h3>🏷️ Immutable Policy</h3>
+                            <p>Every decision is bound to a specific <code>policyId</code> and <code>policyVersion</code>.</p>
+                        </div>
+                        <div class="principle">
+                            <h3>👤 Human-in-the-loop</h3>
+                            <p>High-risk actions require approval tokens from authorized humans.</p>
+                        </div>
+                        <div class="principle">
+                            <h3>✅ Verifiable Audit</h3>
+                            <p>All decisions are cryptographically signed and externally verifiable.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📦 Sample Proof Bundle</h2>
+                    <p>Every decision generates a <strong>ProofBundle</strong> that can be verified independently:</p>
+                    <pre><code>{
+  "decisionId": "dec-1770009711467-zog636zsa",
+  "policyId": "core.finder",
+  "policyVersion": "1.0.0",
+  "intentHash": "58363d70cce124d007a73375227f083c...",
+  "decision": "ALLOW",
+  "ledgerHash": "7f4250233a38d12be90cecf5c788c478...",
+  "signature": "524fea11af8762ac2f7ccb3250cf565c...",
+  "issuedAt": 1770009711467,
+  "authorityId": "synapse-authority-v1"
+}</code></pre>
+                    <p class="note">🔍 Note: Intent params are <strong>hashed</strong> for privacy. Raw parameters are never exposed.</p>
+                    <a href="verify.html" class="btn-primary">Verify a Proof →</a>
+                </div>
+
+                <div class="card">
+                    <h2>🔐 Security Model</h2>
+                    <h3>Public Information (Safe to Share)</h3>
+                    <ul>
+                        <li>Decision ID, Policy ID/Version</li>
+                        <li>Intent Hash (SHA-256)</li>
+                        <li>Decision result (ALLOW/DENY/ESCALATE)</li>
+                        <li>Signatures and ledger hashes</li>
+                    </ul>
+                    <h3>❌ Never Exposed</h3>
+                    <ul>
+                        <li>Raw intent parameters</li>
+                        <li>User secrets or credentials</li>
+                        <li>Internal system state</li>
+                        <li>Private keys</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>SYNAPSE Governance Kernel v1.3 - Immutable Policy Governance</p>
+            <p class="note">Read-only verification interface. No decisions are made here.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -100,7 +100,7 @@ export { CoreOSCapabilityGraph, getCapabilityGraph, resetCapabilityGraph } from 
 // POLICY ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
-export { CoreOSPolicyEngine, getPolicyEngine, resetPolicyEngine } from './policy-engine';
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WINDOW MANAGER
@@ -144,7 +144,7 @@ import { resetKernel } from './kernel';
 import { resetStateStore } from './state';
 import { resetEventBus } from './event-bus';
 import { resetCapabilityGraph } from './capability-graph';
-import { resetPolicyEngine } from './policy-engine';
+
 import { resetWindowManager } from './window-manager';
 
 /**
@@ -155,6 +155,6 @@ export function resetAll(): void {
     resetStateStore();
     resetEventBus();
     resetCapabilityGraph();
-    resetPolicyEngine();
+
     resetWindowManager();
 }

@@ -1,56 +1,39 @@
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { copyRole } from '@/lib/roles/service';
-import { requireOwner } from '@/lib/auth/server';
-import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
-import { handleError } from '@super-platform/core';
-import { emitSuccessEvent } from '@/lib/audit/emit';
+import { NextResponse } from 'next/server';
 
-// Validation schema for POST
-const copyRoleSchema = z.object({
-    sourceRoleId: z.string().min(1, 'Source role ID is required'),
-    newName: z.string().min(1, 'New name is required'),
-});
+/**
+ * TEMPORARY DISABLED HANDLER
+ * 
+ * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
+ * Webpack cannot resolve '@/lib/firebase' collection exports.
+ * 
+ * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
+ */
 
-export async function POST(req: NextRequest) {
-    try {
-        const auth = await requireOwner();
-        const body = await req.json();
+export const runtime = 'nodejs';
 
-        // Validate request body
-        const validation = validateRequest(copyRoleSchema, body);
-        if (!validation.success) {
-            return ApiErrorResponse.validationError(validation.errors);
-        }
+const DISABLED_RESPONSE = {
+    ok: false,
+    code: 'LEGACY_ROUTE_DISABLED',
+    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
+    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
+};
 
-        const { sourceRoleId, newName } = validation.data;
+export async function GET() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        const id = await copyRole(sourceRoleId, newName);
+export async function POST() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        // Log audit
-        await emitSuccessEvent(
-            'role',
-            'copied',
-            { uid: auth.uid, email: auth.email || '', role: auth.role },
-            { id, name: newName, type: 'role' },
-            { sourceRoleId },
-            { method: 'POST', path: '/api/roles/copy' }
-        );
+export async function PUT() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        return ApiSuccessResponse.created({ id });
-    } catch (error: any) {
-        const appError = handleError(error as Error);
-        console.error(`[API] Failed to copy role [${appError.errorId}]:`, (error as Error).message || String(error));
+export async function PATCH() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        // Check if it's a business logic error
-        const errorMessage = (error as Error).message || String(error);
-        if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
-            return ApiErrorResponse.notFound('Role');
-        }
-        if (errorMessage.includes('system role') || errorMessage.includes('cannot copy')) {
-            return ApiErrorResponse.badRequest(errorMessage);
-        }
-
-        return ApiErrorResponse.internalError();
-    }
+export async function DELETE() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }

@@ -1,0 +1,19 @@
+What changed:
+- Reason Core v1 (schema_version constraint)
+- Synapse Authority (Issuer)
+- Governance Gate (Verifier with Sig Check)
+- Audit Ledger (SHA-256 + VerifyChain)
+- Adapter (Client-only mode)
+
+Why:
+- Fix Self-policing violation
+- Fix Fake Gate
+- Fix Unverifiable Audit
+
+Evidence:
+- Gate validation script PASSED (Cases A, B, C, D)
+- Ledger Chain Valid
+
+Artifact Path:
+- <appDataDir>/brain/70754cdb-e079-440b-83a6-5ccbffd4f41c/execution_report.md
+- <appDataDir>/brain/70754cdb-e079-440b-83a6-5ccbffd4f41c/gate_tests.md

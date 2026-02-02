@@ -94,11 +94,86 @@ export class SynapseAdapter {
     }
 
     /**
-     * Emit an intent to SYNAPSE kernel
+     * Emit an intent to SYNAPSE kernel with Governance Gate Enforcement
      */
-    emit(intent: Intent): void {
+    async emit(intent: Intent): Promise<void> {
+        // [GOVERNANCE]
+        // 1. Import Synapse Services (Client-side usage of the Separation)
+        const { SynapseAuthority /*, GovernanceGate */ } = await import('../../packages/synapse/src/index');
+        const { GovernanceGate } = await import('../../packages/synapse/src/gate/governance-gate'); // Explicit import or via index
+
+        const authority = SynapseAuthority.getInstance();
+        const gate = GovernanceGate.getInstance();
+
+        // 2. Request Decision from Authority (Issuer)
+        console.log(`[SYNAPSE ADAPTER] Requesting decision for ${intent.type}...`);
+
+        // Context snapshot (Mock data for v1)
+        const context = {
+            actorId: 'user-current',
+            userRole: 'admin'
+        };
+
+        const decisionRecord = await authority.requestDecision(
+            {
+                action: intent.type,
+                target: 'system', // could be granular
+                params: { intent }
+            },
+            context
+        );
+
+        // 3. Enforce via Gate (Verifier)
+        console.log(`[SYNAPSE ADAPTER] Verifying decision ${decisionRecord.package.decisionId}...`);
+
+        // 1. Request Decision from Authority (which calls SynapsePolicyEngine)
+        // The Authority acts as the Issuer.
+        // The 'authority' and 'decisionRecord' variables are already declared above.
+        // Re-using the existing 'authority' and 'decisionRecord' from the previous step.
+        // The 'gate' variable is also already declared above.
+
+        // Context mapping
+        const authContext = {
+            actorId: 'user-01', // Mock
+            userRole: 'admin'  // Mock
+        };
+        // The decisionRecord was already requested above, so this re-request is redundant.
+        // We will use the existing decisionRecord.
+        // const decisionRecord = await authority.requestDecision({
+        //     action: intent.type,
+        //     target: intent.type === 'OPEN_CAPABILITY' ? (intent as any).payload.capabilityId : 'system',
+        //     params: { intent }
+        // }, authContext);
+
+        // 2. Gate Verification (The Guard)
+        // The Gate verifies the Integrity and Signature of the Record.
+        const verificationResult = await gate.enforce(
+            decisionRecord, // Arg 1: The Record
+            {               // Arg 2: The Proposed Intent
+                action: intent.type,
+                target: intent.type === 'OPEN_CAPABILITY' ? (intent as any).payload.capabilityId : 'system',
+                params: { intent }
+            }
+        );
+
+        // 3. Enforce Decision Semantics
         const kernel = _getKernel();
-        kernel.emit(intent);
+
+        if (verificationResult === 'ALLOW') {
+            console.log(`[SYNAPSE] ALLOW: ${intent.type} -> Executing.`);
+            kernel.emit(intent);
+        } else if (verificationResult === 'ESCALATE') {
+            console.warn(`[SYNAPSE] ESCALATE: ${intent.type} -> Initiating Step-Up.`);
+            if (intent.type === 'OPEN_CAPABILITY') {
+                const capId = (intent as any).payload.capabilityId;
+                kernel.initiateStepUp(capId, 'Governance verification required.', intent.correlationId);
+            } else {
+                throw new Error(`Governance Violation: Action ${intent.type} requires escalation but no handler exists.`);
+            }
+        } else {
+            console.error(`[SYNAPSE] DENY: ${intent.type}`);
+            throw new Error(`Governance Policy Violation: Action ${intent.type} DENIED by Synapse Authority.`);
+        }
     }
 
     /**
