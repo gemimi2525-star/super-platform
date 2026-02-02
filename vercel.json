@@ -1,0 +1,48 @@
+{
+    "redirects": [
+        {
+            "source": "/",
+            "destination": "/en/trust",
+            "permanent": true,
+            "has": [
+                {
+                    "type": "host",
+                    "value": "synapsegovernance.com"
+                }
+            ]
+        },
+        {
+            "source": "/",
+            "destination": "/en/trust",
+            "permanent": true,
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.synapsegovernance.com"
+                }
+            ]
+        },
+        {
+            "source": "/(en|th)",
+            "destination": "/$1/trust",
+            "permanent": true,
+            "has": [
+                {
+                    "type": "host",
+                    "value": "synapsegovernance.com"
+                }
+            ]
+        },
+        {
+            "source": "/(en|th)",
+            "destination": "/$1/trust",
+            "permanent": true,
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.synapsegovernance.com"
+                }
+            ]
+        }
+    ]
+}
