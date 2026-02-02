@@ -133,9 +133,10 @@ const nextConfig: NextConfig = {
 
       // ─────────────────────────────────────────────────────────────────
       // TRUST CENTER DOMAIN MIGRATION → synapsegovernance.com
-      // TC-1.2: Redirect old Trust Center paths to new dedicated domain
+      // TEMPORARILY DISABLED FOR SPLIT MIGRATION (See Task Phase A)
       // ─────────────────────────────────────────────────────────────────
 
+      /*
       // Trust home pages
       {
         source: '/en/trust',
@@ -182,7 +183,8 @@ const nextConfig: NextConfig = {
         source: '/th/trust/:path*',
         destination: 'https://www.synapsegovernance.com/th/trust/:path*',
         permanent: true,
-      },
+      }
+      */
     ];
   },
 };
