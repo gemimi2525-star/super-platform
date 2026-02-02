@@ -1,60 +1,70 @@
-import type { Metadata } from 'next';
-import { useTranslations } from '@/lib/i18n';
+import { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { MDXRemote } from 'next-mdx-remote/rsc'
+import { getPage } from '@/lib/content'
+import { buildMetadata } from '@synapse/web/seo'
+import type { ContentLocale } from '@/lib/content/types'
 
-export const metadata: Metadata = {
-    title: 'Governance Model - SYNAPSE Trust Center',
-    description: 'Learn about SYNAPSE governance architecture: Authority, Policy Versioning, Escalation, and Audit Ledger',
-};
+interface Props {
+    params: Promise<{ locale: string }>
+}
 
-export default function GovernancePage() {
-    const t = useTranslations('trust.governance');
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { locale } = await params
+    const page = getPage(locale as ContentLocale, 'trust-governance')
+
+    if (!page) {
+        return {
+            title: 'Governance Model - SYNAPSE Trust Center',
+            description: 'Learn about SYNAPSE governance architecture',
+        }
+    }
+
+    return buildMetadata({
+        title: page.frontmatter.title,
+        description: page.frontmatter.description,
+        image: page.frontmatter.ogImage,
+        locale: locale as ContentLocale,
+    })
+}
+
+export default async function GovernancePage({ params }: Props) {
+    const { locale } = await params
+    const page = getPage(locale as ContentLocale, 'trust-governance')
+
+    if (!page) {
+        // In development, show helpful message
+        if (process.env.NODE_ENV === 'development') {
+            return (
+                <div className="container mx-auto px-4 py-12 max-w-4xl">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <h1 className="text-2xl font-bold mb-2">⚠️ Content Not Found</h1>
+                        <p className="mb-4">
+                            The governance page content is missing. Expected file:
+                        </p>
+                        <code className="block bg-gray-100 p-2 rounded">
+                            content/pages/{locale}/trust-governance.mdx
+                        </code>
+                        <p className="mt-4 text-sm text-gray-600">
+                            This message only appears in development mode.
+                            In production, this would show a 404 page.
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+
+        // In production, return 404
+        notFound()
+    }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            {/* Header */}
-            <div className="mb-12 text-center">
-                <h1 className="text-4xl font-bold mb-4">{t('title')}</h1>
-                <p className="text-xl text-neutral-600">{t('subtitle')}</p>
-            </div>
-
-            {/* Content Sections */}
-            <div className="space-y-8">
-                {/* Authority */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        <span>⚖️</span>
-                        {t('authority.title')}
-                    </h2>
-                    <p className="text-neutral-700 leading-relaxed">{t('authority.desc')}</p>
-                </div>
-
-                {/* Policy Versioning */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        <span>🏷️</span>
-                        {t('policy.title')}
-                    </h2>
-                    <p className="text-neutral-700 leading-relaxed">{t('policy.desc')}</p>
-                </div>
-
-                {/* Escalation Flow */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        <span>🔐</span>
-                        {t('escalation.title')}
-                    </h2>
-                    <p className="text-neutral-700 leading-relaxed">{t('escalation.desc')}</p>
-                </div>
-
-                {/* Audit Ledger */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                        <span>📝</span>
-                        {t('audit.title')}
-                    </h2>
-                    <p className="text-neutral-700 leading-relaxed">{t('audit.desc')}</p>
-                </div>
+        <div className="min-h-screen">
+            <div className="container mx-auto px-4 py-12 max-w-4xl">
+                <article className="prose prose-slate lg:prose-lg dark:prose-invert mx-auto">
+                    <MDXRemote source={page.content} />
+                </article>
             </div>
         </div>
-    );
+    )
 }
