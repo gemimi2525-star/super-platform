@@ -20,7 +20,32 @@ export function middleware(request: NextRequest) {
     // S0) Canonical Host Decision (Production Only)
     // Enforce www.apicoredata.com
     if (process.env.NODE_ENV === 'production') {
-        const host = request.headers.get('host');
+        const host = request.headers.get('host') || '';
+
+        // S0.1) Synapse Governance Domain Routing
+        // Rewrite synapsegovernance.com -> Trust Center
+        if (host.includes('synapsegovernance.com')) {
+            // 1. Root '/' -> Rewrite to Trust Center Home (Default 'en')
+            if (pathname === '/') {
+                const targetLocale = request.cookies.get('NEXT_LOCALE')?.value || defaultLocale;
+                const url = request.nextUrl.clone();
+                url.pathname = `/${targetLocale}/trust`;
+                return NextResponse.rewrite(url);
+            }
+
+            // 2. Locale Root '/en' or '/th' -> Rewrite to '/en/trust'
+            const localeOnlyMatch = pathname.match(/^\/(en|th)\/?$/);
+            if (localeOnlyMatch) {
+                const targetLocale = localeOnlyMatch[1];
+                const url = request.nextUrl.clone();
+                url.pathname = `/${targetLocale}/trust`;
+                return NextResponse.rewrite(url);
+            }
+
+            // Allow other paths to pass through (e.g. /en/trust/...)
+        }
+
+        // S0.2) Core OS Canonical
         if (host === 'apicoredata.com') {
             const url = request.nextUrl.clone();
             url.host = 'www.apicoredata.com';
