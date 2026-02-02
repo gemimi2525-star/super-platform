@@ -3,8 +3,10 @@ import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
 import { handleError } from '@super-platform/core';
-import { COLLECTION_ORGANIZATIONS } from '@/lib/firebase/collections';
 import { emitSuccessEvent } from '@/lib/audit/emit';
+
+// Inline constant to avoid webpack path resolution issues
+const COLLECTION_ORGANIZATIONS = 'organizations';
 
 export const runtime = 'nodejs';
 
