@@ -2,50 +2,74 @@
  * Middleware - Route Guards & Locale Handling
  * 
  * Handles:
- * 1. Locale detection and redirection
- * 2. Authentication check and redirect to login
+ * 1. Domain-based routing (Synapse Governance -> Trust Center)
+ * 2. Locale detection and redirection
+ * 3. Authentication check and redirect to login
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { checkRateLimit, RateLimitType, logger } from '@super-platform/core';
 
-const locales = ['en', 'th'];
-const defaultLocale = 'en';
+const TRUST_DOMAIN = 'synapsegovernance.com';
+const SUPPORTED_LOCALES = ['en', 'th'] as const;
+const DEFAULT_LOCALE = 'en';
+
+function getLocale(req: NextRequest) {
+    const cookie = req.cookies.get('NEXT_LOCALE')?.value;
+    if (cookie && SUPPORTED_LOCALES.includes(cookie as any)) return cookie;
+    return DEFAULT_LOCALE;
+}
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const isDev = process.env.NODE_ENV === 'development';
+    const host = (request.headers.get('host') || '').toLowerCase();
 
-    // S0) Canonical Host Decision (Production Only)
-    // Enforce www.apicoredata.com
-    if (process.env.NODE_ENV === 'production') {
-        const host = request.headers.get('host') || '';
+    // 0. GLOBAL EXCLUSIONS
+    // Always skip internal/static/api to prevent unnecessary processing
+    if (
+        pathname.startsWith('/api') ||
+        pathname.startsWith('/_next') ||
+        pathname === '/favicon.ico' ||
+        pathname === '/robots.txt' ||
+        pathname === '/sitemap.xml' ||
+        pathname.startsWith('/images') ||
+        pathname.startsWith('/assets') ||
+        pathname.includes('.') // General file extension check
+    ) {
+        return NextResponse.next();
+    }
 
-        // S0.1) Synapse Governance Domain Routing
-        // Rewrite synapsegovernance.com -> Trust Center
-        if (host.includes('synapsegovernance.com')) {
-            // 1. Root '/' -> Rewrite to Trust Center Home (Default 'en')
-            if (pathname === '/') {
-                const targetLocale = request.cookies.get('NEXT_LOCALE')?.value || defaultLocale;
-                const url = request.nextUrl.clone();
-                url.pathname = `/${targetLocale}/trust`;
-                return NextResponse.rewrite(url);
-            }
+    // 1. TRUST DOMAIN ROUTING (Host-based Rewrite)
+    // synapsegovernance.com -> Trust Center content
+    const isTrustDomain = host === TRUST_DOMAIN || host === `www.${TRUST_DOMAIN}` || host.endsWith(`.${TRUST_DOMAIN}`);
 
-            // 2. Locale Root '/en' or '/th' -> Rewrite to '/en/trust'
-            const localeOnlyMatch = pathname.match(/^\/(en|th)\/?$/);
-            if (localeOnlyMatch) {
-                const targetLocale = localeOnlyMatch[1];
-                const url = request.nextUrl.clone();
-                url.pathname = `/${targetLocale}/trust`;
-                return NextResponse.rewrite(url);
-            }
-
-            // Allow other paths to pass through (e.g. /en/trust/...)
+    if (isTrustDomain) {
+        // 1.1 Root '/' -> Rewrite to Trust Center Home
+        if (pathname === '/') {
+            const locale = getLocale(request);
+            const url = request.nextUrl.clone();
+            url.pathname = `/${locale}/trust`;
+            return NextResponse.rewrite(url);
         }
 
-        // S0.2) Core OS Canonical
+        // 1.2 Locale Root '/en' or '/th' -> Rewrite to '/{locale}/trust'
+        const localeMatch = pathname.match(/^\/(en|th)\/?$/);
+        if (localeMatch) {
+            const locale = localeMatch[1];
+            const url = request.nextUrl.clone();
+            url.pathname = `/${locale}/trust`;
+            return NextResponse.rewrite(url);
+        }
+
+        // 1.3 Other paths pass through (e.g., /en/trust/news)
+        // No strict handling needed here, let Next.js router handle it via rewrites or pages
+    }
+
+    // 2. CANONICAL HOST (Production Only) for Main App
+    // Enforce www.apicoredata.com if NOT trust domain
+    if (process.env.NODE_ENV === 'production' && !isTrustDomain) {
         if (host === 'apicoredata.com') {
             const url = request.nextUrl.clone();
             url.host = 'www.apicoredata.com';
@@ -54,7 +78,7 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // SPECIAL HANDLING: /os (Single Entry Point)
+    // 3. SPECIAL HANDLING: /os (Single Entry Point)
     // 1. If accessing /os directly -> Check Auth -> Allow or Login
     if (pathname === '/os') {
         const hasSession = request.cookies.has('__session');
@@ -80,21 +104,14 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // 3. API routes, static files pass through
-    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.includes('.')) {
-        return NextResponse.next();
-    }
-
-    // A1) Public Root + Public Gate Bypass (Phase S Fix)
-    // Must bypass locale redirection for these strict public routes
+    // 4. PUBLIC ROOT & LOGIN BYPASS
     if (pathname === '/' || pathname === '/login') {
-        // Allow Next.js to handle these via app/(public)/... (Root Layout)
         return NextResponse.next();
     }
 
-    // 4. Standard Locale Handling for Public Pages (Legacy / localized pages like /en/about)
+    // 5. STANDARD LOCALE HANDLING (Legacy / localized pages)
     // Check if pathname has locale
-    const pathnameHasLocale = locales.some(
+    const pathnameHasLocale = SUPPORTED_LOCALES.some(
         (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
     );
 
@@ -107,7 +124,7 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(url, 301);
         }
 
-        const locale = defaultLocale;
+        const locale = DEFAULT_LOCALE;
         const url = request.nextUrl.clone();
         url.pathname = `/${locale}${pathname}`;
 
@@ -120,9 +137,9 @@ export function middleware(request: NextRequest) {
         return response;
     }
 
-    // Extract locale from pathname
+    // Extract locale from pathname for Rate Limiting / Auth checks below
     const localeMatch = pathname.match(/^\/([^/]+)/);
-    const locale = localeMatch ? localeMatch[1] : defaultLocale;
+    const locale = localeMatch ? localeMatch[1] : DEFAULT_LOCALE;
     const pathWithoutLocale = pathname.replace(new RegExp(`^/${locale}`), '') || '/';
 
     // Legacy Auth Redirects
@@ -132,13 +149,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // Explicit Public Whitelist for localized routes (Login, Home)
-    const publicPaths = ['/login', '/'];
-    // We already handle /os separately. 
-    // If strict secure gate is needed for landing page, add logic here.
-    // Current requirement: Public Gate = /login, Public Root = /
-
-    // Rate Limiting Logic
+    // 6. RATE LIMITING
     const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
 
     let limitType: 'auth' | 'write' | 'read' | null = null;
@@ -153,7 +164,6 @@ export function middleware(request: NextRequest) {
     if (limitType) {
         const res = checkRateLimit(ip, limitType);
         if (!res.success) {
-            // ... rate limit response ...
             const retryAfter = res.retryAfter || 60;
             return new NextResponse(
                 JSON.stringify({
@@ -185,37 +195,16 @@ export function middleware(request: NextRequest) {
         });
     }
 
-    // Secure Gate v1 Decision
-    // BYPASS CHECK: Check for Dev Test Headers (Bypass Mode)
-    // isDev is already declared above
-    const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
-    const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
-
-    // The explicit /os protection is now at the top.
-    // This section is for other potentially protected routes, if any.
-    // For now, we assume everything else is public unless explicitly protected by other means.
-    // If strict security is needed for *everything*, we would flip logic to "block unless public".
-    // User requested "Secure Gate" for /os. I will stick to explicit protection for now to avoid breaking landing pages.
-
-    // 6. All checks passed, proceed
-    // Response creation deferred to include headers
-
-    // 7. Apply Security Headers
-    // CSP: Strict in Prod, Relaxed in Dev
-    // isDev is already declared above
-
-    // Generate Nonce for CSP
+    // 7. SECURITY HEADERS (CSP, HSTS)
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
-    // In production, we remove unsafe-inline and unsafe-eval
-    // But we add 'nonce-...' to allow Next.js inline scripts
     const scriptSrc = isDev
         ? "'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com"
         : `'self' 'nonce-${nonce}' 'strict-dynamic' https://apis.google.com https://*.firebaseapp.com`;
 
     const styleSrc = isDev
         ? "'self' 'unsafe-inline' https://fonts.googleapis.com"
-        : "'self' 'unsafe-inline' https://fonts.googleapis.com"; // Phase S: Allow inline styles for React components
+        : "'self' 'unsafe-inline' https://fonts.googleapis.com";
 
     const cspHeader = `
         default-src 'self';
@@ -231,7 +220,6 @@ export function middleware(request: NextRequest) {
         upgrade-insecure-requests;
     `.replace(/\s{2,}/g, ' ').trim();
 
-    // Set nonce request header for Next.js to use
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-nonce', nonce);
     requestHeaders.set('Content-Security-Policy', cspHeader);
@@ -244,7 +232,7 @@ export function middleware(request: NextRequest) {
 
     response.headers.set('Content-Security-Policy', cspHeader);
 
-    // HSTS (Strict-Transport-Security) - PROD ONLY
+    // HSTS - PROD ONLY
     if (!isDev) {
         response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     }
@@ -258,5 +246,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!api|_next|.*\\..*).*)']
+    matcher: [
+        // Match all paths except static files, api, _next
+        "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+    ]
 };
