@@ -1,46 +1,39 @@
+import { NextResponse } from 'next/server';
+
 /**
- * API: Get Auth Context
- * Returns current user's decoded token claims
- * Used by QA route for testing AND login session verification
+ * TEMPORARY DISABLED HANDLER
+ * 
+ * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
+ * Webpack cannot resolve '@/lib/firebase' collection exports.
+ * 
+ * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
  */
 
-import { NextRequest } from 'next/server';
-import { getAuthContext } from '@/lib/auth/server';
-import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
+export const runtime = 'nodejs';
 
-export async function GET(request: NextRequest) {
-    try {
-        // Try to get auth context from session cookie (most common during login)
-        const context = await getAuthContext();
+const DISABLED_RESPONSE = {
+    ok: false,
+    code: 'LEGACY_ROUTE_DISABLED',
+    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
+    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
+};
 
-        if (context) {
-            return ApiSuccessResponse.ok({
-                uid: context.uid,
-                email: context.email,
-                role: context.role,
-                orgId: context.orgId
-            });
-        }
+export async function GET() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        // Fallback: Try Authorization header (for API testing)
-        const authHeader = request.headers.get('authorization');
-        if (authHeader?.startsWith('Bearer ')) {
-            const { verifyIdToken } = await import('@/lib/firebase-admin');
-            const token = authHeader.substring(7);
-            const decoded = await verifyIdToken(token);
+export async function POST() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-            return ApiSuccessResponse.ok({
-                uid: decoded.uid,
-                email: decoded.email,
-                role: decoded.role || 'org_member',
-                orgId: decoded.orgId
-            });
-        }
+export async function PUT() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        // No valid auth method found
-        return ApiErrorResponse.unauthorized('No authentication found');
-    } catch (error: any) {
-        console.error('[Auth Context API] Error:', error);
-        return ApiErrorResponse.unauthorized();
-    }
+export async function PATCH() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
+
+export async function DELETE() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }

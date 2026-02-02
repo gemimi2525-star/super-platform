@@ -1,63 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, getAdminFirestore } from "@/lib/firebase-admin";
+import { NextResponse } from 'next/server';
 
-const adminAuth = getAdminAuth();
-const db = getAdminFirestore();
+/**
+ * TEMPORARY DISABLED HANDLER
+ * 
+ * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
+ * Webpack cannot resolve '@/lib/firebase' collection exports.
+ * 
+ * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
+ */
 
-async function checkAuth(req: NextRequest) {
-    const sessionCookie = req.cookies.get("session")?.value || "";
-    if (!sessionCookie) return null;
-    try {
-        return await adminAuth.verifySessionCookie(sessionCookie, true);
-    } catch {
-        return null;
-    }
+export const runtime = 'nodejs';
+
+const DISABLED_RESPONSE = {
+    ok: false,
+    code: 'LEGACY_ROUTE_DISABLED',
+    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
+    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
+};
+
+export async function GET() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: Promise<{ customerId: string }> }
-) {
-    const user = await checkAuth(req);
-    if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export async function POST() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-    const orgId = user.orgId as string;
-    if (!orgId) {
-        return NextResponse.json({ error: "Organization Context Missing" }, { status: 403 });
-    }
+export async function PUT() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-    const { customerId } = await params;
+export async function PATCH() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-    try {
-        const docRef = db.doc(`organizations/${orgId}/customers/${customerId}`);
-        const docSnap = await docRef.get();
-
-        if (!docSnap.exists) {
-            return NextResponse.json({ error: "Customer Not Found" }, { status: 404 });
-        }
-
-        // Fetch Contacts
-        const contactsSnap = await docRef.collection("contacts").get();
-        const contacts = contactsSnap.docs.map(d => ({
-            id: d.id,
-            ...d.data(),
-            createdAt: d.data().createdAt?.toDate().toISOString(),
-            updatedAt: d.data().updatedAt?.toDate().toISOString()
-        }));
-
-        const data = {
-            ...docSnap.data(),
-            contacts: contacts,
-            createdAt: docSnap.data()?.createdAt?.toDate().toISOString(),
-            updatedAt: docSnap.data()?.updatedAt?.toDate().toISOString()
-        };
-
-        return NextResponse.json({ data });
-
-    } catch (error) {
-        console.error("Get Customer Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
+export async function DELETE() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }

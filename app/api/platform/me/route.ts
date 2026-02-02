@@ -1,45 +1,39 @@
+import { NextResponse } from 'next/server';
+
 /**
- * Platform Users API
+ * TEMPORARY DISABLED HANDLER
  * 
- * Check if user is a platform user and their role
+ * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
+ * Webpack cannot resolve '@/lib/firebase' collection exports.
+ * 
+ * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
  */
 
-import { getAuthContext } from '@/lib/auth/server';
-import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
-import { handleError } from '@super-platform/core';
+export const runtime = 'nodejs';
+
+const DISABLED_RESPONSE = {
+    ok: false,
+    code: 'LEGACY_ROUTE_DISABLED',
+    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
+    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
+};
 
 export async function GET() {
-    try {
-        const auth = await getAuthContext();
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        if (!auth) {
-            return ApiErrorResponse.unauthorized();
-        }
+export async function POST() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        // Check Firestore for platform_users collection
-        const { getAdminFirestore } = await import('@/lib/firebase-admin');
-        const db = getAdminFirestore();
+export async function PUT() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        const platformUserDoc = await db.collection('platform_users').doc(auth.uid).get();
+export async function PATCH() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-        if (platformUserDoc.exists) {
-            const data = platformUserDoc.data();
-            return ApiSuccessResponse.ok({
-                isPlatformUser: true,
-                role: data?.role || 'platform_admin',
-                enabled: data?.enabled !== false, // default true if not set
-            });
-        }
-
-        return ApiSuccessResponse.ok({
-            isPlatformUser: false,
-            role: null,
-            enabled: false,
-        });
-
-    } catch (error) {
-        const appError = handleError(error as Error);
-        console.error(`[API] Failed to check platform user [${appError.errorId}]:`, appError.message);
-        return ApiErrorResponse.internalError();
-    }
+export async function DELETE() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }

@@ -1,16 +1,25 @@
-// Payload 2.x API handler for Next.js
-import { getPayload } from '@/lib/payload'
+import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'
+/**
+ * Payload CMS API Route (Placeholder)
+ * 
+ * Will be properly configured in TC-1.2 Phase 2 after build baseline is established.
+ */
 
-export async function GET(request: Request) {
-    const payload = await getPayload()
-    // Payload 2.x handles requests differently
-    // This is a placeholder - actual integration requires custom setup
-    return new Response('Payload API', { status: 200 })
+export const runtime = 'nodejs';
+
+export async function GET() {
+    return NextResponse.json({
+        ok: false,
+        code: 'PAYLOAD_NOT_YET_CONFIGURED',
+        message: 'Payload CMS will be configured in TC-1.2 Phase 2',
+    }, { status: 503 });
 }
 
-export async function POST(request: Request) {
-    const payload = await getPayload()
-    return new Response('Payload API', { status: 200 })
+export async function POST() {
+    return NextResponse.json({
+        ok: false,
+        code: 'PAYLOAD_NOT_YET_CONFIGURED',
+        message: 'Payload CMS will be configured in TC-1.2 Phase 2',
+    }, { status: 503 });
 }

@@ -1,55 +1,39 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
-    try {
-        let body;
-        try {
-            body = await request.json();
-        } catch {
-            return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
-        }
-        const { idToken } = body;
+/**
+ * TEMPORARY DISABLED HANDLER
+ * 
+ * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
+ * Webpack cannot resolve '@/lib/firebase' collection exports.
+ * 
+ * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
+ */
 
-        if (!idToken) {
-            return NextResponse.json({ success: false, error: 'Missing ID token' }, { status: 400 });
-        }
+export const runtime = 'nodejs';
 
-        const { createSessionCookie } = await import('@/lib/firebase-admin');
-        const sessionCookie = await createSessionCookie(idToken);
+const DISABLED_RESPONSE = {
+    ok: false,
+    code: 'LEGACY_ROUTE_DISABLED',
+    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
+    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
+};
 
-        const response = NextResponse.json({ success: true });
-
-        // Set the session cookie
-        response.cookies.set('__session', sessionCookie, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 60 * 60 * 24 * 5, // 5 days
-        });
-
-        return response;
-    } catch (error) {
-        console.error('[Session API] Failed to create session:', error);
-        return NextResponse.json({
-            success: false,
-            error: (error as Error).message || 'Internal Server Error',
-            details: String(error)
-        }, { status: 500 });
-    }
+export async function GET() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }
 
-export async function GET(request: Request) {
-    const { getAuthContext } = await import('@/lib/auth/server');
-    // Import NextRequest to be safe or cast
-    const auth = await getAuthContext(request as any);
+export async function POST() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-    if (!auth) {
-        return NextResponse.json({ authenticated: false }, { status: 401 });
-    }
+export async function PUT() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
 
-    return NextResponse.json({
-        authenticated: true,
-        user: auth
-    });
+export async function PATCH() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+}
+
+export async function DELETE() {
+    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
 }
