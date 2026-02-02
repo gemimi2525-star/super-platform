@@ -7,8 +7,8 @@
 // Models
 export {
     SCHEMA_VERSION,
-    DecisionResult,
-    DecisionRecord
+    type DecisionResult,
+    type DecisionRecord
 } from './reason-core/schema';
 
 // Services

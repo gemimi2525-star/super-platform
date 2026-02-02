@@ -26,7 +26,6 @@ import { createCorrelationId } from './types';
 import { getStateStore } from './state';
 import { getEventBus } from './event-bus';
 import { getCapabilityGraph } from './capability-graph';
-import { getPolicyEngine } from './policy-engine';
 import { getWindowManager } from './window-manager';
 
 // Step-up duration: 15 minutes
@@ -36,6 +35,27 @@ const STEP_UP_DURATION_MS = 15 * 60 * 1000;
  * Core OS Kernel - The heart of the system
  */
 export class CoreOSKernel {
+
+    /**
+     * Public method for Adapter to trigger Step Up
+     */
+    public initiateStepUp(capabilityId: CapabilityId, challenge: string, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        const eventBus = getEventBus();
+
+        store.dispatch({
+            type: 'STEP_UP_PENDING',
+            pending: { capabilityId, challenge, correlationId }
+        });
+
+        eventBus.emit({
+            type: 'STEP_UP_REQUIRED',
+            capabilityId,
+            challenge,
+            correlationId,
+            timestamp: Date.now(),
+        });
+    }
 
     /**
      * Bootstrap the kernel with user credentials
@@ -195,125 +215,34 @@ export class CoreOSKernel {
         correlationId: CorrelationId,
         contextId?: string
     ): void {
+        // PERIMETER LOCK: Logic Removed. Assumes Verified by Adapter.
         const store = getStateStore();
         const eventBus = getEventBus();
-        const policyEngine = getPolicyEngine();
         const windowManager = getWindowManager();
         const graph = getCapabilityGraph();
 
         const state = store.getState();
+        const targetSpaceId = state.activeSpaceId;
 
-        // Build policy context
-        const policyContext: PolicyContext = {
+        // Activate capability
+        store.dispatch({ type: 'CAPABILITY_ACTIVATE', capabilityId, correlationId });
+        eventBus.emit({
+            type: 'CAPABILITY_ACTIVATED',
             capabilityId,
-            security: state.security,
-            targetContextId: contextId ?? null,
-        };
+            correlationId,
+            timestamp: Date.now(),
+        });
 
-        // Evaluate policy
-        const decision = policyEngine.evaluate(policyContext, state.cognitiveMode);
-
-        switch (decision.type) {
-            case 'allow': {
-                // Phase O: Space Policy Gate for opening capability
-                const targetSpaceId = state.activeSpaceId;
-                const spaceDecision = policyEngine.evaluateOpenCapabilityInSpace({
-                    capabilityId,
-                    spaceId: targetSpaceId,
-                    security: state.security,
-                });
-
-                if (spaceDecision.type === 'deny') {
-                    // Emit deny event with space + capability info (no state change)
-                    eventBus.emit({
-                        type: 'SPACE_ACCESS_DENIED',
-                        correlationId,
-                        timestamp: Date.now(),
-                        payload: {
-                            spaceId: targetSpaceId,
-                            reason: spaceDecision.reason,
-                            capabilityId,
-                            intentType: 'OPEN_CAPABILITY',
-                        },
-                    });
-                    return;  // No state change — preserve cognitive mode
-                }
-
-                // Activate capability
-                store.dispatch({ type: 'CAPABILITY_ACTIVATE', capabilityId, correlationId });
-                eventBus.emit({
-                    type: 'CAPABILITY_ACTIVATED',
-                    capabilityId,
-                    correlationId,
-                    timestamp: Date.now(),
-                });
-
-                // Open window if capability has UI (pass targetSpaceId for Phase O)
-                if (graph.hasUI(capabilityId)) {
-                    windowManager.openWindow(capabilityId, correlationId, contextId, targetSpaceId);
-                }
-
-                // Update context stack
-                store.dispatch({ type: 'CONTEXT_PUSH', capabilityId, correlationId });
-
-                // Update cognitive mode
-                this.updateCognitiveMode(correlationId);
-                break;
-            }
-
-            case 'require_stepup': {
-                // Store pending step-up
-                store.dispatch({
-                    type: 'STEP_UP_PENDING',
-                    pending: {
-                        capabilityId,
-                        challenge: decision.challenge,
-                        correlationId,
-                    },
-                });
-
-                eventBus.emit({
-                    type: 'STEP_UP_REQUIRED',
-                    capabilityId,
-                    challenge: decision.challenge,
-                    correlationId,
-                    timestamp: Date.now(),
-                });
-                break;
-            }
-
-            case 'deny': {
-                // Phase R: Emit decision explanation
-                const denyExplanation = policyEngine.explainCapabilityDecision({
-                    decision,
-                    intentType: 'OPEN_CAPABILITY',
-                    correlationId,
-                    capabilityId,
-                    spaceId: state.activeSpaceId,
-                });
-                eventBus.emit({
-                    type: 'DECISION_EXPLAINED',
-                    correlationId,
-                    timestamp: Date.now(),
-                    payload: denyExplanation,
-                });
-
-                eventBus.emit({
-                    type: 'POLICY_DENIED',
-                    capabilityId,
-                    reason: decision.reason,
-                    correlationId,
-                    timestamp: Date.now(),
-                });
-                break;
-            }
-
-            case 'degrade': {
-                // Retry with fallback capability
-                this.handleOpenCapability(decision.fallback, correlationId, contextId);
-                break;
-            }
+        // Open window if capability has UI
+        if (graph.hasUI(capabilityId)) {
+            windowManager.openWindow(capabilityId, correlationId, contextId, targetSpaceId);
         }
+
+        // Update context stack
+        store.dispatch({ type: 'CONTEXT_PUSH', capabilityId, correlationId });
+
+        // Update cognitive mode
+        this.updateCognitiveMode(correlationId);
     }
 
     private handleCloseWindow(windowId: string, correlationId: CorrelationId): void {
@@ -354,28 +283,7 @@ export class CoreOSKernel {
     // ═══════════════════════════════════════════════════════════════════════
 
     private handleFocusNextWindow(correlationId: CorrelationId): void {
-        const store = getStateStore();
-        const state = store.getState();
-        const policyEngine = getPolicyEngine();
-        const eventBus = getEventBus();
         const windowManager = getWindowManager();
-
-        // Phase N: Policy gate for focus in active space
-        const policyDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'focusWindow',
-            security: state.security,
-        });
-
-        if (policyDecision.type === 'deny') {
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: { spaceId: state.activeSpaceId, reason: policyDecision.reason },
-            });
-            return;
-        }
 
         const nextWindowId = windowManager.getNextFocusableWindowId();
         if (nextWindowId) {
@@ -385,28 +293,7 @@ export class CoreOSKernel {
     }
 
     private handleFocusPreviousWindow(correlationId: CorrelationId): void {
-        const store = getStateStore();
-        const state = store.getState();
-        const policyEngine = getPolicyEngine();
-        const eventBus = getEventBus();
         const windowManager = getWindowManager();
-
-        // Phase N: Policy gate for focus in active space
-        const policyDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'focusWindow',
-            security: state.security,
-        });
-
-        if (policyDecision.type === 'deny') {
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: { spaceId: state.activeSpaceId, reason: policyDecision.reason },
-            });
-            return;
-        }
 
         const prevWindowId = windowManager.getPreviousFocusableWindowId();
         if (prevWindowId) {
@@ -416,28 +303,7 @@ export class CoreOSKernel {
     }
 
     private handleFocusWindowByIndex(index: number, correlationId: CorrelationId): void {
-        const store = getStateStore();
-        const state = store.getState();
-        const policyEngine = getPolicyEngine();
-        const eventBus = getEventBus();
         const windowManager = getWindowManager();
-
-        // Phase N: Policy gate for focus in active space
-        const policyDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'focusWindow',
-            security: state.security,
-        });
-
-        if (policyDecision.type === 'deny') {
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: { spaceId: state.activeSpaceId, reason: policyDecision.reason },
-            });
-            return;
-        }
 
         const windowId = windowManager.getFocusableWindowIdByIndex(index);
         if (windowId) {
@@ -478,44 +344,6 @@ export class CoreOSKernel {
     // ═══════════════════════════════════════════════════════════════════════
 
     private handleSwitchSpace(spaceId: SpaceId, correlationId: CorrelationId): void {
-        const store = getStateStore();
-        const state = store.getState();
-        const policyEngine = getPolicyEngine();
-        const eventBus = getEventBus();
-
-        // Phase M: Policy Gate for SWITCH_SPACE
-        const policyDecision = policyEngine.evaluateSpaceAccess({
-            spaceId,
-            action: 'access',
-            security: state.security,
-        });
-
-        if (policyDecision.type === 'deny') {
-            // Phase R: Emit decision explanation
-            const explanation = policyEngine.explainSpaceAccessDecision({
-                decision: policyDecision,
-                intentType: 'SWITCH_SPACE',
-                correlationId,
-                spaceId,
-                action: 'access',
-            });
-            eventBus.emit({
-                type: 'DECISION_EXPLAINED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: explanation,
-            });
-
-            // Emit deny event with reason (no state change)
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: { spaceId, reason: policyDecision.reason },
-            });
-            return;
-        }
-
         const windowManager = getWindowManager();
         windowManager.switchSpace(spaceId, correlationId);
 
@@ -528,30 +356,6 @@ export class CoreOSKernel {
         spaceId: SpaceId,
         correlationId: CorrelationId
     ): void {
-        const store = getStateStore();
-        const state = store.getState();
-        const policyEngine = getPolicyEngine();
-        const eventBus = getEventBus();
-
-        // Phase M: Policy Gate for MOVE_WINDOW_TO_SPACE
-        const policyDecision = policyEngine.evaluateSpaceAccess({
-            spaceId,
-            action: 'moveWindow',
-            security: state.security,
-            windowId,
-        });
-
-        if (policyDecision.type === 'deny') {
-            // Emit deny event with reason (no state change)
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: { spaceId, windowId, reason: policyDecision.reason },
-            });
-            return;
-        }
-
         const windowManager = getWindowManager();
         windowManager.moveWindowToSpace(windowId, spaceId, correlationId);
 
@@ -567,83 +371,15 @@ export class CoreOSKernel {
      * Phase Q: Handle RESTORE_ACTIVE_SPACE
      * Restores all minimized windows in the active space (explicit intent only)
      */
+    /**
+     * Phase Q: Handle RESTORE_ACTIVE_SPACE
+     * Restores all minimized windows in the active space (explicit intent only)
+     */
     private handleRestoreActiveSpace(correlationId: CorrelationId): void {
         const store = getStateStore();
         const eventBus = getEventBus();
-        const policyEngine = getPolicyEngine();
         const windowManager = getWindowManager();
         const state = store.getState();
-
-        // Policy Gate: Check if openWindow + focusWindow are allowed in active space
-        const openDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'openWindow',
-            security: state.security,
-        });
-
-        if (openDecision.type === 'deny') {
-            // Phase R: Emit decision explanation
-            const explanation = policyEngine.explainSpaceAccessDecision({
-                decision: openDecision,
-                intentType: 'RESTORE_ACTIVE_SPACE',
-                correlationId,
-                spaceId: state.activeSpaceId,
-                action: 'openWindow',
-            });
-            eventBus.emit({
-                type: 'DECISION_EXPLAINED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: explanation,
-            });
-
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: {
-                    spaceId: state.activeSpaceId,
-                    reason: openDecision.reason,
-                    intentType: 'RESTORE_ACTIVE_SPACE',
-                },
-            });
-            return;  // No state change
-        }
-
-        const focusDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'focusWindow',
-            security: state.security,
-        });
-
-        if (focusDecision.type === 'deny') {
-            // Phase R: Emit decision explanation for focus deny
-            const focusExplanation = policyEngine.explainSpaceAccessDecision({
-                decision: focusDecision,
-                intentType: 'RESTORE_ACTIVE_SPACE',
-                correlationId,
-                spaceId: state.activeSpaceId,
-                action: 'focusWindow',
-            });
-            eventBus.emit({
-                type: 'DECISION_EXPLAINED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: focusExplanation,
-            });
-
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: {
-                    spaceId: state.activeSpaceId,
-                    reason: focusDecision.reason,
-                    intentType: 'RESTORE_ACTIVE_SPACE',
-                },
-            });
-            return;  // No state change
-        }
 
         // Restore all in active space
         const restoredCount = windowManager.restoreAllInActiveSpace(correlationId);
@@ -667,7 +403,6 @@ export class CoreOSKernel {
     private handleRestoreWindowById(windowId: string, correlationId: CorrelationId): void {
         const store = getStateStore();
         const eventBus = getEventBus();
-        const policyEngine = getPolicyEngine();
         const windowManager = getWindowManager();
         const state = store.getState();
 
@@ -682,49 +417,6 @@ export class CoreOSKernel {
                 payload: {
                     spaceId: state.activeSpaceId,
                     reason: 'Window not found or not in active space',
-                    windowId,
-                    intentType: 'RESTORE_WINDOW_BY_ID',
-                },
-            });
-            return;
-        }
-
-        // Policy Gate: Check openWindow + focusWindow permissions
-        const openDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'openWindow',
-            security: state.security,
-        });
-
-        if (openDecision.type === 'deny') {
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: {
-                    spaceId: state.activeSpaceId,
-                    reason: openDecision.reason,
-                    windowId,
-                    intentType: 'RESTORE_WINDOW_BY_ID',
-                },
-            });
-            return;
-        }
-
-        const focusDecision = policyEngine.evaluateSpaceAccess({
-            spaceId: state.activeSpaceId,
-            action: 'focusWindow',
-            security: state.security,
-        });
-
-        if (focusDecision.type === 'deny') {
-            eventBus.emit({
-                type: 'SPACE_ACCESS_DENIED',
-                correlationId,
-                timestamp: Date.now(),
-                payload: {
-                    spaceId: state.activeSpaceId,
-                    reason: focusDecision.reason,
                     windowId,
                     intentType: 'RESTORE_WINDOW_BY_ID',
                 },

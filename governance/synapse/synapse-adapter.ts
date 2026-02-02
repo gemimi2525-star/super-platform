@@ -125,20 +125,55 @@ export class SynapseAdapter {
 
         // 3. Enforce via Gate (Verifier)
         console.log(`[SYNAPSE ADAPTER] Verifying decision ${decisionRecord.package.decisionId}...`);
-        const verdict = await gate.enforce(
-            decisionRecord,
-            { action: intent.type, target: 'system' }
+
+        // 1. Request Decision from Authority (which calls SynapsePolicyEngine)
+        // The Authority acts as the Issuer.
+        // The 'authority' and 'decisionRecord' variables are already declared above.
+        // Re-using the existing 'authority' and 'decisionRecord' from the previous step.
+        // The 'gate' variable is also already declared above.
+
+        // Context mapping
+        const authContext = {
+            actorId: 'user-01', // Mock
+            userRole: 'admin'  // Mock
+        };
+        // The decisionRecord was already requested above, so this re-request is redundant.
+        // We will use the existing decisionRecord.
+        // const decisionRecord = await authority.requestDecision({
+        //     action: intent.type,
+        //     target: intent.type === 'OPEN_CAPABILITY' ? (intent as any).payload.capabilityId : 'system',
+        //     params: { intent }
+        // }, authContext);
+
+        // 2. Gate Verification (The Guard)
+        // The Gate verifies the Integrity and Signature of the Record.
+        const verificationResult = await gate.enforce(
+            decisionRecord, // Arg 1: The Record
+            {               // Arg 2: The Proposed Intent
+                action: intent.type,
+                target: intent.type === 'OPEN_CAPABILITY' ? (intent as any).payload.capabilityId : 'system',
+                params: { intent }
+            }
         );
 
-        if (verdict !== 'ALLOW') {
-            console.error(`[SYNAPSE] Governance Gate Verdict: ${verdict}`);
-            throw new Error(`Governance Policy Violation: Action ${intent.type} resulted in ${verdict}`);
-        }
-
-        // 4. Proceed to Kernel (Executor)
-        console.log(`[SYNAPSE] Gate Passed. Forwarding to Kernel...`);
+        // 3. Enforce Decision Semantics
         const kernel = _getKernel();
-        kernel.emit(intent);
+
+        if (verificationResult === 'ALLOW') {
+            console.log(`[SYNAPSE] ALLOW: ${intent.type} -> Executing.`);
+            kernel.emit(intent);
+        } else if (verificationResult === 'ESCALATE') {
+            console.warn(`[SYNAPSE] ESCALATE: ${intent.type} -> Initiating Step-Up.`);
+            if (intent.type === 'OPEN_CAPABILITY') {
+                const capId = (intent as any).payload.capabilityId;
+                kernel.initiateStepUp(capId, 'Governance verification required.', intent.correlationId);
+            } else {
+                throw new Error(`Governance Violation: Action ${intent.type} requires escalation but no handler exists.`);
+            }
+        } else {
+            console.error(`[SYNAPSE] DENY: ${intent.type}`);
+            throw new Error(`Governance Policy Violation: Action ${intent.type} DENIED by Synapse Authority.`);
+        }
     }
 
     /**

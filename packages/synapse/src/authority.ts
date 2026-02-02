@@ -8,6 +8,7 @@
 
 import { DecisionRecord, DecisionPackage, ReasonCore, SCHEMA_VERSION } from './reason-core/schema';
 import { AuditLedger } from './audit-ledger/ledger';
+import { SynapsePolicyEngine } from './policy-engine/engine';
 
 export class SynapseAuthority {
     private static instance: SynapseAuthority;
@@ -33,9 +34,20 @@ export class SynapseAuthority {
         context: { actorId: string; userRole: string }
     ): Promise<DecisionRecord> {
 
-        // 1. Policy Evaluation (Simulation)
-        // In real system, this calls PolicyEngine.evaluate()
-        const decisionResult = this.evaluatePolicy(intent, context);
+        // 1. Policy Evaluation (REAL)
+        const engine = SynapsePolicyEngine.getInstance();
+
+        // Map context to Synapse Security Context
+        const securityContext = {
+            authenticated: true, // Mock for v1
+            userId: context.actorId,
+            role: context.userRole as any, // Cast to internal type
+            stepUpActive: false, // Mock
+            stepUpExpiry: null,
+            policies: context.userRole === 'admin' ? ['admin.access', 'sys.admin', 'audit.read'] : []
+        };
+
+        const decisionResult = engine.evaluate(intent, { security: securityContext });
 
         // 2. Construct Package
         const timestamp = Date.now();
@@ -54,7 +66,7 @@ export class SynapseAuthority {
                 params: intent.params
             },
             context: {
-                systemState: 'nominal', // Mock
+                systemState: 'nominal',
                 userRole: context.userRole,
                 resourceSensitivity: 'low',
                 activeConstraints: []
@@ -64,14 +76,13 @@ export class SynapseAuthority {
 
         const reason: ReasonCore = {
             reason_codes: [],
-            policy_refs: ['policy-root'],
+            policy_refs: ['synapse-policy-v1'],
             rule_hits: [],
-            evidence: {},
+            evidence: { source: 'SynapsePolicyEngine' },
             missing_requirements: []
         };
 
         // 3. Serialize and Sign
-        // The signature covers the Package + Reason
         const payloadToSign = JSON.stringify({ package: pkg, reason });
         const signature = this.ledger.sign(payloadToSign);
 
@@ -80,39 +91,23 @@ export class SynapseAuthority {
             package: pkg,
             reason,
             audit: {
-                ledger_ref: 'pending-log', // Will be updated on append or referenced by hash
+                ledger_ref: 'pending-log',
                 previous_hash: 'chained-in-ledger',
                 signature,
                 signerId: this.ledger.getAuthorityId()
             }
         };
 
-        // 5. Log to Ledger (Authority Level Logging)
+        // 5. Log to Ledger
         const entry = this.ledger.append('DECISION_RECORDED', record);
 
-        // Return the full record (with audit trail potentially updated)
         return {
             ...record,
             audit: {
                 ...record.audit,
-                ledger_ref: entry.hash, // Link to the specific ledger entry
-                previous_hash: entry.previousHash // Link to chain
+                ledger_ref: entry.hash,
+                previous_hash: entry.previousHash
             }
         };
-    }
-
-    /**
-     * Internal Policy Logic (Stub for v1)
-     */
-    private evaluatePolicy(intent: any, context: any): 'ALLOW' | 'DENY' {
-        // [GOVERNANCE] Fail-safe default
-        if (!intent || !intent.action) return 'DENY';
-
-        // Example: Forbidden action
-        if (intent.action === 'NUKE_SYSTEM') return 'DENY';
-        if (intent.action === 'WRITE_KERNEL' && context.userRole !== 'admin') return 'DENY';
-
-        // Default Allow for verified intents in this v1 simulation
-        return 'ALLOW';
     }
 }
