@@ -5,7 +5,7 @@
  * This module ONLY exposes verification logic - NO internal Authority/Ledger access.
  */
 
-import * as crypto from 'node:crypto';
+import * as crypto from 'crypto';
 
 export interface ProofBundle {
     readonly decisionId: string;

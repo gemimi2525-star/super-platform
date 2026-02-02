@@ -13,6 +13,36 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
 
   // ═══════════════════════════════════════════════════════════════════════
+  // WEBPACK FORCED (TC-1.2 FIX)
+  // 
+  // Payload CMS 2.x has package.json exports incompatible with Turbopack.
+  // Adding webpack config forces Next.js to use webpack instead of Turbopack.
+  // Trade-off: Slower dev/build, but CMS functional.
+  // ═══════════════════════════════════════════════════════════════════════
+  webpack: (config, { isServer }) => {
+    // Exclude Sharp from webpack bundling (binary files)
+    if (isServer) {
+      config.externals.push('sharp')
+    }
+
+    // Handle node: protocol imports (Node 16+ syntax)
+    config.resolve = config.resolve || {}
+    config.resolve.fallback = config.resolve.fallback || {}
+
+    if (!isServer) {
+      // Client-side: provide empty fallbacks
+      Object.assign(config.resolve.fallback, {
+        crypto: false,
+        fs: false,
+        path: false,
+        stream: false,
+      })
+    }
+
+    return config;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
   // CANONICAL ROUTE REDIRECTS
   // 
   // ALL routes redirect to /desktop (Single Desktop Architecture)

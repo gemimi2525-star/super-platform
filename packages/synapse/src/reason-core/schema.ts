@@ -42,6 +42,11 @@ export interface DecisionPackage {
     readonly actorId: string;
     readonly schemaVersion: typeof SCHEMA_VERSION;
 
+    // Policy Binding
+    readonly policyId: string;        // e.g., 'core.space.policy'
+    readonly policyVersion: string;   // e.g., '1.0.0'
+    readonly policyHash?: string;     // Optional: SHA-256 of policy definition
+
     // Intent Summary
     readonly intent: IntentSummary;
 

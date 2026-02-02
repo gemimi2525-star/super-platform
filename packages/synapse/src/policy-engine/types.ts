@@ -31,6 +31,15 @@ export interface CapabilityManifest {
 export type SpaceId = `space:${string}`;
 export const DEFAULT_SPACE_ID: SpaceId = 'space:default';
 
+// Policy Versioning
+export type PolicyStatus = 'draft' | 'active' | 'deprecated';
+
+export interface PolicyIdentity {
+    readonly id: string;       // e.g., 'core.space.policy'
+    readonly version: string;  // e.g., '1.0.0'
+    readonly status: PolicyStatus;
+}
+
 export interface SpacePermissions {
     readonly canAccess: boolean;
     readonly canOpenWindow: boolean;
@@ -47,6 +56,7 @@ export const DEFAULT_SPACE_PERMISSIONS: SpacePermissions = {
 
 export interface SpacePolicy {
     readonly spaceId: SpaceId;
+    readonly identity?: PolicyIdentity; // Optional for migration safety
     readonly permissions: SpacePermissions;
     readonly requiredRole?: UserRole;
     readonly requiredPolicies?: string[];

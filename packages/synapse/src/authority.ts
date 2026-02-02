@@ -47,7 +47,10 @@ export class SynapseAuthority {
             policies: context.userRole === 'admin' ? ['admin.access', 'sys.admin', 'audit.read'] : []
         };
 
-        const decisionResult = engine.evaluate(intent, { security: securityContext });
+        const evaluationResult = engine.evaluate(intent, { security: securityContext });
+
+        // Destructure result
+        const { decision, policy } = evaluationResult;
 
         // 2. Construct Package
         const timestamp = Date.now();
@@ -60,6 +63,11 @@ export class SynapseAuthority {
             timestamp,
             actorId: context.actorId,
             schemaVersion: SCHEMA_VERSION,
+
+            // Policy Binding (Immutable Governance)
+            policyId: policy.id,
+            policyVersion: policy.version,
+
             intent: {
                 action: intent.action,
                 target: intent.target,
@@ -71,14 +79,14 @@ export class SynapseAuthority {
                 resourceSensitivity: 'low',
                 activeConstraints: []
             },
-            decision: decisionResult
+            decision: decision
         };
 
         const reason: ReasonCore = {
             reason_codes: [],
-            policy_refs: ['synapse-policy-v1'],
+            policy_refs: [`${policy.id}@${policy.version}`],
             rule_hits: [],
-            evidence: { source: 'SynapsePolicyEngine' },
+            evidence: { source: 'SynapsePolicyEngine', policyIdentity: policy },
             missing_requirements: []
         };
 

@@ -5,6 +5,7 @@
  */
 
 import { DecisionRecord, DecisionResult } from '../reason-core/schema';
+import { Signer, MockSigner } from './signer';
 import * as crypto from 'crypto';
 
 export interface LedgerEntry {
@@ -23,16 +24,31 @@ export interface VerificationReport {
     totalEntries: number;
 }
 
+export interface LedgerSnapshot {
+    genesisHash: string;
+    authorityId: string;
+    publicKey: string;
+    totalEntries: number;
+    chainValid: boolean;
+    entries: Array<{
+        index: number;
+        timestamp: number;
+        event: string;
+        hash: string;
+        previousHash: string;
+    }>;
+}
+
 export class AuditLedger {
     private static instance: AuditLedger;
     private chain: LedgerEntry[] = [];
     private readonly GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
-
-    // Ed25519 Keypair Stub (Deterministic for v1)
-    private readonly AUTHORITY_PUBLIC_KEY = 'public-key-stub-v1';
-    private readonly AUTHORITY_PRIVATE_KEY = 'private-key-stub-v1';
+    private signer: Signer;
 
     private constructor() {
+        // Initialize Signer
+        this.signer = new MockSigner('synapse-authority-v1');
+
         // Genesis block
         const timestamp = Date.now();
         const genesisData = { message: 'SYNAPSE GENESIS' };
@@ -85,7 +101,6 @@ export class AuditLedger {
         };
 
         this.chain.push(entry);
-        // console.log(`[LEDGER] #${index} mined: ${hash.substr(0, 8)}`);
         return entry;
     }
 
@@ -120,21 +135,40 @@ export class AuditLedger {
     }
 
     /**
-     * Sign a payload (Stub - Deterministic HMAC-SHA256 as sig simulation)
+     * Export a public-safe snapshot of the ledger
      */
-    public sign(payload: string): string {
-        return crypto.createHmac('sha256', this.AUTHORITY_PRIVATE_KEY).update(payload).digest('hex');
+    public exportSnapshot(): LedgerSnapshot {
+        const verification = this.verifyChain();
+
+        return {
+            genesisHash: this.GENESIS_HASH,
+            authorityId: this.getAuthorityId(),
+            publicKey: this.signer.getPublicKey(),
+            totalEntries: this.chain.length,
+            chainValid: verification.isValid,
+            entries: this.chain.map(entry => ({
+                index: entry.index,
+                timestamp: entry.timestamp,
+                event: entry.event,
+                hash: entry.hash,
+                previousHash: entry.previousHash
+                // Note: 'data' is intentionally excluded for privacy
+            }))
+        };
     }
 
     /**
-     * Verify a signature (Stub)
+     * Sign a payload using the Signer
+     */
+    public sign(payload: string): string {
+        return this.signer.sign(payload);
+    }
+
+    /**
+     * Verify a signature using the Signer
      */
     public verifySignature(payload: string, signature: string): boolean {
-        // Since we simulate symmetric signing for this stub (using HMAC), we verify by re-computing.
-        // In real Ed25519, we would verify with Public Key.
-        // This is sufficient for v1 internal verification test.
-        const expected = crypto.createHmac('sha256', this.AUTHORITY_PRIVATE_KEY).update(payload).digest('hex');
-        return expected === signature;
+        return this.signer.verify(payload, signature);
     }
 
     public getChain(): readonly LedgerEntry[] {
@@ -143,5 +177,9 @@ export class AuditLedger {
 
     public getAuthorityId(): string {
         return 'synapse-authority-v1';
+    }
+
+    public getSigner(): Signer {
+        return this.signer;
     }
 }

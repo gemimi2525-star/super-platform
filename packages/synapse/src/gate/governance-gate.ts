@@ -16,12 +16,17 @@
 import { DecisionRecord, DecisionResult, SCHEMA_VERSION } from '../reason-core/schema';
 import { AuditLedger } from '../audit-ledger/ledger';
 
+import { ApprovalToken } from '../approval/types';
+import { ApprovalService } from '../approval/service';
+
 export class GovernanceGate {
     private static instance: GovernanceGate;
     private ledger: AuditLedger;
+    private approvalService: ApprovalService;
 
     private constructor() {
         this.ledger = AuditLedger.getInstance();
+        this.approvalService = ApprovalService.getInstance();
     }
 
     public static getInstance(): GovernanceGate {
@@ -37,7 +42,8 @@ export class GovernanceGate {
      */
     public async enforce(
         record: DecisionRecord,
-        proposedIntent: { action: string; target: string; params?: Record<string, unknown> }
+        proposedIntent: { action: string; target: string; params?: Record<string, unknown> },
+        token?: ApprovalToken
     ): Promise<DecisionResult> {
 
         const verificationLog = {
@@ -45,6 +51,7 @@ export class GovernanceGate {
             check_integrity: false,
             check_signature: false,
             check_scope: false,
+            check_stepup: false,
             reason: ''
         };
 
@@ -58,10 +65,7 @@ export class GovernanceGate {
             verificationLog.check_version = true;
 
             // 2. Integrity Check (Re-serialize and check signature stub)
-            // Note: In strict mode, we re-construct the payload that was signed.
             const payloadToVerify = JSON.stringify({ package: record.package, reason: record.reason });
-
-            // 3. Signature Check
             const isSigValid = this.ledger.verifySignature(payloadToVerify, record.audit.signature);
             if (!isSigValid) {
                 verificationLog.reason = 'Invalid Signature';
@@ -71,23 +75,45 @@ export class GovernanceGate {
             verificationLog.check_signature = true;
             verificationLog.check_integrity = true;
 
-            // 4. Scope Match (Did the authority sign *this* intent?)
+            // 3. Scope Match
             if (record.package.intent.action !== proposedIntent.action) {
                 verificationLog.reason = `Action Mismatch: Authorized(${record.package.intent.action}) vs Proposed(${proposedIntent.action})`;
                 this.logDeny(record, verificationLog.reason);
                 return 'DENY';
             }
-            // (Target check could be added here)
             verificationLog.check_scope = true;
 
-            // 5. Final Decision extraction
-            const verdict = record.package.decision;
+            // 4. Final Decision Logic
+            let verdict = record.package.decision;
+
+            if (verdict === 'ESCALATE') {
+                // STEP-UP ENFORCEMENT
+                if (token) {
+                    const isTokenValid = this.approvalService.verify(token, record.package.decisionId, proposedIntent);
+                    if (isTokenValid) {
+                        console.log(`[SYNAPSE GATE] Step-Up Verified: Token ${token.tokenId}`);
+                        verdict = 'ALLOW'; // Override verdict to ALLOW
+                        verificationLog.check_stepup = true;
+                    } else {
+                        verificationLog.reason = 'Invalid Step-Up Token';
+                        this.logDeny(record, verificationLog.reason);
+                        return 'DENY';
+                    }
+                } else {
+                    // Pass validation but return ESCALATE to signal Step-Up needed
+                    // (Caller must handle initiating the loop)
+                    // Actually, strict gate says: "If ESCALATE and no token => Block execution, return ESCALATE status"
+                    console.log(`[SYNAPSE GATE] ESCALATE: Step-Up Required`);
+                    return 'ESCALATE';
+                }
+            }
 
             // Audit the successful check
             this.ledger.append('GATE_VERIFICATION', {
                 decisionId: record.package.decisionId,
                 verdict,
-                status: 'PASSED_INTEGRITY_CHECKS'
+                status: 'PASSED_INTEGRITY_CHECKS',
+                stepUp: verificationLog.check_stepup
             });
 
             return verdict;
