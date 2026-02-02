@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
   // Apps are opened via ?app= query params
   // ═══════════════════════════════════════════════════════════════════════
   async redirects() {
-    return [
+    const commonRedirects = [
       // ─────────────────────────────────────────────────────────────────
       // ROOT ROUTES → /desktop
       // ─────────────────────────────────────────────────────────────────
@@ -132,11 +132,51 @@ const nextConfig: NextConfig = {
       },
 
       // ─────────────────────────────────────────────────────────────────
-      // TRUST CENTER DOMAIN MIGRATION → synapsegovernance.com
-      // TEMPORARILY DISABLED FOR SPLIT MIGRATION (See Task Phase A)
+      // AUTH ROUTE NORMALIZATION (P0 - FIX LOGIN)
       // ─────────────────────────────────────────────────────────────────
 
-      /*
+      // Legacy /login -> /en/login (Default)
+      {
+        source: '/login',
+        destination: '/en/login',
+        permanent: false, // 302 for now to allow future changes, change to 301 later
+      },
+      // /auth/login -> /en/login
+      {
+        source: '/auth/login',
+        destination: '/en/login',
+        permanent: true,
+      },
+      // /en/auth/login -> /en/login
+      {
+        source: '/en/auth/login',
+        destination: '/en/login',
+        permanent: true,
+      },
+      // /th/auth/login -> /th/login
+      {
+        source: '/th/auth/login',
+        destination: '/th/login',
+        permanent: true,
+      },
+    ];
+
+    // ─────────────────────────────────────────────────────────────────
+    // TRUST CENTER DOMAIN MIGRATION → synapsegovernance.com
+    // TC-1.2: Redirect old Trust Center paths to new dedicated domain
+    // ─────────────────────────────────────────────────────────────────
+
+    // Prevent redirect loop: If we are ON the governance project, DO NOT redirect to ourselves.
+    // We detect this via the API URL or Server URL set in Vercel Env Vars.
+    const isGovernanceProject = process.env.NEXT_PUBLIC_API_URL === 'https://www.synapsegovernance.com';
+
+    if (isGovernanceProject) {
+      return commonRedirects;
+    }
+
+    // Otherwise (on apicoredata.com), redirect Trust Center paths to the new domain
+    return [
+      ...commonRedirects,
       // Trust home pages
       {
         source: '/en/trust',
@@ -148,43 +188,28 @@ const nextConfig: NextConfig = {
         destination: 'https://www.synapsegovernance.com/th/trust',
         permanent: true,
       },
-
-      // Trust governance
+      // Trust subpages
       {
-        source: '/en/trust/governance',
-        destination: 'https://www.synapsegovernance.com/en/trust/governance',
+        source: '/en/trust/:slug*',
+        destination: 'https://www.synapsegovernance.com/en/trust/:slug*',
         permanent: true,
       },
       {
-        source: '/th/trust/governance',
-        destination: 'https://www.synapsegovernance.com/th/trust/governance',
+        source: '/th/trust/:slug*',
+        destination: 'https://www.synapsegovernance.com/th/trust/:slug*',
         permanent: true,
       },
-
-      // Trust news (all paths)
+      // Legacy paths
       {
-        source: '/en/trust/news/:path*',
-        destination: 'https://www.synapsegovernance.com/en/trust/news/:path*',
-        permanent: true,
-      },
-      {
-        source: '/th/trust/news/:path*',
-        destination: 'https://www.synapsegovernance.com/th/trust/news/:path*',
-        permanent: true,
-      },
-
-      // Other trust paths (support, verify, etc.)
-      {
-        source: '/en/trust/:path*',
-        destination: 'https://www.synapsegovernance.com/en/trust/:path*',
+        source: '/trust',
+        destination: 'https://www.synapsegovernance.com/en/trust', // Default to EN
         permanent: true,
       },
       {
-        source: '/th/trust/:path*',
-        destination: 'https://www.synapsegovernance.com/th/trust/:path*',
+        source: '/governance',
+        destination: 'https://www.synapsegovernance.com/en/trust',
         permanent: true,
-      }
-      */
+      },
     ];
   },
 };

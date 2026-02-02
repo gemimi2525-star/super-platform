@@ -41,6 +41,44 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [PROJECT SPLIT] SYNAPSE GOVERNANCE (Trust Center Only)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Configured via ENV: NEXT_PUBLIC_SERVER_URL=https://www.synapsegovernance.com
+    const isSynapseProject = process.env.NEXT_PUBLIC_SERVER_URL?.includes('synapsegovernance.com');
+
+    if (isSynapseProject) {
+        // 1. Root '/' -> Rewrite to Trust Center Home (Default EN)
+        if (pathname === '/') {
+            const url = request.nextUrl.clone();
+            const locale = getLocale(request);
+            url.pathname = `/${locale}/trust`;
+            return NextResponse.rewrite(url);
+        }
+
+        // 2. Locale Root '/en' or '/th' -> Rewrite to '/{locale}/trust'
+        const localeMatch = pathname.match(/^\/(en|th)\/?$/);
+        if (localeMatch) {
+            const locale = localeMatch[1];
+            const url = request.nextUrl.clone();
+            url.pathname = `/${locale}/trust`;
+            return NextResponse.rewrite(url);
+        }
+
+        // 3. Trust Center Paths -> ALLOW
+        // Must start with /en/trust or /th/trust
+        if (pathname.startsWith('/en/trust') || pathname.startsWith('/th/trust')) {
+            return NextResponse.next();
+        }
+
+        // 4. BLOCK EVERYTHING ELSE (OS, Apps, etc.) -> Redirect to Trust Home
+        // This ensures the Trust Center domain NEVER shows the OS.
+        const url = request.nextUrl.clone();
+        url.pathname = '/en/trust';
+        return NextResponse.redirect(url);
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
+
     // 1. TRUST DOMAIN ROUTING (Host-based Rewrite)
     // synapsegovernance.com -> Trust Center content
     const isTrustDomain = host === TRUST_DOMAIN || host === `www.${TRUST_DOMAIN}` || host.endsWith(`.${TRUST_DOMAIN}`);
