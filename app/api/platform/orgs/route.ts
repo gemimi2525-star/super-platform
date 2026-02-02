@@ -48,11 +48,7 @@ export async function GET(request: NextRequest) {
                 organizations
             });
         } catch (dbError: any) {
-            console.error('[API] Database connection failed (Degraded Mode Active)');
-            console.error('[API] Error Name:', dbError?.name);
-            console.error('[API] Error Message:', dbError?.message);
-            console.error('[API] Error Code:', dbError?.code);
-            console.error('[API] Error Stack:', dbError?.stack);
+            console.error('[API] Database connection failed:', dbError?.message || dbError);
 
             if (process.env.NODE_ENV === 'development') {
                 return getMockOrgs();
