@@ -53,6 +53,27 @@ interface AuditLogEntry {
     capability?: string;
 }
 
+// Phase 5.4: Session Debug
+interface SessionDebugData {
+    session: {
+        isAuth: boolean;
+        userId: string;
+        email: string | null;
+        hasSessionCookie: boolean;
+        hasLocaleCookie: boolean;
+    };
+    environment: {
+        nodeEnv: string;
+        vercelEnv: string;
+        devBypassConfigured: boolean;
+        devBypassActive: boolean;
+    };
+    request: {
+        host: string;
+    };
+    timestamp: string;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -143,6 +164,31 @@ function useAuditLogs(limit = 25) {
     }, [limit]);
 
     return { data, loading, error };
+}
+
+// Phase 5.4: Session Debug Hook
+function useSessionDebug() {
+    const [data, setData] = useState<SessionDebugData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const refetch = () => {
+        setLoading(true);
+        fetch('/api/platform/session-debug')
+            .then(res => res.json())
+            .then(json => {
+                if (json.success) setData(json.data);
+                else setError(json.error?.message || 'Not authorized');
+            })
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        refetch();
+    }, []);
+
+    return { data, loading, error, refetch };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -298,6 +344,7 @@ function StatusBadge({ status }: { status: 'healthy' | 'degraded' | 'down' | str
 function HealthTab() {
     const health = useHealthData();
     const me = useMeData();
+    const session = useSessionDebug();
 
     if (health.loading || me.loading) return <LoadingState />;
     if (health.error) return <ErrorState message={health.error} />;
@@ -315,6 +362,75 @@ function HealthTab() {
                         Last checked: {new Date(h.timestamp).toLocaleTimeString()}
                     </span>
                 </div>
+            </Card>
+
+            {/* Phase 5.4: Session Status */}
+            <Card title="🔐 Session Status">
+                {session.loading ? (
+                    <span style={{ color: tokens.textSecondary }}>Loading...</span>
+                ) : session.error ? (
+                    <div style={{ fontSize: 13 }}>
+                        <div style={{ color: tokens.warning, marginBottom: 8 }}>
+                            ⚠️ Session check failed: {session.error}
+                        </div>
+                        <a
+                            href="/login?callbackUrl=/os"
+                            style={{
+                                color: tokens.accent,
+                                textDecoration: 'none',
+                                padding: '8px 16px',
+                                background: tokens.bgAccent,
+                                borderRadius: 6,
+                                display: 'inline-block',
+                            }}
+                        >
+                            🔑 Go to Login
+                        </a>
+                    </div>
+                ) : session.data ? (
+                    <div style={{ fontSize: 13 }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr',
+                            gap: '8px 16px',
+                            marginBottom: 12
+                        }}>
+                            <span style={{ color: tokens.textSecondary }}>Authenticated:</span>
+                            <span style={{ color: session.data.session.isAuth ? tokens.success : tokens.error }}>
+                                {session.data.session.isAuth ? '✅ Yes' : '❌ No'}
+                            </span>
+
+                            <span style={{ color: tokens.textSecondary }}>Session Cookie:</span>
+                            <span>{session.data.session.hasSessionCookie ? '✅ Present' : '❌ Missing'}</span>
+
+                            <span style={{ color: tokens.textSecondary }}>Environment:</span>
+                            <span>{session.data.environment.vercelEnv}</span>
+
+                            <span style={{ color: tokens.textSecondary }}>Dev Bypass:</span>
+                            <span style={{
+                                color: session.data.environment.devBypassActive ? tokens.warning : tokens.success
+                            }}>
+                                {session.data.environment.devBypassActive ? '⚠️ ACTIVE' : '🔒 Locked'}
+                            </span>
+
+                            <span style={{ color: tokens.textSecondary }}>Host:</span>
+                            <span>{session.data.request.host}</span>
+                        </div>
+                        <button
+                            onClick={session.refetch}
+                            style={{
+                                padding: '6px 12px',
+                                background: tokens.bgSecondary,
+                                border: `1px solid ${tokens.border}`,
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: 12,
+                            }}
+                        >
+                            🔄 Refresh
+                        </button>
+                    </div>
+                ) : null}
             </Card>
 
             {/* Build Info */}
@@ -541,6 +657,7 @@ function IncidentsTab() {
 
 const MONITORED_ENDPOINTS = [
     { name: 'Health', path: '/api/platform/health', auth: false },
+    { name: 'Session Debug', path: '/api/platform/session-debug', auth: true },
     { name: 'Me', path: '/api/platform/me', auth: true },
     { name: 'Audit Logs', path: '/api/platform/audit-logs', auth: true },
     { name: 'Organizations', path: '/api/platform/orgs', auth: true },

@@ -131,6 +131,19 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
                 pass: res.status === 200 && hasStatus
             };
         }
+    },
+    {
+        name: 'Session Debug API (P5.4)',
+        path: '/api/platform/session-debug',
+        check: (res, body) => {
+            // Should return 401 when not authenticated (our smoke test has no cookies)
+            const isNotDisabled = !body.includes('LEGACY_ROUTE_DISABLED');
+            return {
+                expected: '401 (protected endpoint)',
+                actual: `${res.status} ${isNotDisabled ? '' : '(DISABLED)'}`,
+                pass: res.status === 401 && isNotDisabled
+            };
+        }
     }
 ];
 

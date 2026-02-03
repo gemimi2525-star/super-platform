@@ -120,9 +120,25 @@ export function middleware(request: NextRequest) {
     // 1. If accessing /os directly -> Check Auth -> Allow or Login
     if (pathname === '/os') {
         const hasSession = request.cookies.has('__session');
-        // Dev Bypass (isDev defined at top)
-        const bypassActive = isDev && process.env.AUTH_DEV_BYPASS === 'true';
-        const hasBypassHeaders = bypassActive && request.headers.has('x-dev-test-email');
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 5.4: PRODUCTION BYPASS LOCK
+        // Dev bypass is NEVER active in production, regardless of ENV config
+        // ═══════════════════════════════════════════════════════════════════════════
+        const isProduction = process.env.NODE_ENV === 'production' ||
+            process.env.VERCEL_ENV === 'production';
+
+        // Dev bypass only works in non-production AND when explicitly enabled
+        const bypassEnabled = !isProduction &&
+            isDev &&
+            process.env.AUTH_DEV_BYPASS === 'true';
+
+        const hasBypassHeaders = bypassEnabled && request.headers.has('x-dev-test-email');
+
+        // Log bypass attempt in production (for security audit)
+        if (isProduction && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.warn('[SECURITY] AUTH_DEV_BYPASS is configured but LOCKED in production');
+        }
 
         if (!hasSession && !hasBypassHeaders) {
             const url = request.nextUrl.clone();
