@@ -22,6 +22,9 @@ import { ORG_MANAGE_MANIFEST } from './org.manage';
 import { AUDIT_VIEW_MANIFEST } from './audit.view';
 import { SYSTEM_CONFIGURE_MANIFEST } from './system.configure';
 
+// Phase 5: Operational Visibility
+import { OPS_CENTER_MANIFEST } from './ops.center';
+
 // Phase F: EXPERIMENTAL capabilities
 import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 
@@ -46,6 +49,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     'audit.view': AUDIT_VIEW_MANIFEST,
     'system.configure': SYSTEM_CONFIGURE_MANIFEST,
 
+    // Phase 5: Operational Visibility
+    'ops.center': OPS_CENTER_MANIFEST,
+
     // Phase F: EXPERIMENTAL
     'plugin.analytics': PLUGIN_ANALYTICS_MANIFEST,
 };
@@ -58,6 +64,8 @@ export {
     ORG_MANAGE_MANIFEST,
     AUDIT_VIEW_MANIFEST,
     SYSTEM_CONFIGURE_MANIFEST,
+    // Phase 5: Operational Visibility
+    OPS_CENTER_MANIFEST,
     // Phase F: EXPERIMENTAL
     PLUGIN_ANALYTICS_MANIFEST,
 };

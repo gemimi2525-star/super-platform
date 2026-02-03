@@ -33,6 +33,9 @@ import {
 import { getCapabilityGraph } from './capability-graph';
 import type { Window, CapabilityId } from './types';
 
+// Phase 5: Ops Center UI
+import { OpsCenterMVP } from './ui/OpsCenterMVP';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -281,27 +284,36 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
 
             {/* Content */}
             <div style={{
-                padding: 24,
+                padding: window.capabilityId === 'ops.center' ? 0 : 24,
                 color: '#333',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+                height: 'calc(100% - 32px)',
+                overflow: 'auto',
             }}>
-                <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
-                    {window.title}
-                </h3>
-                <p style={{ margin: '0 0 12px', color: '#666', fontSize: 14, lineHeight: 1.5 }}>
-                    This window is managed by the Core OS Kernel.
-                </p>
-                <div style={{
-                    padding: 12,
-                    background: '#f5f5f5',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontFamily: 'SF Mono, Monaco, monospace',
-                }}>
-                    <div>Capability: {window.capabilityId}</div>
-                    <div>State: {window.state}</div>
-                    <div>Z-Index: {window.zIndex}</div>
-                </div>
+                {/* Phase 5: Render Ops Center for ops.center capability */}
+                {window.capabilityId === 'ops.center' ? (
+                    <OpsCenterMVP />
+                ) : (
+                    <>
+                        <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
+                            {window.title}
+                        </h3>
+                        <p style={{ margin: '0 0 12px', color: '#666', fontSize: 14, lineHeight: 1.5 }}>
+                            This window is managed by the Core OS Kernel.
+                        </p>
+                        <div style={{
+                            padding: 12,
+                            background: '#f5f5f5',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontFamily: 'SF Mono, Monaco, monospace',
+                        }}>
+                            <div>Capability: {window.capabilityId}</div>
+                            <div>State: {window.state}</div>
+                            <div>Z-Index: {window.zIndex}</div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

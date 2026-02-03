@@ -101,6 +101,22 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
                 pass: res.status !== 503 && isNotDisabled
             };
         }
+    },
+    {
+        name: 'Health API (P5.3)',
+        path: '/api/platform/health',
+        check: (res, body) => {
+            let hasStatus = false;
+            try {
+                const json = JSON.parse(body);
+                hasStatus = json.data?.status === 'healthy';
+            } catch { }
+            return {
+                expected: '200 + status=healthy',
+                actual: `${res.status} ${hasStatus ? '+ healthy' : ''}`,
+                pass: res.status === 200 && hasStatus
+            };
+        }
     }
 ];
 

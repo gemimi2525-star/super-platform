@@ -44,6 +44,8 @@ export type CapabilityId =
     | 'org.manage'
     | 'audit.view'
     | 'system.configure'
+    // Phase 5: Operational Visibility
+    | 'ops.center'
     // Phase F: EXPERIMENTAL
     | 'plugin.analytics';
 
