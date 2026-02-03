@@ -77,6 +77,30 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
                 pass: (res.status === 301 || res.status === 308) && redirectsToSynapse
             };
         }
+    },
+    {
+        name: 'Me API (P5.1)',
+        path: '/api/platform/me',
+        check: (res, body) => {
+            const isNotDisabled = !body.includes('LEGACY_ROUTE_DISABLED');
+            return {
+                expected: '200/401 (not 503 disabled)',
+                actual: `${res.status} ${isNotDisabled ? '' : '(DISABLED)'}`,
+                pass: res.status !== 503 && isNotDisabled
+            };
+        }
+    },
+    {
+        name: 'Audit Logs API (P5.2)',
+        path: '/api/platform/audit-logs',
+        check: (res, body) => {
+            const isNotDisabled = !body.includes('LEGACY_ROUTE_DISABLED');
+            return {
+                expected: '200/401/403 (not 503 disabled)',
+                actual: `${res.status} ${isNotDisabled ? '' : '(DISABLED)'}`,
+                pass: res.status !== 503 && isNotDisabled
+            };
+        }
     }
 ];
 

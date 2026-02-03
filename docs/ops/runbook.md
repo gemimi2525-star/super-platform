@@ -29,7 +29,13 @@ curl -s https://www.apicoredata.com/api/auth/session
 # 3. Check orgs API
 curl -s https://www.apicoredata.com/api/platform/orgs
 
-# 4. Check trust redirect
+# 4. Check me API (P5.1)
+curl -s https://www.apicoredata.com/api/platform/me
+
+# 5. Check audit logs API (P5.2)
+curl -s https://www.apicoredata.com/api/platform/audit-logs
+
+# 6. Check trust redirect
 curl -sI https://www.apicoredata.com/en/trust | grep -i location
 ```
 
@@ -58,3 +64,18 @@ curl -sI https://www.apicoredata.com/en/trust | grep -i location
 #### Session Cookie Issues
 - **Symptom**: Auth works then fails
 - **Check**: Cookie domain, secure flag, expiry
+
+### Phase 5 Debug Guide
+
+#### /api/platform/me returns 500
+- **Check**: `platform_users` collection exists in Firestore
+- **Check**: User document exists for authenticated UID
+- **Log**: Error includes errorId for Vercel log search
+
+#### /api/platform/audit-logs returns 403
+- **Cause**: User lacks `platform:audit:read` permission
+- **Fix**: Only owner role has automatic access
+
+#### Audit Logs Missing Index
+- **Symptom**: 500 with "Missing index configuration"
+- **Fix**: Create composite index in Firebase Console

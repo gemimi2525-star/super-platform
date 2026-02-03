@@ -9,6 +9,9 @@
 | `/os` | 200 | HTML page (requires auth) |
 | `/api/auth/session` | 200 | `{"isAuth":true/false,...}` |
 | `/api/platform/orgs` | 200/401 | `{"success":true,...}` or Unauthorized |
+| `/api/platform/users` | 200/401 | `{"success":true,...}` or Unauthorized |
+| `/api/platform/me` | 200/401 | Current user context |
+| `/api/platform/audit-logs` | 200/401/403 | Audit log entries |
 | `/en/trust` | 301/308 | Redirect → synapsegovernance.com |
 
 ### Smoke Test Checklist
@@ -22,7 +25,9 @@ npm run ops:smoke
 1. ✅ `curl -sI https://www.apicoredata.com/en/login | head -1` → `HTTP/2 200`
 2. ✅ `curl -s https://www.apicoredata.com/api/auth/session | jq .isAuth` → `true/false`
 3. ✅ `curl -s https://www.apicoredata.com/api/platform/orgs` → Not 503
-4. ✅ `curl -sI https://www.apicoredata.com/en/trust | grep location` → synapsegovernance
+4. ✅ `curl -s https://www.apicoredata.com/api/platform/me` → Not 503
+5. ✅ `curl -s https://www.apicoredata.com/api/platform/audit-logs` → Not 503
+6. ✅ `curl -sI https://www.apicoredata.com/en/trust | grep location` → synapsegovernance
 
 ### Recovery Procedures
 
@@ -44,6 +49,7 @@ npm run ops:smoke
 ### Version History
 | Version | Date | Change |
 |---------|------|--------|
-| 2.23 | 2026-02-02 | Organizations restored |
+| 2.24 | 2026-02-03 | Phase 5 (me, audit-logs) |
+| 2.23 | 2026-02-02 | Organizations+Users restored |
 | 2.22 | 2026-02-02 | Login restored |
 | 2.21 | 2026-02-01 | TC-1.2 Live |

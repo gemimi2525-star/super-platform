@@ -1,39 +1,61 @@
-import { NextResponse } from 'next/server';
-
 /**
- * TEMPORARY DISABLED HANDLER
+ * Platform Me API
  * 
- * Legacy Firebase-dependent routes disabled to unblock TC-1.2 Payload CMS build.
- * Webpack cannot resolve '@/lib/firebase' collection exports.
- * 
- * TODO: Re-enable after TC-1.2 lock-in; fix webpack path/exports.
+ * GET - Returns current user context (uid, email, role, orgs)
  */
+
+import { getAuthContext } from '@/lib/auth/server';
+import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
+import { handleError } from '@super-platform/core';
 
 export const runtime = 'nodejs';
 
-const DISABLED_RESPONSE = {
-    ok: false,
-    code: 'LEGACY_ROUTE_DISABLED',
-    reason: 'Temporarily disabled to unblock TC-1.2 Payload CMS build. Legacy Firebase exports unresolved under webpack.',
-    todo: "Re-enable after TC-1.2 lock-in; fix webpack path/exports for '@/lib/firebase' collections.",
-};
+// Inline collection constant to avoid webpack path resolution issues
+const COLLECTION_PLATFORM_USERS = 'platform_users';
 
 export async function GET() {
-    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
-}
+    try {
+        const auth = await getAuthContext();
 
-export async function POST() {
-    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
-}
+        if (!auth) {
+            return ApiErrorResponse.unauthorized();
+        }
 
-export async function PUT() {
-    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
-}
+        // Check Firestore for platform_users collection
+        const { getAdminFirestore } = await import('@/lib/firebase-admin');
+        const db = getAdminFirestore();
 
-export async function PATCH() {
-    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
-}
+        const platformUserDoc = await db.collection(COLLECTION_PLATFORM_USERS).doc(auth.uid).get();
 
-export async function DELETE() {
-    return NextResponse.json(DISABLED_RESPONSE, { status: 503 });
+        if (platformUserDoc.exists) {
+            const data = platformUserDoc.data();
+            return ApiSuccessResponse.ok({
+                uid: auth.uid,
+                email: auth.email,
+                isPlatformUser: true,
+                role: data?.role || 'user',
+                displayName: data?.displayName || null,
+                permissions: data?.permissions || [],
+                enabled: data?.enabled !== false,
+                createdAt: data?.createdAt?.toDate?.()?.toISOString() || null,
+                lastLogin: data?.lastLogin?.toDate?.()?.toISOString() || null,
+            });
+        }
+
+        // User exists in Firebase Auth but not in platform_users
+        return ApiSuccessResponse.ok({
+            uid: auth.uid,
+            email: auth.email,
+            isPlatformUser: false,
+            role: null,
+            displayName: null,
+            permissions: [],
+            enabled: false,
+        });
+
+    } catch (error) {
+        const appError = handleError(error as Error);
+        console.error(`[API] Failed to check platform user [${appError.errorId}]:`, appError.message);
+        return ApiErrorResponse.internalError();
+    }
 }
