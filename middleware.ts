@@ -158,8 +158,24 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // 4. PUBLIC ROOT & LOGIN BYPASS
-    if (pathname === '/' || pathname === '/login') {
+    // 4. PUBLIC ROOT → REDIRECT TO LOCALE
+    // Root "/" should redirect to /{locale} based on cookie
+    if (pathname === '/') {
+        const locale = getLocale(request);
+        const url = request.nextUrl.clone();
+        url.pathname = `/${locale}`;
+
+        const response = NextResponse.redirect(url);
+        response.cookies.set('NEXT_LOCALE', locale, {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 365, // 1 year
+            sameSite: 'lax',
+        });
+        return response;
+    }
+
+    // 4b. PUBLIC LOGIN BYPASS
+    if (pathname === '/login') {
         return NextResponse.next();
     }
 
@@ -178,7 +194,8 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(url, 301);
         }
 
-        const locale = DEFAULT_LOCALE;
+        // Use cookie locale (last selected language) instead of hardcoded default
+        const locale = getLocale(request);
         const url = request.nextUrl.clone();
         url.pathname = `/${locale}${pathname}`;
 
