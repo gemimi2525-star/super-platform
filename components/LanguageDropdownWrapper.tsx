@@ -3,12 +3,15 @@
 /**
  * Language Dropdown Wrapper
  * 
- * Wrapper component that auto-detects the navigation mode based on current path.
- * - Login pages: goHome mode (redirect to localized home)
- * - Other pages: preservePath mode (swap locale, keep path)
+ * Wrapper component for LanguageDropdown.
+ * Uses preservePath mode for ALL pages (including login).
+ * 
+ * Behavior:
+ * - /en/login -> switch TH => /th/login (stay on login)
+ * - /en/trust/verify -> switch TH => /th/trust/verify
+ * - Uses replaceState to avoid Back button loop
  */
 
-import { usePathname } from 'next/navigation';
 import LanguageDropdown from './LanguageDropdown';
 
 interface LanguageDropdownWrapperProps {
@@ -20,17 +23,13 @@ export function LanguageDropdownWrapper({
     size = 'md',
     className = '',
 }: LanguageDropdownWrapperProps) {
-    const pathname = usePathname();
-
-    // Auto-detect mode based on path
-    const isLoginPage = pathname.endsWith('/login');
-
+    // Always use preservePath mode - swap locale, keep current path
+    // This applies to ALL pages including login
     return (
         <LanguageDropdown
             size={size}
             className={className}
-            mode={isLoginPage ? 'goHome' : 'preservePath'}
-            homeTarget="localized"
+            mode="preservePath"
         />
     );
 }
