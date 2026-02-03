@@ -296,6 +296,19 @@ export function middleware(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
+    // CRITICAL: Sync cookie FROM URL locale (URL is source of truth)
+    // This prevents redirect back to old locale when navigating
+    if (pathnameHasLocale && locale && SUPPORTED_LOCALES.includes(locale as any)) {
+        const currentCookie = request.cookies.get('NEXT_LOCALE')?.value;
+        if (currentCookie !== locale) {
+            response.cookies.set('NEXT_LOCALE', locale, {
+                path: '/',
+                maxAge: 60 * 60 * 24 * 365, // 1 year
+                sameSite: 'lax',
+            });
+        }
+    }
+
     return response;
 }
 

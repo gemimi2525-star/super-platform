@@ -151,6 +151,10 @@ export function LanguageDropdown({
             newPath += `?${query}`;
         }
 
+        // CRITICAL: Sync cookie BEFORE navigation
+        // This ensures middleware and system state use the new locale
+        document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+
         // Use replaceState to avoid adding history entry (prevents Back loop)
         window.history.replaceState(null, '', newPath);
         window.location.reload();
