@@ -1,13 +1,14 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OPS CENTER MVP — Phase 5 Operational Visibility
+ * OPS CENTER MVP — Phase 5/6.5.2 Operational Intelligence
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Admin observability dashboard with 4 tabs:
+ * Admin observability dashboard with 5 tabs:
  * 1. System Health — Current system status
  * 2. Audit Trail — Browse audit logs
  * 3. Incidents — Highlighted security/access events
  * 4. API Monitor — Endpoint status
+ * 5. Alerts & Intelligence — Phase 6.5.2 Self-Aware OS (READ-ONLY)
  * 
  * @module coreos/ui/OpsCenterMVP
  */
@@ -74,6 +75,25 @@ interface SessionDebugData {
     timestamp: string;
 }
 
+// Phase 6.5.2: Alerts Data
+interface AlertData {
+    id: string;
+    ruleId: string;
+    severity: 'info' | 'warn' | 'critical';
+    message: string;
+    source: string;
+    timestamp: string;
+    correlatedRequestIds: string[];
+    acknowledged: false;
+}
+
+interface AlertsResponse {
+    alerts: AlertData[];
+    summary: { critical: number; warn: number; info: number; total: number };
+    history: AlertData[];
+    timestamp: string;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -96,13 +116,14 @@ const tokens = {
 // TAB NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-type TabId = 'health' | 'audit' | 'incidents' | 'api';
+type TabId = 'health' | 'audit' | 'incidents' | 'api' | 'alerts';
 
 const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: 'health', label: 'System Health', icon: '💚' },
     { id: 'audit', label: 'Audit Trail', icon: '📋' },
     { id: 'incidents', label: 'Incidents', icon: '⚠️' },
     { id: 'api', label: 'API Monitor', icon: '📡' },
+    { id: 'alerts', label: 'Alerts & Intelligence', icon: '🚨' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -186,6 +207,34 @@ function useSessionDebug() {
 
     useEffect(() => {
         refetch();
+    }, []);
+
+    return { data, loading, error, refetch };
+}
+
+// Phase 6.5.2: Alerts Hook
+function useAlerts() {
+    const [data, setData] = useState<AlertsResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const refetch = () => {
+        setLoading(true);
+        fetch('/api/platform/alerts')
+            .then(res => res.json())
+            .then(json => {
+                if (json.success) setData(json.data);
+                else setError(json.error?.message || 'Failed to fetch alerts');
+            })
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        refetch();
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(refetch, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     return { data, loading, error, refetch };
@@ -784,6 +833,177 @@ function ApiMonitorTab() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TAB: ALERTS & INTELLIGENCE (Phase 6.5.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AlertsTab() {
+    const { data, loading, error, refetch } = useAlerts();
+
+    if (loading) return <LoadingState message="Loading alerts..." />;
+    if (error) return <ErrorState message={error} />;
+    if (!data) return <ErrorState message="No alerts data" />;
+
+    const getSeverityColor = (severity: string) => {
+        if (severity === 'critical') return tokens.error;
+        if (severity === 'warn') return tokens.warning;
+        return tokens.textSecondary;
+    };
+
+    const getSeverityBg = (severity: string) => {
+        if (severity === 'critical') return '#fff0f0';
+        if (severity === 'warn') return '#fffbf0';
+        return tokens.bgSecondary;
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header with Refresh */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+                    🚨 Alerts & Intelligence
+                </h3>
+                <button
+                    onClick={refetch}
+                    style={{
+                        padding: '6px 12px',
+                        background: tokens.bgSecondary,
+                        border: `1px solid ${tokens.border}`,
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                    }}
+                >
+                    🔄 Refresh
+                </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div style={{ display: 'flex', gap: 16 }}>
+                <Card title="Critical">
+                    <div style={{ fontSize: 32, fontWeight: 700, color: data.summary.critical > 0 ? tokens.error : tokens.success }}>
+                        {data.summary.critical}
+                    </div>
+                </Card>
+                <Card title="Warnings">
+                    <div style={{ fontSize: 32, fontWeight: 700, color: data.summary.warn > 0 ? tokens.warning : tokens.success }}>
+                        {data.summary.warn}
+                    </div>
+                </Card>
+                <Card title="Total Active">
+                    <div style={{ fontSize: 32, fontWeight: 700, color: tokens.textPrimary }}>
+                        {data.summary.total}
+                    </div>
+                </Card>
+            </div>
+
+            {/* Governance Guarantee Banner */}
+            <div style={{
+                padding: 12,
+                background: '#e8f4fd',
+                borderRadius: tokens.radius,
+                fontSize: 12,
+                color: tokens.accent,
+                border: `1px solid ${tokens.accent}`,
+            }}>
+                🔒 <strong>READ-ONLY Mode:</strong> This dashboard observes only. No auto-remediation or governance bypass.
+            </div>
+
+            {/* Active Alerts */}
+            <Card title="Active Alerts" accent={data.alerts.length > 0 ? '#fff0f0' : tokens.bgSecondary}>
+                {data.alerts.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 20, color: tokens.success }}>
+                        ✅ No active alerts
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {data.alerts.map(alert => (
+                            <div
+                                key={alert.id}
+                                style={{
+                                    padding: 12,
+                                    borderRadius: tokens.radius,
+                                    background: getSeverityBg(alert.severity),
+                                    border: `1px solid ${getSeverityColor(alert.severity)}`,
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <strong style={{ fontSize: 13 }}>
+                                        {alert.severity === 'critical' ? '🔴' : alert.severity === 'warn' ? '🟠' : 'ℹ️'} {alert.message}
+                                    </strong>
+                                    <span style={{ fontSize: 11, color: tokens.textSecondary }}>
+                                        {new Date(alert.timestamp).toLocaleTimeString()}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: 11, color: tokens.textSecondary }}>
+                                    Rule: {alert.ruleId} | Source: {alert.source}
+                                </div>
+                                {alert.correlatedRequestIds.length > 0 && (
+                                    <div style={{ fontSize: 10, color: tokens.textSecondary, marginTop: 4 }}>
+                                        Request IDs: {alert.correlatedRequestIds.slice(0, 3).join(', ')}
+                                        {alert.correlatedRequestIds.length > 3 && ` +${alert.correlatedRequestIds.length - 3} more`}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            {/* Alert History */}
+            <Card title="Alert History (Last 50)">
+                {data.history.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 20, color: tokens.textSecondary }}>
+                        No alert history
+                    </div>
+                ) : (
+                    <div style={{ maxHeight: 300, overflow: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                            <thead>
+                                <tr style={{ background: tokens.bgSecondary }}>
+                                    <th style={{ padding: 8, textAlign: 'left' }}>Time</th>
+                                    <th style={{ padding: 8, textAlign: 'left' }}>Rule</th>
+                                    <th style={{ padding: 8, textAlign: 'center' }}>Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.history.slice(0, 20).map(alert => (
+                                    <tr key={alert.id} style={{ borderTop: `1px solid ${tokens.border}` }}>
+                                        <td style={{ padding: 8, color: tokens.textSecondary }}>
+                                            {new Date(alert.timestamp).toLocaleString()}
+                                        </td>
+                                        <td style={{ padding: 8 }}>
+                                            {alert.ruleId}
+                                        </td>
+                                        <td style={{ padding: 8, textAlign: 'center' }}>
+                                            <span style={{
+                                                padding: '2px 8px',
+                                                borderRadius: 10,
+                                                background: getSeverityBg(alert.severity),
+                                                color: getSeverityColor(alert.severity),
+                                                fontSize: 10,
+                                                fontWeight: 600,
+                                                textTransform: 'uppercase',
+                                            }}>
+                                                {alert.severity}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </Card>
+
+            {/* Footer Info */}
+            <div style={{ fontSize: 11, color: tokens.textSecondary, textAlign: 'center' }}>
+                Last updated: {new Date(data.timestamp).toLocaleTimeString()} • Auto-refresh: 30s
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -832,6 +1052,7 @@ export function OpsCenterMVP() {
                 {activeTab === 'audit' && <AuditTab />}
                 {activeTab === 'incidents' && <IncidentsTab />}
                 {activeTab === 'api' && <ApiMonitorTab />}
+                {activeTab === 'alerts' && <AlertsTab />}
             </div>
 
             {/* Footer */}
@@ -843,7 +1064,7 @@ export function OpsCenterMVP() {
                 textAlign: 'center',
                 background: tokens.bgPrimary,
             }}>
-                Ops Center • Phase 5 Operational Visibility
+                Ops Center • Phase 6.5.2 Operational Intelligence
             </div>
         </div>
     );
