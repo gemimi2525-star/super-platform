@@ -135,7 +135,7 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
     {
         name: 'Session Debug API (P5.4)',
         path: '/api/platform/session-debug',
-        check: (res, body) => {
+        check: (res: Response, body: string) => {
             // Should return 401 when not authenticated (our smoke test has no cookies)
             const isNotDisabled = !body.includes('LEGACY_ROUTE_DISABLED');
             return {
@@ -144,6 +144,52 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
                 pass: res.status === 401 && isNotDisabled
             };
         }
+    },
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 6: GOVERNANCE PUBLISHING & ATTESTATION
+    // ═══════════════════════════════════════════════════════════════════════
+    {
+        name: 'Attestation Bundle API (P6)',
+        path: '/api/trust/attestation/bundle',
+        check: (res: Response, body: string) => {
+            let hasManifest = false;
+            let hasPublicKey = false;
+            try {
+                const json = JSON.parse(body);
+                hasManifest = !!json.data?.manifest;
+                hasPublicKey = !!json.data?.publicKey;
+            } catch { }
+            return {
+                expected: '200 + manifest + publicKey',
+                actual: `${res.status} ${hasManifest ? '+ manifest' : ''} ${hasPublicKey ? '+ publicKey' : ''}`,
+                pass: res.status === 200 && hasManifest && hasPublicKey
+            };
+        }
+    },
+    {
+        name: 'Public Key API (P6)',
+        path: '/api/trust/attestation/public-key',
+        check: (res: Response, body: string) => {
+            let hasAlgorithm = false;
+            try {
+                const json = JSON.parse(body);
+                hasAlgorithm = json.algorithm === 'ed25519';
+            } catch { }
+            return {
+                expected: '200 + algorithm=ed25519',
+                actual: `${res.status} ${hasAlgorithm ? '+ ed25519' : ''}`,
+                pass: res.status === 200 && hasAlgorithm
+            };
+        }
+    },
+    {
+        name: 'Verify API GET (P6)',
+        path: '/api/trust/verify',
+        check: (res: Response) => ({
+            expected: '405 (POST only)',
+            actual: String(res.status),
+            pass: res.status === 405
+        })
     }
 ];
 

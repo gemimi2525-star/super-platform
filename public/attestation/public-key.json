@@ -1,0 +1,8 @@
+{
+    "algorithm": "ed25519",
+    "encoding": "hex",
+    "usage": "Ed25519 signature verification for APICOREDATA governance attestation",
+    "note": "Use this key to verify attestation signatures. Get the actual key from API at runtime.",
+    "apiEndpoint": "/api/trust/attestation/public-key",
+    "documentation": "/docs/public-attestation/README.md"
+}

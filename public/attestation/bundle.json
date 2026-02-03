@@ -1,0 +1,12 @@
+{
+    "version": "1.0",
+    "toolVersion": "coreos-attestation-1.0.0",
+    "algorithm": "ed25519",
+    "chainId": "apicoredata-governance",
+    "segmentName": "governance-attestation-v1.jsonl",
+    "description": "APICOREDATA Governance Attestation Bundle",
+    "note": "This is a placeholder bundle. Production bundles are generated from actual audit data.",
+    "generatedAt": "2026-02-03T13:00:00+07:00",
+    "publicKeyEndpoint": "/api/trust/attestation/public-key",
+    "verifyEndpoint": "/api/trust/verify"
+}
