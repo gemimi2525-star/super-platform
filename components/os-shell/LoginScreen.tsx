@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { tokens } from './tokens';
+import { useTranslations } from '@/lib/i18n';
 
 interface LoginScreenProps {
     onLoginSuccess: (idToken: string) => void;
 }
 
 export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+    const t = useTranslations('auth.loginScreen');
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [error, setError] = React.useState('');
@@ -33,7 +35,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         } catch (err: any) {
             console.error('Login failed:', err);
             setLoading(false);
-            setError('Invalid email or password');
+            setError(t('invalidCredentials'));
         }
     };
 
@@ -82,16 +84,16 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 </div>
 
                 <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 600, color: '#1a1a1a' }}>
-                    Sign In
+                    {t('title')}
                 </h2>
                 <p style={{ margin: '0 0 32px', fontSize: 14, color: '#4a4a4a', opacity: 0.8 }}>
-                    Core OS v1.0
+                    {t('version')}
                 </p>
 
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <input
                         type="email"
-                        placeholder="Email Address"
+                        placeholder={t('emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={{
@@ -103,7 +105,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                     <div style={{ position: 'relative' }}>
                         <input
                             type="password"
-                            placeholder="Password"
+                            placeholder={t('passwordPlaceholder')}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             style={{
@@ -125,7 +127,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                             cursor: loading ? 'wait' : 'pointer', transition: 'all 0.2s',
                         }}
                     >
-                        {loading ? 'Verifying...' : 'Unlock System'}
+                        {loading ? t('verifying') : t('unlock')}
                     </button>
 
                     {isDev && (

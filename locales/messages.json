@@ -3618,5 +3618,41 @@
   "trust.support.docs.desc": {
     "en": "Learn more about SYNAPSE governance",
     "th": "เรียนรู้เพิ่มเติมเกี่ยวกับการกำกับดูแลของ SYNAPSE"
+  },
+  "landing.tagline": {
+    "en": "Enterprise Operating System for Data & Intelligence",
+    "th": "ระบบปฏิบัติการองค์กรสำหรับข้อมูลและ AI"
+  },
+  "landing.signIn": {
+    "en": "Sign In to OS",
+    "th": "เข้าสู่ระบบ"
+  },
+  "auth.loginScreen.title": {
+    "en": "Sign In",
+    "th": "เข้าสู่ระบบ"
+  },
+  "auth.loginScreen.version": {
+    "en": "Core OS v1.0",
+    "th": "Core OS รุ่น 1.0"
+  },
+  "auth.loginScreen.emailPlaceholder": {
+    "en": "Email Address",
+    "th": "อีเมล"
+  },
+  "auth.loginScreen.passwordPlaceholder": {
+    "en": "Password",
+    "th": "รหัสผ่าน"
+  },
+  "auth.loginScreen.unlock": {
+    "en": "Unlock System",
+    "th": "ปลดล็อกระบบ"
+  },
+  "auth.loginScreen.verifying": {
+    "en": "Verifying...",
+    "th": "กำลังยืนยัน..."
+  },
+  "auth.loginScreen.invalidCredentials": {
+    "en": "Invalid email or password",
+    "th": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
   }
 }
