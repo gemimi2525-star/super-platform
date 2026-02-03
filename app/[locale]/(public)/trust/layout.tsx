@@ -1,8 +1,8 @@
-// Trust Center Layout with Language Switcher
-// Phase 6.2: Added global language toggle for EN/TH
+// Trust Center Layout with Language Dropdown
+// Phase 6.3: Upgraded to dropdown menu
 
 import { ReactNode, Suspense } from 'react';
-import SimpleLanguageSwitcher from '@/components/SimpleLanguageSwitcher';
+import LanguageDropdown from '@/components/LanguageDropdown';
 
 export default async function TrustCenterLayout({
     children,
@@ -13,12 +13,12 @@ export default async function TrustCenterLayout({
 }) {
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Top Language Bar */}
+            {/* Language Dropdown - Fixed top-right */}
             <div className="fixed top-4 right-4 z-50">
                 <Suspense fallback={
-                    <div className="w-16 h-8 bg-gray-100 rounded-full animate-pulse" />
+                    <div className="w-20 h-8 bg-gray-100 rounded-full animate-pulse" />
                 }>
-                    <SimpleLanguageSwitcher size="md" />
+                    <LanguageDropdown size="md" />
                 </Suspense>
             </div>
 

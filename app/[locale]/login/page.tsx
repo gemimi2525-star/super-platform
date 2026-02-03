@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoginScreen } from '@/components/os-shell/LoginScreen';
-import SimpleLanguageSwitcher from '@/components/SimpleLanguageSwitcher';
+import LanguageDropdown from '@/components/LanguageDropdown';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -30,12 +30,12 @@ export default function LoginPage() {
 
     return (
         <>
-            {/* Language Switcher - Fixed top-right */}
+            {/* Language Dropdown - Fixed top-right */}
             <div className="fixed top-4 right-4 z-50">
                 <Suspense fallback={
-                    <div className="w-16 h-8 bg-gray-100 rounded-full animate-pulse" />
+                    <div className="w-20 h-8 bg-gray-100 rounded-full animate-pulse" />
                 }>
-                    <SimpleLanguageSwitcher size="md" />
+                    <LanguageDropdown size="md" />
                 </Suspense>
             </div>
             <LoginScreen onLoginSuccess={handleLoginSuccess} />
