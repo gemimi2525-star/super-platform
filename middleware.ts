@@ -21,6 +21,115 @@ function getLocale(req: NextRequest) {
     return DEFAULT_LOCALE;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 6.3.9: Rate Limit Guardrails + Observability
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if request is HTML document navigation (not asset/XHR)
+ */
+function isHtmlNavigation(request: NextRequest, pathname: string): boolean {
+    if (request.method !== 'GET') return false;
+    if (pathname.startsWith('/api/')) return false;
+    if (pathname.startsWith('/_next/')) return false;
+    if (pathname.startsWith('/trpc')) return false;
+    if (/\.(json|xml|txt|ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot)$/i.test(pathname)) return false;
+
+    const accept = request.headers.get('accept') || '';
+    const secFetchDest = request.headers.get('sec-fetch-dest') || '';
+
+    // Must have HTML accept OR document fetch destination
+    return accept.includes('text/html') || secFetchDest === 'document';
+}
+
+/**
+ * Check if request is from a real browser (not bot/curl)
+ */
+function isBrowserRequest(request: NextRequest): boolean {
+    // Browser sends Sec-Fetch headers
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    const secFetchMode = request.headers.get('sec-fetch-mode');
+    const accept = request.headers.get('accept') || '';
+
+    // Real browsers always send these headers
+    if (secFetchSite && secFetchMode) return true;
+    if (accept.includes('text/html')) return true;
+
+    // Check user-agent for known bots
+    const ua = (request.headers.get('user-agent') || '').toLowerCase();
+    const botKeywords = ['bot', 'crawler', 'spider', 'curl', 'wget', 'python', 'axios', 'httpie', 'insomnia', 'postman'];
+    return !botKeywords.some(k => ua.includes(k)) && ua.length > 0;
+}
+
+/**
+ * Hash IP for privacy (only first 2 octets)
+ */
+function hashIp(ip: string): string {
+    if (!ip || ip === '127.0.0.1') return '127.0.*.*';
+    const parts = ip.split('.');
+    if (parts.length >= 2) {
+        return `${parts[0]}.${parts[1]}.*.*`;
+    }
+    return ip.slice(0, 8) + '...';
+}
+
+/**
+ * Classify user-agent for logging (no PII)
+ */
+function classifyUserAgent(ua: string): string {
+    const lower = ua.toLowerCase();
+    if (lower.includes('bot') || lower.includes('crawler') || lower.includes('spider')) return 'bot';
+    if (lower.includes('curl')) return 'curl';
+    if (lower.includes('python')) return 'python';
+    if (lower.includes('chrome')) return 'chrome';
+    if (lower.includes('safari')) return 'safari';
+    if (lower.includes('firefox')) return 'firefox';
+    if (lower.includes('edge')) return 'edge';
+    if (lower.length === 0) return 'empty';
+    return 'unknown';
+}
+
+/**
+ * Log 429 event for observability (no raw IP)
+ */
+function log429Event(request: NextRequest, pathname: string, policy: string, retryAfter: number) {
+    const ua = request.headers.get('user-agent') || '';
+    const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '0.0.0.0';
+
+    console.warn('[RateLimit:429]', JSON.stringify({
+        policy,
+        pathname,
+        method: request.method,
+        retryAfter,
+        uaClass: classifyUserAgent(ua),
+        ipHash: hashIp(ip.split(',')[0].trim()),
+        timestamp: new Date().toISOString()
+    }));
+}
+
+/**
+ * Create 429 response with policy header
+ */
+function create429Response(policy: string, res: { limit: number; remaining: number; retryAfter: number }): NextResponse {
+    return new NextResponse(
+        JSON.stringify({
+            error: 'Too many requests',
+            message: 'Please wait before trying again.',
+            retryAfter: res.retryAfter
+        }),
+        {
+            status: 429,
+            headers: {
+                'Content-Type': 'application/json',
+                'Retry-After': String(res.retryAfter),
+                'X-RateLimit-Policy': policy,
+                'X-RateLimit-Limit': String(res.limit),
+                'X-RateLimit-Remaining': String(res.remaining),
+            }
+        }
+    );
+}
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const isDev = process.env.NODE_ENV === 'development';
@@ -208,15 +317,20 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // 6. RATE LIMITING (API ONLY)
-    // PHASE 6.3.8: Rate limit ONLY applies to API routes
-    // Page navigation (GET /en, /th, /login, /trust/*) is EXEMPT
-    // This prevents 429 during language switching and back/forward navigation
-    const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
+    // 6. RATE LIMITING
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 6.3.9: 3-Tier Rate Limit Policy
+    //   - auth: /api/auth/* (10/min)
+    //   - write: POST/PUT/DELETE /api/* (60/min)
+    //   - read: GET /api/* (300/min)
+    //   - page_nav: HTML page GET for browsers (600/min)
+    //   - non_browser: HTML page GET for bots/curl (60/min)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const ip = ((request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1').split(',')[0].trim();
 
-    let limitType: 'auth' | 'write' | 'read' | null = null;
+    let limitType: 'auth' | 'write' | 'read' | 'page_nav' | 'non_browser' | null = null;
 
-    // Only rate limit API routes
+    // API Routes: always rate limited
     if (pathname.startsWith('/api/')) {
         if (pathname.startsWith('/api/auth')) {
             // Auth API: strict limit (10/min default)
@@ -229,28 +343,20 @@ export function middleware(request: NextRequest) {
             limitType = 'read';
         }
     }
-    // NOTE: Page routes (/en, /th, /login, /trust/*) are NOT rate limited
+    // Page Navigation: rate limited based on browser detection
+    else if (isHtmlNavigation(request, pathname)) {
+        // Browsers get generous limit, bots/curl get tighter limit
+        limitType = isBrowserRequest(request) ? 'page_nav' : 'non_browser';
+    }
+    // Other GET requests (assets via matcher exclusion, but just in case): no limit
 
     if (limitType) {
         const res = checkRateLimit(ip, limitType);
         if (!res.success) {
-            const retryAfter = res.retryAfter || 60;
-            return new NextResponse(
-                JSON.stringify({
-                    error: 'Too many requests',
-                    message: 'Please wait before trying again.',
-                    retryAfter
-                }),
-                {
-                    status: 429,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Retry-After': String(retryAfter),
-                        'X-RateLimit-Limit': String(res.limit),
-                        'X-RateLimit-Remaining': String(res.remaining),
-                    }
-                }
-            );
+            // Log 429 event for observability
+            log429Event(request, pathname, limitType, res.retryAfter || 60);
+            // Return 429 with policy header
+            return create429Response(limitType, res);
         }
     }
 
