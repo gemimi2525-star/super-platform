@@ -8,6 +8,7 @@
  * 
  * Usage:
  *   <LanguageDropdown />
+ *   <LanguageDropdown mode="goHome" homeTarget="localized" />
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -29,11 +30,25 @@ interface LanguageDropdownProps {
     size?: 'sm' | 'md' | 'lg';
     /** Additional CSS classes */
     className?: string;
+    /** 
+     * Navigation mode:
+     * - 'preservePath': Keep current path, just swap locale (default)
+     * - 'goHome': Navigate to home page after switching
+     */
+    mode?: 'preservePath' | 'goHome';
+    /**
+     * Home target when mode='goHome':
+     * - 'root': Navigate to /
+     * - 'localized': Navigate to /{locale} (default)
+     */
+    homeTarget?: 'root' | 'localized';
 }
 
 export function LanguageDropdown({
     size = 'md',
     className = '',
+    mode = 'preservePath',
+    homeTarget = 'localized',
 }: LanguageDropdownProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -111,16 +126,24 @@ export function LanguageDropdown({
             return;
         }
 
-        const pathParts = pathname.split('/');
+        let newPath: string;
 
-        // Replace locale segment
-        if (SUPPORTED_LOCALES.some(l => l.code === pathParts[1] as LocaleCode)) {
-            pathParts[1] = newLocale;
+        // Determine target path based on mode
+        if (mode === 'goHome') {
+            // Navigate to home page
+            newPath = homeTarget === 'root' ? '/' : `/${newLocale}`;
         } else {
-            pathParts.splice(1, 0, newLocale);
-        }
+            // preservePath: swap locale in current path
+            const pathParts = pathname.split('/');
 
-        let newPath = pathParts.join('/');
+            if (SUPPORTED_LOCALES.some(l => l.code === pathParts[1] as LocaleCode)) {
+                pathParts[1] = newLocale;
+            } else {
+                pathParts.splice(1, 0, newLocale);
+            }
+
+            newPath = pathParts.join('/');
+        }
 
         // Preserve query string
         const query = searchParams?.toString();
@@ -128,7 +151,9 @@ export function LanguageDropdown({
             newPath += `?${query}`;
         }
 
-        window.location.href = newPath;
+        // Use replaceState to avoid adding history entry (prevents Back loop)
+        window.history.replaceState(null, '', newPath);
+        window.location.reload();
     };
 
     const currentLang = SUPPORTED_LOCALES.find(l => l.code === currentLocale) || SUPPORTED_LOCALES[0];

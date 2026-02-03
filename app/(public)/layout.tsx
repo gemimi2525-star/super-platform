@@ -11,7 +11,7 @@ import { ToastProvider } from "@super-platform/ui";
 import { Toaster } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { AppearanceProvider } from '@/contexts/AppearanceContext';
-import LanguageDropdown from '@/components/LanguageDropdown';
+import LanguageDropdownWrapper from '@/components/LanguageDropdownWrapper';
 import fs from 'fs';
 import path from 'path';
 import { cookies } from 'next/headers';
@@ -93,7 +93,7 @@ export default async function PublicLayout({
                                             <Suspense fallback={
                                                 <div className="w-20 h-8 bg-gray-100/50 rounded-full animate-pulse" />
                                             }>
-                                                <LanguageDropdown size="md" />
+                                                <LanguageDropdownWrapper size="md" />
                                             </Suspense>
                                         </div>
                                         {children}
