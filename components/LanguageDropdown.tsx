@@ -54,6 +54,7 @@ export function LanguageDropdown({
     const searchParams = useSearchParams();
     const [currentLocale, setCurrentLocale] = useState<LocaleCode>('en');
     const [isOpen, setIsOpen] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false); // Debounce guard
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -121,10 +122,16 @@ export function LanguageDropdown({
     };
 
     const handleSelectLocale = (newLocale: LocaleCode) => {
+        // Guard: prevent double-click and rapid switching
+        if (isNavigating) return;
+
         if (newLocale === currentLocale) {
             setIsOpen(false);
             return;
         }
+
+        // Set navigating flag to prevent double-click
+        setIsNavigating(true);
 
         let newPath: string;
 

@@ -208,17 +208,28 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // 6. RATE LIMITING
+    // 6. RATE LIMITING (API ONLY)
+    // PHASE 6.3.8: Rate limit ONLY applies to API routes
+    // Page navigation (GET /en, /th, /login, /trust/*) is EXEMPT
+    // This prevents 429 during language switching and back/forward navigation
     const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
 
     let limitType: 'auth' | 'write' | 'read' | null = null;
-    if (pathWithoutLocale.startsWith('/auth') || pathWithoutLocale.startsWith('/api/auth') || pathWithoutLocale === '/login') {
-        limitType = 'auth';
-    } else if (request.method !== 'GET' && request.method !== 'HEAD' && request.method !== 'OPTIONS') {
-        limitType = 'write';
-    } else if (pathname.startsWith('/api/')) {
-        limitType = 'read';
+
+    // Only rate limit API routes
+    if (pathname.startsWith('/api/')) {
+        if (pathname.startsWith('/api/auth')) {
+            // Auth API: strict limit (10/min default)
+            limitType = 'auth';
+        } else if (request.method !== 'GET' && request.method !== 'HEAD' && request.method !== 'OPTIONS') {
+            // Write operations: moderate limit (60/min default)
+            limitType = 'write';
+        } else {
+            // Read API: generous limit (300/min default)
+            limitType = 'read';
+        }
     }
+    // NOTE: Page routes (/en, /th, /login, /trust/*) are NOT rate limited
 
     if (limitType) {
         const res = checkRateLimit(ip, limitType);
