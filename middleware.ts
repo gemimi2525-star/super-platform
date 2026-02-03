@@ -90,20 +90,54 @@ function classifyUserAgent(ua: string): string {
 }
 
 /**
- * Log 429 event for observability (no raw IP)
+ * Generate short request ID for tracing (Phase 6.5.1)
+ */
+function generateRequestId(): string {
+    return crypto.randomUUID().slice(0, 8);
+}
+
+/**
+ * Extract geo info from Vercel headers (Phase 6.5.1)
+ */
+function extractGeoInfo(request: NextRequest): { country: string; city: string; region: string } {
+    return {
+        country: request.headers.get('x-vercel-ip-country') || 'unknown',
+        city: request.headers.get('x-vercel-ip-city') || 'unknown',
+        region: request.headers.get('x-vercel-ip-country-region') || 'unknown',
+    };
+}
+
+/**
+ * Log 429 event for observability (Phase 6.5.1 Enhanced)
+ * - No raw IP (hashed only)
+ * - Request ID for tracing
+ * - Geo info from Vercel Edge
  */
 function log429Event(request: NextRequest, pathname: string, policy: string, retryAfter: number) {
     const ua = request.headers.get('user-agent') || '';
     const ip = (request as any).ip || request.headers.get('x-forwarded-for') || '0.0.0.0';
+    const geo = extractGeoInfo(request);
+    const requestId = generateRequestId();
 
     console.warn('[RateLimit:429]', JSON.stringify({
+        // Core event info
+        event: 'rate_limit_429',
+        requestId,
         policy,
         pathname,
         method: request.method,
         retryAfter,
+
+        // Client classification (no PII)
         uaClass: classifyUserAgent(ua),
         ipHash: hashIp(ip.split(',')[0].trim()),
-        timestamp: new Date().toISOString()
+
+        // Geo context (from Vercel Edge)
+        geo: geo.country !== 'unknown' ? geo : undefined,
+
+        // Metadata
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'production',
     }));
 }
 
