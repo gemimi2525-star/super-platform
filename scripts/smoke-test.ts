@@ -38,6 +38,20 @@ const tests: { name: string; path: string; check: (res: Response, body: string) 
         })
     },
     {
+        name: 'OS Auth Gate (P0-HOTFIX)',
+        path: '/os',
+        check: (res) => {
+            const location = res.headers.get('location') || '';
+            const redirectsToLogin = location.includes('/login');
+            const hasCallback = location.includes('callbackUrl');
+            return {
+                expected: '307 → /login?callbackUrl',
+                actual: `${res.status} → ${location.substring(0, 35)}...`,
+                pass: (res.status === 307 || res.status === 308) && redirectsToLogin && hasCallback
+            };
+        }
+    },
+    {
         name: 'Auth Session API',
         path: '/api/auth/session',
         check: (res, body) => {
