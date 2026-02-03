@@ -13,7 +13,6 @@ import { Toaster } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { AppearanceProvider } from '@/contexts/AppearanceContext';
 import LanguageDropdownWrapper from '@/components/LanguageDropdownWrapper';
-import { LocaleSyncScript } from '@/components/LocaleSyncScript';
 import fs from 'fs';
 import path from 'path';
 
@@ -89,7 +88,6 @@ export default async function LocaleLayout({
         suppressHydrationWarning
       >
         <I18nProvider locale={locale as any} messages={messages}>
-          <LocaleSyncScript locale={locale} />
           <QueryProvider>
             <AuthProvider>
               <BrandProvider>

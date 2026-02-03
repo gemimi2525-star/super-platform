@@ -301,9 +301,9 @@ export function middleware(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // NOTE: Cookie is ONLY set by LanguageDropdown (user's explicit choice)
-    // Middleware never overwrites cookie - this ensures user preference is respected
-    // LocaleSyncScript will redirect to cookie locale if URL doesn't match
+    // PHASE 6.3.7: URL = Source of Truth for locale paths
+    // Cookie is ONLY used for paths without locale prefix (/, /login)
+    // LanguageDropdown sets cookie AND navigates with proper history
 
     return response;
 }

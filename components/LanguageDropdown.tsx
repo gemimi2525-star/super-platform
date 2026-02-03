@@ -155,9 +155,9 @@ export function LanguageDropdown({
         // This ensures middleware and system state use the new locale
         document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 
-        // Use replaceState to avoid adding history entry (prevents Back loop)
-        window.history.replaceState(null, '', newPath);
-        window.location.reload();
+        // Use location.href for full navigation with proper history entry
+        // This allows Back/Forward to work naturally (no redirect hijacking)
+        window.location.href = newPath;
     };
 
     const currentLang = SUPPORTED_LOCALES.find(l => l.code === currentLocale) || SUPPORTED_LOCALES[0];
