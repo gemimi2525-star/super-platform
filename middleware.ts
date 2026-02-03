@@ -160,18 +160,12 @@ export function middleware(request: NextRequest) {
 
     // 4. PUBLIC ROOT → REDIRECT TO LOCALE
     // Root "/" should redirect to /{locale} based on cookie
+    // NOTE: Do NOT set cookie here - cookie is only set by LanguageDropdown
     if (pathname === '/') {
         const locale = getLocale(request);
         const url = request.nextUrl.clone();
         url.pathname = `/${locale}`;
-
-        const response = NextResponse.redirect(url);
-        response.cookies.set('NEXT_LOCALE', locale, {
-            path: '/',
-            maxAge: 60 * 60 * 24 * 365, // 1 year
-            sameSite: 'lax',
-        });
-        return response;
+        return NextResponse.redirect(url);
     }
 
     // 4b. PUBLIC LOGIN BYPASS
@@ -195,17 +189,11 @@ export function middleware(request: NextRequest) {
         }
 
         // Use cookie locale (last selected language) instead of hardcoded default
+        // NOTE: Do NOT set cookie here - cookie is only set by LanguageDropdown
         const locale = getLocale(request);
         const url = request.nextUrl.clone();
         url.pathname = `/${locale}${pathname}`;
-
-        const response = NextResponse.redirect(url);
-        response.cookies.set('NEXT_LOCALE', locale, {
-            path: '/',
-            maxAge: 60 * 60 * 24 * 365, // 1 year
-            sameSite: 'lax',
-        });
-        return response;
+        return NextResponse.redirect(url);
     }
 
     // Extract locale from pathname for Rate Limiting / Auth checks below
@@ -313,18 +301,9 @@ export function middleware(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // CRITICAL: Sync cookie FROM URL locale (URL is source of truth)
-    // This prevents redirect back to old locale when navigating
-    if (pathnameHasLocale && locale && SUPPORTED_LOCALES.includes(locale as any)) {
-        const currentCookie = request.cookies.get('NEXT_LOCALE')?.value;
-        if (currentCookie !== locale) {
-            response.cookies.set('NEXT_LOCALE', locale, {
-                path: '/',
-                maxAge: 60 * 60 * 24 * 365, // 1 year
-                sameSite: 'lax',
-            });
-        }
-    }
+    // NOTE: Cookie is ONLY set by LanguageDropdown (user's explicit choice)
+    // Middleware never overwrites cookie - this ensures user preference is respected
+    // LocaleSyncScript will redirect to cookie locale if URL doesn't match
 
     return response;
 }
