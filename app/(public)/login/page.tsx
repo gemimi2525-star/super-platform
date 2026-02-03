@@ -1,9 +1,8 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { LoginScreen } from '@/components/os-shell/LoginScreen';
-import LanguageDropdown from '@/components/LanguageDropdown';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -20,7 +19,7 @@ export default function LoginPage() {
             if (res.ok) {
                 // Redirect to /os
                 router.replace('/os');
-                router.refresh(); // Refresh to ensure middleware picks up the new cookie status
+                router.refresh();
             } else {
                 console.error('Failed to create session');
             }
@@ -29,17 +28,6 @@ export default function LoginPage() {
         }
     };
 
-    return (
-        <>
-            {/* Language Dropdown - Fixed top-right */}
-            <div className="fixed top-4 right-4 z-50">
-                <Suspense fallback={
-                    <div className="w-20 h-8 bg-gray-100 rounded-full animate-pulse" />
-                }>
-                    <LanguageDropdown size="md" />
-                </Suspense>
-            </div>
-            <LoginScreen onLoginSuccess={handleLoginSuccess} />
-        </>
-    );
+    // Dropdown is now rendered in (public)/layout.tsx
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
 }

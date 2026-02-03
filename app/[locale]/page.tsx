@@ -1,19 +1,9 @@
 import Link from 'next/link';
-import { Suspense } from 'react';
-import LanguageDropdown from '@/components/LanguageDropdown';
 
 export default async function Home() {
+    // Dropdown is now rendered in [locale]/layout.tsx
     return (
-        <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-950 text-white">
-            {/* Language Dropdown - Fixed top-right */}
-            <div className="fixed top-4 right-4 z-50">
-                <Suspense fallback={
-                    <div className="w-20 h-8 bg-slate-800 rounded-full animate-pulse" />
-                }>
-                    <LanguageDropdown size="md" />
-                </Suspense>
-            </div>
-
+        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 text-white">
             <main className="flex flex-col items-center gap-8 text-center p-8">
                 <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
                     APICOREDATA

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import "../globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
@@ -11,6 +12,7 @@ import { ToastProvider } from "@super-platform/ui";
 import { Toaster } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { AppearanceProvider } from '@/contexts/AppearanceContext';
+import LanguageDropdown from '@/components/LanguageDropdown';
 import fs from 'fs';
 import path from 'path';
 
@@ -91,6 +93,14 @@ export default async function LocaleLayout({
               <BrandProvider>
                 <AppearanceProvider>
                   <ToastProvider>
+                    {/* Global Language Dropdown - Fixed top-right for all [locale] pages */}
+                    <div className="fixed top-4 right-4 z-50">
+                      <Suspense fallback={
+                        <div className="w-20 h-8 bg-gray-100/50 rounded-full animate-pulse" />
+                      }>
+                        <LanguageDropdown size="md" />
+                      </Suspense>
+                    </div>
                     {children}
                   </ToastProvider>
                 </AppearanceProvider>
