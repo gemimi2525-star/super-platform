@@ -3,44 +3,32 @@
  *
  * This page uses server-side rendering to ensure translations
  * are available before hydration, avoiding key placeholders.
+ *
+ * FIX: Uses static import for messages.json instead of fs.readFileSync
+ * which doesn't work reliably in Vercel Serverless Functions.
  */
 
-import fs from 'fs';
-import path from 'path';
+import messages from '@/locales/messages.json';
 import ClientVerifyPanel from './ClientVerifyPanel';
 
-// Helper to get nested value from object
-function getNestedValue(obj: Record<string, unknown>, keyPath: string): string | undefined {
-    const result = keyPath.split('.').reduce((current: unknown, key) => {
-        if (current && typeof current === 'object' && key in current) {
-            return (current as Record<string, unknown>)[key];
-        }
-        return undefined;
-    }, obj);
-    return typeof result === 'string' ? result : undefined;
-}
+// Type for messages structure
+type TranslationValue = { [locale: string]: string };
+type MessagesType = { [key: string]: TranslationValue };
 
-// Server function to get translations
+// Server function to get translations from imported JSON
 function getTranslations(locale: string, namespace: string) {
-    const filePath = path.join(process.cwd(), 'locales', 'messages.json');
+    const typedMessages = messages as MessagesType;
 
-    try {
-        const fileContents = fs.readFileSync(filePath, 'utf8');
-        const unifiedMessages = JSON.parse(fileContents);
+    const t = (key: string): string => {
+        const fullKey = `${namespace}.${key}`;
+        const translations = typedMessages[fullKey];
+        if (translations) {
+            return translations[locale] || translations['en'] || fullKey;
+        }
+        return fullKey;
+    };
 
-        const t = (key: string): string => {
-            const fullKey = `${namespace}.${key}`;
-            const translations = unifiedMessages[fullKey];
-            if (translations) {
-                return translations[locale] || translations['en'] || fullKey;
-            }
-            return fullKey;
-        };
-
-        return t;
-    } catch {
-        return (key: string) => `${namespace}.${key}`;
-    }
+    return t;
 }
 
 interface PageProps {
