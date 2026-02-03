@@ -48,7 +48,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         <div style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
+            zIndex: 40,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
