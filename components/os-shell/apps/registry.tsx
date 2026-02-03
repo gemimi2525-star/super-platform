@@ -55,6 +55,11 @@ const ExplorerAppLazy = lazy(() =>
     import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
 );
 
+// Phase 5.4: Ops Center
+const OpsCenterAppLazy = lazy(() =>
+    import('@/coreos/ui/OpsCenterMVP').then(m => ({ default: m.OpsCenterMVP }))
+);
+
 function LoadingPlaceholder() {
     return (
         <div style={{
@@ -94,6 +99,9 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
 
     // Explorer (Finder)
     'system.explorer': createLazyApp(ExplorerAppLazy),
+
+    // Phase 5: Ops Center (observability dashboard)
+    'ops.center': createLazyApp(OpsCenterAppLazy),
 
     // Experimental Apps (hidden from Dock)
     'plugin.analytics': createLazyApp(AnalyticsAppLazy),
