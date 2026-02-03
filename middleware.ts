@@ -136,9 +136,41 @@ export function middleware(request: NextRequest) {
     const host = (request.headers.get('host') || '').toLowerCase();
 
     // 0. GLOBAL EXCLUSIONS
-    // Always skip internal/static/api to prevent unnecessary processing
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 6.3.9: API routes are rate limited BEFORE returning
+    // Static files and internal routes skip middleware entirely
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // 0.1 API Routes: Rate limit, then pass through
+    if (pathname.startsWith('/api')) {
+        const ip = ((request as any).ip || request.headers.get('x-forwarded-for') || '127.0.0.1').split(',')[0].trim();
+        let apiLimitType: 'auth' | 'write' | 'read' | null = null;
+
+        if (pathname.startsWith('/api/auth')) {
+            // Auth API: strict limit (10/min)
+            apiLimitType = 'auth';
+        } else if (request.method !== 'GET' && request.method !== 'HEAD' && request.method !== 'OPTIONS') {
+            // Write operations: moderate limit (60/min)
+            apiLimitType = 'write';
+        } else {
+            // Read API: generous limit (300/min)
+            apiLimitType = 'read';
+        }
+
+        if (apiLimitType) {
+            const res = checkRateLimit(ip, apiLimitType);
+            if (!res.success) {
+                log429Event(request, pathname, apiLimitType, res.retryAfter || 60);
+                return create429Response(apiLimitType, res);
+            }
+        }
+
+        // API routes pass through without further processing
+        return NextResponse.next();
+    }
+
+    // 0.2 Static/Internal: Skip entirely (no rate limit needed)
     if (
-        pathname.startsWith('/api') ||
         pathname.startsWith('/_next') ||
         pathname === '/favicon.ico' ||
         pathname === '/robots.txt' ||
@@ -427,7 +459,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Match all paths except static files, api, _next
-        "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+        // PHASE 6.3.9: Match ALL paths except static files
+        // API routes ARE matched for rate limiting, handled in early-exit section
+        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
     ]
 };
