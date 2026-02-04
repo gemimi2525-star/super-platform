@@ -78,18 +78,18 @@ interface SessionDebugData {
 // Phase 6.5.2: Alerts Data
 interface AlertData {
     id: string;
-    ruleId: string;
-    severity: 'info' | 'warn' | 'critical';
-    message: string;
-    source: string;
+    type: string;  // e.g., 'warning', 'info', 'critical'
+    title: string;
+    description: string;
+    severity: 'high' | 'medium' | 'low';
     timestamp: string;
     correlatedRequestIds: string[];
-    acknowledged: false;
+    acknowledged: boolean;
 }
 
 interface AlertsResponse {
     alerts: AlertData[];
-    summary: { critical: number; warn: number; info: number; total: number };
+    summary: { critical: number; warn?: number; warning?: number; info: number; total: number };
     history: AlertData[];
     timestamp: string;
 }
@@ -334,6 +334,27 @@ function ErrorState({ message }: { message: string }) {
             border: `1px solid ${tokens.error}`,
         }}>
             ❌ {message}
+        </div>
+    );
+}
+
+function CalmState({ message, subtitle }: { message: string; subtitle?: string }) {
+    return (
+        <div style={{
+            padding: 20,
+            textAlign: 'center',
+            background: '#f0fdf4',
+            borderRadius: tokens.radius,
+            border: `1px solid ${tokens.success}`,
+        }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: tokens.success, marginBottom: 8 }}>
+                ✅ {message}
+            </div>
+            {subtitle && (
+                <div style={{ fontSize: 13, color: tokens.textSecondary }}>
+                    {subtitle}
+                </div>
+            )}
         </div>
     );
 }
@@ -664,11 +685,10 @@ function IncidentsTab() {
 
             {/* Incident List */}
             {incidents.length === 0 ? (
-                <Card title="All Clear">
-                    <div style={{ textAlign: 'center', padding: 20, color: tokens.success }}>
-                        ✅ No incidents detected
-                    </div>
-                </Card>
+                <CalmState
+                    message="System Calm"
+                    subtitle="No security incidents or anomalies detected in recent activity"
+                />
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {incidents.slice(0, 10).map(incident => (
@@ -753,8 +773,22 @@ function ApiMonitorTab() {
         return tokens.textSecondary;
     };
 
+    // Calculate health summary
+    const totalEndpoints = MONITORED_ENDPOINTS.length;
+    const checkedCount = Object.keys(results).length;
+    const healthyCount = Object.values(results).filter(r => r.status >= 200 && r.status < 300).length;
+    const allHealthy = checkedCount > 0 && healthyCount === checkedCount;
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Health Summary */}
+            {checkedCount > 0 && allHealthy && (
+                <CalmState
+                    message="All Endpoints Healthy"
+                    subtitle={`${healthyCount}/${totalEndpoints} endpoints responding correctly`}
+                />
+            )}
+
             {/* Refresh Button */}
             <button
                 onClick={checkEndpoints}
@@ -822,11 +856,16 @@ function ApiMonitorTab() {
                 </table>
             </div>
 
-            {/* Legend */}
-            <div style={{ fontSize: 11, color: tokens.textSecondary }}>
+            {/* Status Legend */}
+            <div style={{ fontSize: 11, color: tokens.textSecondary, textAlign: 'center' }}>
                 <span style={{ color: tokens.success }}>●</span> 2xx OK &nbsp;
                 <span style={{ color: tokens.warning }}>●</span> 4xx Auth Required &nbsp;
                 <span style={{ color: tokens.error }}>●</span> 5xx Error
+                {checkedCount > 0 && (
+                    <span style={{ marginLeft: 12 }}>
+                        • Last checked: {new Date().toLocaleTimeString()}
+                    </span>
+                )}
             </div>
         </div>
     );
@@ -850,8 +889,8 @@ function AlertsTab() {
     };
 
     const getSeverityBg = (severity: string) => {
-        if (severity === 'critical') return '#fff0f0';
-        if (severity === 'warn') return '#fffbf0';
+        if (severity === 'high' || severity === 'critical') return '#fff0f0';
+        if (severity === 'medium' || severity === 'warn' || severity === 'warning') return '#fffbf0';
         return tokens.bgSecondary;
     };
 
@@ -885,8 +924,8 @@ function AlertsTab() {
                     </div>
                 </Card>
                 <Card title="Warnings">
-                    <div style={{ fontSize: 32, fontWeight: 700, color: data.summary.warn > 0 ? tokens.warning : tokens.success }}>
-                        {data.summary.warn}
+                    <div style={{ fontSize: 32, fontWeight: 700, color: (data.summary.warning || data.summary.warn || 0) > 0 ? tokens.warning : tokens.success }}>
+                        {data.summary.warning || data.summary.warn || 0}
                     </div>
                 </Card>
                 <Card title="Total Active">
@@ -928,14 +967,14 @@ function AlertsTab() {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                     <strong style={{ fontSize: 13 }}>
-                                        {alert.severity === 'critical' ? '🔴' : alert.severity === 'warn' ? '🟠' : 'ℹ️'} {alert.message}
+                                        {alert.severity === 'high' ? '🔴' : alert.severity === 'medium' ? '🟠' : 'ℹ️'} {alert.title}
                                     </strong>
                                     <span style={{ fontSize: 11, color: tokens.textSecondary }}>
                                         {new Date(alert.timestamp).toLocaleTimeString()}
                                     </span>
                                 </div>
                                 <div style={{ fontSize: 11, color: tokens.textSecondary }}>
-                                    Rule: {alert.ruleId} | Source: {alert.source}
+                                    {alert.description}
                                 </div>
                                 {alert.correlatedRequestIds.length > 0 && (
                                     <div style={{ fontSize: 10, color: tokens.textSecondary, marginTop: 4 }}>
@@ -972,7 +1011,7 @@ function AlertsTab() {
                                             {new Date(alert.timestamp).toLocaleString()}
                                         </td>
                                         <td style={{ padding: 8 }}>
-                                            {alert.ruleId}
+                                            {alert.title || alert.type}
                                         </td>
                                         <td style={{ padding: 8, textAlign: 'center' }}>
                                             <span style={{
