@@ -17,8 +17,9 @@ export const apiDataSource: OrganizationsDataSource = {
             throw new Error(`Failed to fetch organizations: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        return data.organizations || [];
+        const json = await response.json();
+        // Phase 9.9: Handle nested API response { success: true, data: { organizations: [...] } }
+        return json.data?.organizations || json.organizations || [];
     },
 
     async createOrganization(formData: OrganizationFormData): Promise<Organization> {

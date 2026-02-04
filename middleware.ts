@@ -292,38 +292,46 @@ export function middleware(request: NextRequest) {
     }
 
     // 3. SPECIAL HANDLING: /os (Single Entry Point)
-    // 1. If accessing /os directly -> Check Auth -> Allow or Login
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 9.8: Deterministic Redirect with Logging
+    // ═══════════════════════════════════════════════════════════════════════════
     if (pathname === '/os') {
         const hasSession = request.cookies.has('__session');
 
-        // ═══════════════════════════════════════════════════════════════════════════
         // PHASE 5.4: PRODUCTION BYPASS LOCK
-        // Dev bypass is NEVER active in production, regardless of ENV config
-        // ═══════════════════════════════════════════════════════════════════════════
         const isProduction = process.env.NODE_ENV === 'production' ||
             process.env.VERCEL_ENV === 'production';
 
-        // Dev bypass only works in non-production AND when explicitly enabled
         const bypassEnabled = !isProduction &&
             isDev &&
             process.env.AUTH_DEV_BYPASS === 'true';
 
-        const hasBypassHeaders = bypassEnabled && request.headers.has('x-dev-test-email');
-
-        // Log bypass attempt in production (for security audit)
+        // Log bypass attempt in production
         if (isProduction && process.env.AUTH_DEV_BYPASS === 'true') {
-            console.warn('[SECURITY] AUTH_DEV_BYPASS is configured but LOCKED in production');
+            console.warn('[MW][SECURITY] AUTH_DEV_BYPASS is configured but LOCKED in production');
         }
 
-        if (!hasSession && !hasBypassHeaders) {
+        // Decision logging
+        if (isDev) {
+            console.log('[MW][/os] Auth check:', { hasSession, bypassEnabled });
+        }
+
+        // No session AND no bypass -> redirect to login (ONCE)
+        if (!hasSession && !bypassEnabled) {
+            console.log('[MW][/os] REDIRECT -> /login?callbackUrl=/os (no session, no bypass)');
             const url = request.nextUrl.clone();
-            // Redirect to root public login (no locale prefix)
             url.pathname = '/login';
             url.searchParams.set('callbackUrl', '/os');
             return NextResponse.redirect(url);
         }
+
+        // Has session OR bypass -> allow access
+        if (isDev) {
+            console.log('[MW][/os] ALLOW (session or bypass)');
+        }
         return NextResponse.next();
     }
+
 
     // 2. If accessing /{locale}/os -> Redirect to /os (Canonicalize)
     const localeOsMatch = pathname.match(/^\/(en|th)\/os/);
@@ -343,8 +351,32 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
-    // 4b. PUBLIC LOGIN BYPASS
+    // 4b. PUBLIC LOGIN HANDLING
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 9.8: Login page should check if user already has session
+    // If user has session AND callbackUrl -> redirect to callbackUrl (ONCE)
+    // ═══════════════════════════════════════════════════════════════════════════
     if (pathname === '/login') {
+        const hasSession = request.cookies.has('__session');
+        const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
+
+        if (isDev) {
+            console.log('[MW][/login] Session check:', { hasSession, callbackUrl });
+        }
+
+        // Already logged in with callbackUrl -> redirect to destination (ONCE)
+        if (hasSession && callbackUrl) {
+            console.log(`[MW][/login] REDIRECT -> ${callbackUrl} (already has session)`);
+            const url = request.nextUrl.clone();
+            url.pathname = callbackUrl;
+            url.searchParams.delete('callbackUrl');
+            return NextResponse.redirect(url);
+        }
+
+        // No session -> show login page (no redirect)
+        if (isDev) {
+            console.log('[MW][/login] ALLOW (show login page)');
+        }
         return NextResponse.next();
     }
 

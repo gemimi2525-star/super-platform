@@ -39,6 +39,14 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
     try {
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 9.9: DEV BYPASS — Check FIRST before auth (same pattern as Users API)
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.log('[API:AuditLogs] Dev bypass mode - returning mock audit logs');
+            return getMockAuditLogs();
+        }
+
         // Auth check
         const auth = await getAuthContext();
         if (!auth) {
@@ -152,4 +160,68 @@ export async function GET(request: NextRequest) {
 
         return ApiErrorResponse.internalError();
     }
+}
+
+/**
+ * Mock audit logs for dev bypass mode
+ */
+function getMockAuditLogs() {
+    const mockLogs = [
+        {
+            id: 'audit-001',
+            eventType: 'user',
+            action: 'login',
+            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
+            target: { id: 'dev-user-001', type: 'user' },
+            success: true,
+            timestamp: new Date().toISOString(),
+            metadata: { source: 'dev-bypass' },
+        },
+        {
+            id: 'audit-002',
+            eventType: 'org',
+            action: 'created',
+            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
+            target: { id: 'org-001', type: 'org', name: 'Acme Corp' },
+            success: true,
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            metadata: { source: 'dev-bypass' },
+        },
+        {
+            id: 'audit-003',
+            eventType: 'user',
+            action: 'role_change',
+            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
+            target: { id: 'user-002', type: 'user', name: 'John Doe' },
+            success: true,
+            timestamp: new Date(Date.now() - 7200000).toISOString(),
+            metadata: { oldRole: 'user', newRole: 'admin', source: 'dev-bypass' },
+        },
+        {
+            id: 'audit-004',
+            eventType: 'settings',
+            action: 'updated',
+            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
+            target: { id: 'org-001', type: 'org', name: 'Acme Corp' },
+            success: true,
+            timestamp: new Date(Date.now() - 86400000).toISOString(),
+            metadata: { source: 'dev-bypass' },
+        },
+        {
+            id: 'audit-005',
+            eventType: 'user',
+            action: 'invite_sent',
+            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
+            target: { id: 'invite-001', type: 'user', name: 'jane@example.com' },
+            success: true,
+            timestamp: new Date(Date.now() - 172800000).toISOString(),
+            metadata: { source: 'dev-bypass' },
+        },
+    ];
+
+    return ApiSuccessResponse.ok({
+        items: mockLogs,
+        nextCursor: null,
+        hasMore: false,
+    });
 }

@@ -15,6 +15,26 @@ const COLLECTION_PLATFORM_USERS = 'platform_users';
 
 export async function GET() {
     try {
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 9.9: DEV BYPASS — Check FIRST before auth (same pattern as Users API)
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.log('[API:Me] Dev bypass mode - returning mock user profile');
+            return ApiSuccessResponse.ok({
+                uid: 'o8peRpxaqrNtyz7NYocN4cujvhR2',
+                email: 'test1@apicoredata.local',
+                isPlatformUser: true,
+                role: 'owner',
+                displayName: 'Platform Owner (Dev Bypass)',
+                permissions: ['platform:audit:read', 'org.manage', 'orgs.view', 'ops.center.view'],
+                enabled: true,
+                createdAt: '2025-01-01T00:00:00.000Z',
+                lastLogin: new Date().toISOString(),
+                // Phase 10.0: Auth mode indicator
+                authMode: 'DEV_BYPASS',
+            });
+        }
+
         const auth = await getAuthContext();
 
         if (!auth) {
@@ -39,6 +59,8 @@ export async function GET() {
                 enabled: data?.enabled !== false,
                 createdAt: data?.createdAt?.toDate?.()?.toISOString() || null,
                 lastLogin: data?.lastLogin?.toDate?.()?.toISOString() || null,
+                // Phase 10.0: Auth mode indicator
+                authMode: 'REAL',
             });
         }
 
@@ -51,6 +73,8 @@ export async function GET() {
             displayName: null,
             permissions: [],
             enabled: false,
+            // Phase 10.0: Auth mode indicator
+            authMode: 'REAL',
         });
 
     } catch (error) {

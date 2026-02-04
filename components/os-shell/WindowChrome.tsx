@@ -6,14 +6,16 @@
  * macOS-style window with title bar and traffic light buttons.
  * Renders app content via AppRenderer.
  * 
+ * Phase 8: Updated to use NEXUS Design Tokens (CSS variables)
+ * 
  * @module components/os-shell/WindowChrome
- * @version 2.0.0
+ * @version 3.0.0 (Phase 8)
  */
 
 'use client';
 
 import React from 'react';
-import { tokens } from './tokens';
+import '@/styles/nexus-tokens.css';
 import {
     useWindowControls,
     useCapabilityInfo,
@@ -40,18 +42,21 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
 
     return (
         <div
+            className="nx-animate-open"
             style={{
                 position: 'absolute',
                 top: Math.min(baseTop, 300),
                 left: Math.min(baseLeft, 500),
                 width: 600,
                 height: 480,
-                background: tokens.windowBackground,
-                borderRadius: tokens.windowRadius,
-                boxShadow: isFocused ? tokens.windowShadow : tokens.windowShadowUnfocused,
+                background: 'var(--nx-surface-window)',
+                borderRadius: 'var(--nx-window-radius)',
+                boxShadow: isFocused
+                    ? 'var(--nx-shadow-window)'
+                    : 'var(--nx-shadow-window-unfocused)',
                 zIndex: window.zIndex,
                 overflow: 'hidden',
-                transition: 'box-shadow 0.15s ease',
+                transition: 'box-shadow var(--nx-duration-fast) var(--nx-ease-out)',
                 display: 'flex',
                 flexDirection: 'column',
             }}
@@ -62,26 +67,30 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    height: tokens.titlebarHeight,
+                    height: 'var(--nx-titlebar-height)',
                     background: isFocused
-                        ? tokens.titlebarBackground
-                        : tokens.titlebarBackgroundUnfocused,
-                    borderBottom: '1px solid rgba(0,0,0,0.08)',
-                    padding: '0 12px',
-                    gap: 8,
+                        ? 'var(--nx-surface-titlebar)'
+                        : 'var(--nx-surface-titlebar-unfocused)',
+                    borderBottom: '1px solid var(--nx-border-divider)',
+                    padding: '0 var(--nx-titlebar-padding-x)',
+                    gap: 'var(--nx-traffic-gap)',
                     flexShrink: 0,
                 }}
             >
                 {/* Traffic Light Buttons */}
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 'var(--nx-traffic-gap)' }}>
                     <button
                         onClick={(e) => { e.stopPropagation(); close(); }}
                         style={{
-                            width: 12,
-                            height: 12,
+                            width: 'var(--nx-traffic-size)',
+                            height: 'var(--nx-traffic-size)',
                             borderRadius: '50%',
-                            background: isFocused ? tokens.trafficClose : tokens.trafficInactive,
-                            border: `1px solid ${isFocused ? tokens.trafficCloseBorder : tokens.trafficInactiveBorder}`,
+                            background: isFocused
+                                ? 'var(--nx-traffic-close)'
+                                : 'var(--nx-traffic-inactive)',
+                            border: `1px solid ${isFocused
+                                ? 'var(--nx-traffic-close-border)'
+                                : 'var(--nx-traffic-inactive-border)'}`,
                             cursor: 'pointer',
                             padding: 0,
                         }}
@@ -90,11 +99,15 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     <button
                         onClick={(e) => { e.stopPropagation(); minimize(); }}
                         style={{
-                            width: 12,
-                            height: 12,
+                            width: 'var(--nx-traffic-size)',
+                            height: 'var(--nx-traffic-size)',
                             borderRadius: '50%',
-                            background: isFocused ? tokens.trafficMinimize : tokens.trafficInactive,
-                            border: `1px solid ${isFocused ? tokens.trafficMinimizeBorder : tokens.trafficInactiveBorder}`,
+                            background: isFocused
+                                ? 'var(--nx-traffic-minimize)'
+                                : 'var(--nx-traffic-inactive)',
+                            border: `1px solid ${isFocused
+                                ? 'var(--nx-traffic-minimize-border)'
+                                : 'var(--nx-traffic-inactive-border)'}`,
                             cursor: 'pointer',
                             padding: 0,
                         }}
@@ -102,11 +115,15 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     />
                     <button
                         style={{
-                            width: 12,
-                            height: 12,
+                            width: 'var(--nx-traffic-size)',
+                            height: 'var(--nx-traffic-size)',
                             borderRadius: '50%',
-                            background: isFocused ? tokens.trafficMaximize : tokens.trafficInactive,
-                            border: `1px solid ${isFocused ? tokens.trafficMaximizeBorder : tokens.trafficInactiveBorder}`,
+                            background: isFocused
+                                ? 'var(--nx-traffic-maximize)'
+                                : 'var(--nx-traffic-inactive)',
+                            border: `1px solid ${isFocused
+                                ? 'var(--nx-traffic-maximize-border)'
+                                : 'var(--nx-traffic-inactive-border)'}`,
                             cursor: 'default',
                             padding: 0,
                         }}
@@ -119,13 +136,15 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     style={{
                         flex: 1,
                         textAlign: 'center',
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: isFocused ? '#333' : '#888',
-                        fontFamily: tokens.fontFamily,
+                        fontSize: 'var(--nx-text-body)',
+                        fontWeight: 'var(--nx-weight-medium)',
+                        color: isFocused
+                            ? 'var(--nx-text-titlebar)'
+                            : 'var(--nx-text-titlebar-unfocused)',
+                        fontFamily: 'var(--nx-font-system)',
                     }}
                 >
-                    <span style={{ marginRight: 6 }}>{icon}</span>
+                    <span style={{ marginRight: 'var(--nx-space-2)' }}>{icon}</span>
                     {window.title}
                 </div>
 
@@ -137,7 +156,7 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
             <div style={{
                 flex: 1,
                 overflow: 'auto',
-                background: '#fff',
+                background: 'var(--nx-surface-window)',
             }}>
                 <AppRenderer
                     windowId={window.id}
@@ -148,4 +167,3 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
         </div>
     );
 }
-

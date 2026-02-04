@@ -41,7 +41,7 @@ export async function GET(
         }
 
         // 2. Fetch organization
-        const orgDoc = await db.collection('organizations').doc(id).get();
+        const orgDoc = await db.collection('platform_organizations').doc(id).get();
         if (!orgDoc.exists) {
             return ApiErrorResponse.notFound('Organization not found');
         }
@@ -112,7 +112,7 @@ export async function PATCH(
 
         // 3. Check slug uniqueness if changing
         if (updates.slug) {
-            const slugCheck = await db.collection('organizations')
+            const slugCheck = await db.collection('platform_organizations')
                 .where('slug', '==', updates.slug)
                 .get();
 
@@ -122,7 +122,7 @@ export async function PATCH(
         }
 
         // 4. Update
-        await db.collection('organizations').doc(id).update({
+        await db.collection('platform_organizations').doc(id).update({
             ...updates,
             updatedAt: new Date()
         });
@@ -167,7 +167,7 @@ export async function DELETE(
         }
 
         // 2. Soft delete
-        await db.collection('organizations').doc(id).update({
+        await db.collection('platform_organizations').doc(id).update({
             disabled: true,
             updatedAt: new Date()
         });

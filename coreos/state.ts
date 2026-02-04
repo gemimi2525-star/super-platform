@@ -1,13 +1,16 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS KERNEL — System State (HARDENED)
+ * NEXUS Shell — System State (HARDENED)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Single source of truth for entire system.
  * Pure reducer with NO side effects.
  * 
+ * Stack: NEXUS Shell → ORBIT Window System → SYNAPSE Kernel
+ * 
  * @module coreos/state
  * @version 2.0.0 (Hardened)
+ * @see /coreos/naming.ts for canonical naming constants
  */
 
 import type {
@@ -70,7 +73,13 @@ export type StateAction =
     | { type: 'CONTEXT_POP'; correlationId: CorrelationId }
     // Phase L: Virtual Spaces
     | { type: 'SPACE_SWITCH'; spaceId: SpaceId; correlationId: CorrelationId }
-    | { type: 'WINDOW_MOVE_TO_SPACE'; windowId: string; spaceId: SpaceId; correlationId: CorrelationId };
+    | { type: 'WINDOW_MOVE_TO_SPACE'; windowId: string; spaceId: SpaceId; correlationId: CorrelationId }
+    // Phase 7.1: Window Position & Size
+    | { type: 'WINDOW_MOVE'; windowId: string; x: number; y: number; correlationId: CorrelationId }
+    | { type: 'WINDOW_RESIZE'; windowId: string; width: number; height: number; correlationId: CorrelationId }
+    | { type: 'WINDOW_MAXIMIZE'; windowId: string; correlationId: CorrelationId }
+    | { type: 'WINDOW_UNMAXIMIZE'; windowId: string; correlationId: CorrelationId }
+    | { type: 'DESKTOP_DEFOCUS'; correlationId: CorrelationId };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PURE REDUCER (No Side Effects)
@@ -286,6 +295,99 @@ export function systemReducer(state: SystemState, action: StateAction): SystemSt
                     [action.windowId]: newWindow,
                 },
                 focusedWindowId: newFocusedWindowId,
+            };
+        }
+
+        // ───────────────────────────────────────────────────────────────────
+        // PHASE 7.1: Window Position & Size
+        // ───────────────────────────────────────────────────────────────────
+
+        case 'WINDOW_MOVE': {
+            const window = state.windows[action.windowId];
+            if (!window || window.isMaximized) return state;  // Can't move maximized window
+
+            return {
+                ...state,
+                windows: {
+                    ...state.windows,
+                    [action.windowId]: {
+                        ...window,
+                        x: action.x,
+                        y: action.y,
+                    },
+                },
+            };
+        }
+
+        case 'WINDOW_RESIZE': {
+            const window = state.windows[action.windowId];
+            if (!window || window.isMaximized) return state;  // Can't resize maximized window
+
+            // Enforce constraints
+            const width = Math.max(window.minWidth, Math.min(action.width, window.maxWidth ?? Infinity));
+            const height = Math.max(window.minHeight, Math.min(action.height, window.maxHeight ?? Infinity));
+
+            return {
+                ...state,
+                windows: {
+                    ...state.windows,
+                    [action.windowId]: {
+                        ...window,
+                        width,
+                        height,
+                    },
+                },
+            };
+        }
+
+        case 'WINDOW_MAXIMIZE': {
+            const window = state.windows[action.windowId];
+            if (!window || window.isMaximized) return state;
+
+            return {
+                ...state,
+                windows: {
+                    ...state.windows,
+                    [action.windowId]: {
+                        ...window,
+                        isMaximized: true,
+                        preMaximizeBounds: {
+                            x: window.x,
+                            y: window.y,
+                            width: window.width,
+                            height: window.height,
+                        },
+                    },
+                },
+            };
+        }
+
+        case 'WINDOW_UNMAXIMIZE': {
+            const window = state.windows[action.windowId];
+            if (!window || !window.isMaximized) return state;
+
+            const prev = window.preMaximizeBounds;
+            return {
+                ...state,
+                windows: {
+                    ...state.windows,
+                    [action.windowId]: {
+                        ...window,
+                        isMaximized: false,
+                        x: prev?.x ?? 120,
+                        y: prev?.y ?? 80,
+                        width: prev?.width ?? 520,
+                        height: prev?.height ?? 400,
+                        preMaximizeBounds: undefined,
+                    },
+                },
+            };
+        }
+
+        case 'DESKTOP_DEFOCUS': {
+            return {
+                ...state,
+                focusedWindowId: null,
             };
         }
 

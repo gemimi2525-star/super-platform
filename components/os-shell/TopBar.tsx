@@ -5,19 +5,23 @@
  * 
  * macOS-style menu bar with system menu, app context, and log toggle.
  * 
+ * Phase 8: Updated to use NEXUS Design Tokens
+ * Phase 9.2: Fixed SSR/client hydration mismatch for clock
+ * 
  * @module components/os-shell/TopBar
- * @version 1.1.0
+ * @version 2.1.0 (Phase 9.2)
  */
 
 'use client';
 
 import React from 'react';
-import { tokens } from './tokens';
+import '@/styles/nexus-tokens.css';
 import {
     useFocusedWindow,
     useMinimizeAll,
     useSystemState,
 } from '@/governance/synapse';
+import { useMounted } from '@/coreos/useMounted';
 
 interface TopBarProps {
     onToggleLogs?: () => void;
@@ -29,14 +33,19 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
     const minimizeAll = useMinimizeAll();
     const state = useSystemState();
 
-    // Get current time
-    const [time, setTime] = React.useState(new Date());
+    // Phase 9.2: Hydration-safe clock
+    const mounted = useMounted();
+    const [time, setTime] = React.useState<Date | null>(null);
+
     React.useEffect(() => {
+        // Only start clock on client
+        setTime(new Date());
         const timer = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    const formatTime = (date: Date) => {
+    const formatTime = (date: Date | null) => {
+        if (!date) return '—:—';
         return date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
@@ -44,7 +53,8 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
         });
     };
 
-    const formatDate = (date: Date) => {
+    const formatDate = (date: Date | null) => {
+        if (!date) return '—';
         return date.toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
@@ -61,24 +71,24 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: tokens.menubarHeight,
-                background: tokens.menubarBackground,
+                height: 'var(--nx-menubar-height)',
+                background: 'var(--nx-surface-menubar)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                color: tokens.menubarText,
+                color: 'var(--nx-text-inverse)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0 12px',
-                fontSize: 13,
-                fontWeight: 500,
-                fontFamily: tokens.fontFamily,
-                zIndex: 10000,
+                padding: '0 var(--nx-menubar-padding-x)',
+                fontSize: 'var(--nx-text-body)',
+                fontWeight: 'var(--nx-weight-medium)',
+                fontFamily: 'var(--nx-font-system)',
+                zIndex: 'var(--nx-z-menubar)',
                 userSelect: 'none',
             }}
         >
             {/* Left: System Layer + App Context */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--nx-space-4)' }}>
                 {/* System Menu */}
                 <button
                     onClick={minimizeAll}
@@ -86,9 +96,9 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                         background: 'none',
                         border: 'none',
                         color: 'inherit',
-                        fontSize: 16,
+                        fontSize: 'var(--nx-text-section)',
                         cursor: 'pointer',
-                        padding: '0 4px',
+                        padding: '0 var(--nx-space-1)',
                         opacity: 0.9,
                     }}
                     title="Show Desktop"
@@ -97,13 +107,13 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                 </button>
 
                 {/* App Context Layer */}
-                <span style={{ fontWeight: 600 }}>
+                <span style={{ fontWeight: 'var(--nx-weight-semibold)' }}>
                     {focusedWindow ? focusedWindow.title : 'Finder'}
                 </span>
 
                 {/* Menu Items (when window is focused) */}
                 {focusedWindow && (
-                    <div style={{ display: 'flex', gap: 16, opacity: 0.85 }}>
+                    <div style={{ display: 'flex', gap: 'var(--nx-space-4)', opacity: 0.85 }}>
                         <span style={{ cursor: 'default' }}>File</span>
                         <span style={{ cursor: 'default' }}>Edit</span>
                         <span style={{ cursor: 'default' }}>View</span>
@@ -114,7 +124,7 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
             </div>
 
             {/* Right: System Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--nx-space-4)' }}>
                 {/* Logs Toggle (Dev) */}
                 {onToggleLogs && (
                     <button
@@ -122,9 +132,9 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                         style={{
                             background: isLogPanelOpen ? 'rgba(255,255,255,0.2)' : 'none',
                             border: 'none',
-                            borderRadius: 4,
+                            borderRadius: 'var(--nx-radius-sm)',
                             color: 'inherit',
-                            fontSize: 11,
+                            fontSize: 'var(--nx-text-micro)',
                             cursor: 'pointer',
                             padding: '2px 6px',
                             opacity: isLogPanelOpen ? 1 : 0.7,
@@ -137,14 +147,20 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
 
                 {/* Window count indicator */}
                 {activeWindowCount > 0 && (
-                    <span style={{ opacity: 0.7, fontSize: 11 }}>
+                    <span style={{ opacity: 0.7, fontSize: 'var(--nx-text-micro)' }}>
                         {activeWindowCount} window{activeWindowCount !== 1 ? 's' : ''}
                     </span>
                 )}
 
-                <span style={{ opacity: 0.85 }}>{formatDate(time)}</span>
-                <span>{formatTime(time)}</span>
+                {/* Phase 9.2: Hydration-safe time display */}
+                <span style={{ opacity: 0.85 }} suppressHydrationWarning>
+                    {mounted ? formatDate(time) : '—'}
+                </span>
+                <span suppressHydrationWarning>
+                    {mounted ? formatTime(time) : '—:—'}
+                </span>
             </div>
         </div>
     );
 }
+

@@ -14,6 +14,37 @@ import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
 
 export async function GET(request: NextRequest) {
     try {
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 9.9: DEV BYPASS — Check FIRST before auth (same pattern as Users API)
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.log('[API:SessionDebug] Dev bypass mode - returning mock session debug');
+            return ApiSuccessResponse.ok({
+                session: {
+                    isAuth: true,
+                    userId: 'o8peRpxaqrNtyz7NYocN4cujvhR2',
+                    email: 'test1@apicoredata.local',
+                    hasSessionCookie: false,
+                    hasLocaleCookie: request.cookies.has('NEXT_LOCALE'),
+                    note: 'DEV BYPASS MODE - No real session',
+                },
+                environment: {
+                    nodeEnv: process.env.NODE_ENV || 'development',
+                    vercelEnv: process.env.VERCEL_ENV || 'development',
+                    devBypassConfigured: true,
+                    devBypassActive: true,
+                },
+                request: {
+                    host: request.headers.get('host') || 'localhost:3000',
+                    userAgent: request.headers.get('user-agent')?.substring(0, 100) || 'unknown',
+                    ip: 'localhost',
+                },
+                timestamp: new Date().toISOString(),
+                authMode: 'DEV_BYPASS',  // Phase 10.1: Consistency with other APIs
+                note: 'DEV BYPASS MODE - This is mock data for development.',
+            });
+        }
+
         // Check auth first
         const auth = await getAuthContext();
 
@@ -57,6 +88,7 @@ export async function GET(request: NextRequest) {
             environment: envInfo,
             request: requestInfo,
             timestamp: new Date().toISOString(),
+            authMode: 'REAL',  // Phase 10.1: Consistency with other APIs
             note: 'This endpoint is for debugging auth issues. Do not share this information publicly.',
         });
 

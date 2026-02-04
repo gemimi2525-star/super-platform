@@ -5,8 +5,8 @@ import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api
 import { handleError } from '@super-platform/core';
 import { emitSuccessEvent } from '@/lib/audit/emit';
 
-// Inline constant to avoid webpack path resolution issues
-const COLLECTION_ORGANIZATIONS = 'organizations';
+// Canonical collection name (Phase 12)
+const COLLECTION_ORGANIZATIONS = 'platform_organizations';
 
 export const runtime = 'nodejs';
 
@@ -21,15 +21,18 @@ const createOrgSchema = z.object({
 
 export async function GET(request: NextRequest) {
     try {
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 9.9: DEV BYPASS — Check FIRST before auth (same pattern as Users API)
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.log('[API:Orgs] Dev bypass mode - returning mock orgs');
+            return getMockOrgs();
+        }
+
         const auth = await getAuthContext(request);
 
         if (!auth) {
             return ApiErrorResponse.unauthorized('Session expired or invalid');
-        }
-
-        // DEV MODE: Return mock data when explicit bypass is set
-        if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
-            return getMockOrgs();
         }
 
         // PRODUCTION: Use Firebase Admin
@@ -45,7 +48,8 @@ export async function GET(request: NextRequest) {
             }));
 
             return ApiSuccessResponse.ok({
-                organizations
+                organizations,
+                authMode: 'REAL'
             });
         } catch (dbError: any) {
             console.error('[API] Database connection failed:', dbError?.message || dbError);
@@ -83,20 +87,27 @@ function getMockOrgs() {
     const mockOrganizations = [
         {
             id: 'org-fallback-001',
-            name: 'Acme Corp (Offline Mode)',
-            plan: 'Pro',
+            name: 'Acme Corp (Dev Bypass)',
+            slug: 'acme-corp',
+            plan: 'pro',  // Phase 9.9: lowercase to match UI theme
+            domain: 'acme.example.com',
+            status: 'active',
             createdAt: '2025-12-01T10:00:00.000Z',
         },
         {
             id: 'org-fallback-002',
             name: 'System Demo Org',
-            plan: 'Enterprise',
+            slug: 'system-demo',
+            plan: 'enterprise',  // Phase 9.9: lowercase to match UI theme
+            domain: 'demo.apicoredata.local',
+            status: 'active',
             createdAt: new Date().toISOString(),
         }
     ];
 
     return ApiSuccessResponse.ok({
-        organizations: mockOrganizations
+        organizations: mockOrganizations,
+        authMode: 'DEV_BYPASS'
     });
 }
 

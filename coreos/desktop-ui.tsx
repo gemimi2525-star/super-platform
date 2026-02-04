@@ -1,7 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — DESKTOP UI (OS-GRADE)
+ * NEXUS Shell — Desktop UI (OS-GRADE)
  * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * NEXUS is the Shell Layer of the APICOREDATA Client OS.
+ * Provides: Desktop Surface, Dock, Menu Bar, and System Chrome.
+ * 
+ * Stack: NEXUS Shell → ORBIT Window System → SYNAPSE Kernel
  * 
  * TRUE OS VISUAL LANGUAGE:
  * - B1: True Calm Desktop (NO text, NO CTA - just ambient wallpaper)
@@ -11,11 +16,12 @@
  * 
  * @module coreos/desktop-ui
  * @version 2.0.0
+ * @see /coreos/naming.ts for canonical naming constants
  */
 
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
     useSystemState,
     useOpenCapability,
@@ -29,9 +35,21 @@ import {
     useCognitiveMode,
     useFocusedWindow,
     useDockCapabilities,
+    useConnectivity,
 } from './react';
 import { getCapabilityGraph } from './capability-graph';
+import { getWindowManager } from './window-manager';
 import type { Window, CapabilityId } from './types';
+import { createCorrelationId } from './types';
+
+// Naming Constants
+import {
+    SYSTEM_STACK_SHORT,
+    SYSTEM_KERNEL_NAME,
+    SYSTEM_SHELL_NAME,
+    SYSTEM_WINDOW_SYSTEM_NAME,
+    SYSTEM_STACK_LABEL,
+} from './naming';
 
 // Phase 5: Ops Center UI
 import { OpsCenterMVP } from './ui/OpsCenterMVP';
@@ -58,6 +76,182 @@ const tokens = {
     titlebarBackground: 'linear-gradient(180deg, #f6f6f6 0%, #e8e8e8 100%)',
     titlebarBackgroundUnfocused: '#f0f0f0',
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS → ABOUT CONTENT (System Stack Display)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Settings → About content with System Stack display
+ * Uses naming constants from coreos/naming.ts (imported at top)
+ */
+function SettingsAboutContent({ window }: { window: Window }) {
+    const stackRows = [
+        { layer: 'Shell Layer', name: SYSTEM_SHELL_NAME, desc: 'Desktop, Dock, Menu Bar' },
+        { layer: 'Window System', name: SYSTEM_WINDOW_SYSTEM_NAME, desc: 'Window Manager, Chrome' },
+        { layer: 'Kernel', name: SYSTEM_KERNEL_NAME, desc: 'Governance, Policy, Security' },
+    ];
+
+    return (
+        <>
+            <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
+                About This System
+            </h3>
+
+            {/* Version Info */}
+            <p style={{ margin: '0 0 20px', color: '#666', fontSize: 14 }}>
+                APICOREDATA Client OS — Phase 7.1
+            </p>
+
+            {/* System Stack Section */}
+            <div style={{ marginBottom: 24 }}>
+                <div style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#888',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: 12,
+                }}>
+                    Architecture Stack
+                </div>
+
+                {/* Stack Table */}
+                <div style={{
+                    background: '#f8f8f8',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    border: '1px solid #e8e8e8',
+                }}>
+                    {stackRows.map((row, i) => (
+                        <div
+                            key={row.name}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '12px 16px',
+                                borderBottom: i < stackRows.length - 1 ? '1px solid #e8e8e8' : 'none',
+                            }}
+                        >
+                            <div style={{ width: 120, fontSize: 12, color: '#888' }}>
+                                {row.layer}
+                            </div>
+                            <div style={{
+                                width: 90,
+                                fontWeight: 600,
+                                fontSize: 13,
+                                fontFamily: 'SF Mono, Monaco, monospace',
+                                color: '#333',
+                            }}>
+                                {row.name}
+                            </div>
+                            <div style={{ flex: 1, fontSize: 12, color: '#666' }}>
+                                {row.desc}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Full Stack Label */}
+                <div style={{
+                    marginTop: 12,
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                    borderRadius: 6,
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: 11,
+                    fontFamily: 'SF Mono, Monaco, monospace',
+                    textAlign: 'center',
+                    letterSpacing: '0.3px',
+                }}>
+                    {SYSTEM_STACK_LABEL}
+                </div>
+            </div>
+
+            {/* Window Debug Info */}
+            <div style={{
+                padding: 12,
+                background: '#f5f5f5',
+                borderRadius: 8,
+                fontSize: 12,
+                fontFamily: 'SF Mono, Monaco, monospace',
+            }}>
+                <div>Capability: {window.capabilityId}</div>
+                <div>State: {window.state}</div>
+                <div>Z-Index: {window.zIndex}</div>
+                <div>Position: ({window.x}, {window.y})</div>
+                <div>Size: {window.width} × {window.height}</div>
+            </div>
+        </>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 7.2: CONNECTIVITY INDICATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ConnectivityIndicator() {
+    const { status, isOnline, isDegraded, isOffline, forceCheck } = useConnectivity();
+
+    // Online: show nothing (clean UI)
+    if (isOnline) {
+        return null;
+    }
+
+    const getStatusConfig = () => {
+        if (isOffline) {
+            return {
+                icon: '🔴',
+                label: 'Offline',
+                bg: 'rgba(239, 68, 68, 0.15)',
+                color: '#dc2626',
+            };
+        }
+        if (isDegraded) {
+            return {
+                icon: '🟡',
+                label: 'Degraded',
+                bg: 'rgba(234, 179, 8, 0.15)',
+                color: '#ca8a04',
+            };
+        }
+        return { icon: '✅', label: 'Online', bg: 'transparent', color: '#16a34a' };
+    };
+
+    const config = getStatusConfig();
+
+    return (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '2px 8px',
+                background: config.bg,
+                borderRadius: 4,
+                fontSize: 11,
+            }}
+        >
+            <span>{config.icon}</span>
+            <span style={{ color: config.color, fontWeight: 500 }}>{config.label}</span>
+            <button
+                onClick={() => forceCheck()}
+                style={{
+                    background: 'rgba(0,0,0,0.1)',
+                    border: 'none',
+                    borderRadius: 3,
+                    padding: '1px 6px',
+                    fontSize: 10,
+                    color: config.color,
+                    cursor: 'pointer',
+                    marginLeft: 4,
+                }}
+            >
+                Retry
+            </button>
+        </div>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // B3: MENU BAR (OS-GRADE)
@@ -154,6 +348,19 @@ function MenuBar() {
 
             {/* Right: System Status */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {/* Phase 7.2: Connectivity Indicator */}
+                <ConnectivityIndicator />
+
+                {/* System Stack Label (NEXUS/ORBIT/SYNAPSE) */}
+                <span style={{
+                    opacity: 0.5,
+                    fontSize: 9,
+                    fontFamily: 'SF Mono, Monaco, monospace',
+                    letterSpacing: '0.5px',
+                }}>
+                    {SYSTEM_STACK_SHORT}
+                </span>
+
                 {/* Window count indicator */}
                 {Object.keys(state.windows).length > 0 && (
                     <span style={{ opacity: 0.7, fontSize: 11 }}>
@@ -181,33 +388,210 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
     const { focus, minimize, close } = useWindowControls(window.id);
     const graph = getCapabilityGraph();
     const icon = graph.getIcon(window.capabilityId);
+    const windowManager = getWindowManager();
+    const dragRef = useRef<{
+        isDragging: boolean;
+        startX: number;
+        startY: number;
+        startWindowX: number;
+        startWindowY: number;
+    } | null>(null);
+    const resizeRef = useRef<{
+        isResizing: boolean;
+        direction: string;
+        startX: number;
+        startY: number;
+        startWidth: number;
+        startHeight: number;
+        startWindowX: number;
+        startWindowY: number;
+    } | null>(null);
 
     if (window.state === 'minimized') {
         return null;
     }
 
-    // Position windows nicely
-    const baseTop = 80 + (window.zIndex * 30);
-    const baseLeft = 120 + (window.zIndex * 30);
+    // Phase 7.1: Use window state for position/size
+    const windowStyle: React.CSSProperties = window.isMaximized
+        ? {
+            position: 'absolute',
+            top: 28,  // Below menu bar
+            left: 0,
+            right: 0,
+            bottom: 60,  // Above dock
+            width: 'auto',
+            height: 'auto',
+            background: tokens.windowBackground,
+            borderRadius: 0,
+            boxShadow: isFocused ? tokens.windowShadow : tokens.windowShadowUnfocused,
+            zIndex: window.zIndex,
+            overflow: 'hidden',
+            transition: 'box-shadow 0.15s ease',
+        }
+        : {
+            position: 'absolute',
+            top: window.y,
+            left: window.x,
+            width: window.width,
+            height: window.height,
+            background: tokens.windowBackground,
+            borderRadius: tokens.windowRadius,
+            boxShadow: isFocused ? tokens.windowShadow : tokens.windowShadowUnfocused,
+            zIndex: window.zIndex,
+            overflow: 'hidden',
+            transition: 'box-shadow 0.15s ease',
+        };
+
+    // Drag handlers for title bar
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (window.isMaximized) return;  // Can't drag maximized window
+        if (!isFocused) focus();
+        e.preventDefault();
+
+        dragRef.current = {
+            isDragging: true,
+            startX: e.clientX,
+            startY: e.clientY,
+            startWindowX: window.x,
+            startWindowY: window.y,
+        };
+
+        const correlationId = createCorrelationId();
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            if (!dragRef.current?.isDragging) return;
+
+            const deltaX = moveEvent.clientX - dragRef.current.startX;
+            const deltaY = moveEvent.clientY - dragRef.current.startY;
+
+            windowManager.moveWindow(
+                window.id,
+                dragRef.current.startWindowX + deltaX,
+                dragRef.current.startWindowY + deltaY,
+                correlationId
+            );
+        };
+
+        const handleMouseUp = () => {
+            dragRef.current = null;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Resize handlers
+    const startResize = (direction: string) => (e: React.MouseEvent) => {
+        if (window.isMaximized) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        resizeRef.current = {
+            isResizing: true,
+            direction,
+            startX: e.clientX,
+            startY: e.clientY,
+            startWidth: window.width,
+            startHeight: window.height,
+            startWindowX: window.x,
+            startWindowY: window.y,
+        };
+
+        const correlationId = createCorrelationId();
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            if (!resizeRef.current?.isResizing) return;
+
+            const deltaX = moveEvent.clientX - resizeRef.current.startX;
+            const deltaY = moveEvent.clientY - resizeRef.current.startY;
+            const dir = resizeRef.current.direction;
+
+            let newWidth = resizeRef.current.startWidth;
+            let newHeight = resizeRef.current.startHeight;
+            let newX = resizeRef.current.startWindowX;
+            let newY = resizeRef.current.startWindowY;
+
+            // Right edge
+            if (dir.includes('e')) {
+                newWidth = Math.max(window.minWidth, resizeRef.current.startWidth + deltaX);
+            }
+            // Left edge
+            if (dir.includes('w')) {
+                const proposedWidth = resizeRef.current.startWidth - deltaX;
+                if (proposedWidth >= window.minWidth) {
+                    newWidth = proposedWidth;
+                    newX = resizeRef.current.startWindowX + deltaX;
+                }
+            }
+            // Bottom edge
+            if (dir.includes('s')) {
+                newHeight = Math.max(window.minHeight, resizeRef.current.startHeight + deltaY);
+            }
+            // Top edge
+            if (dir.includes('n')) {
+                const proposedHeight = resizeRef.current.startHeight - deltaY;
+                if (proposedHeight >= window.minHeight) {
+                    newHeight = proposedHeight;
+                    newY = resizeRef.current.startWindowY + deltaY;
+                }
+            }
+
+            // Apply changes
+            if (newX !== window.x || newY !== window.y) {
+                windowManager.moveWindow(window.id, newX, newY, correlationId);
+            }
+            if (newWidth !== window.width || newHeight !== window.height) {
+                windowManager.resizeWindow(window.id, newWidth, newHeight, correlationId);
+            }
+        };
+
+        const handleMouseUp = () => {
+            resizeRef.current = null;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Handle maximize toggle
+    const handleMaximize = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const correlationId = createCorrelationId();
+        windowManager.toggleMaximize(window.id, correlationId);
+    };
+
+    // Resize handle styles
+    const resizeHandleBase: React.CSSProperties = {
+        position: 'absolute',
+        zIndex: 1,
+    };
 
     return (
         <div
-            style={{
-                position: 'absolute',
-                top: Math.min(baseTop, 300),
-                left: Math.min(baseLeft, 500),
-                width: 520,
-                minHeight: 380,
-                background: tokens.windowBackground,
-                borderRadius: tokens.windowRadius,
-                boxShadow: isFocused ? tokens.windowShadow : tokens.windowShadowUnfocused,
-                zIndex: window.zIndex,
-                overflow: 'hidden',
-                transition: 'box-shadow 0.15s ease',
-            }}
+            style={windowStyle}
             onMouseDown={!isFocused ? focus : undefined}
         >
-            {/* Title Bar */}
+            {/* Resize Handles (only when not maximized) */}
+            {!window.isMaximized && (
+                <>
+                    {/* Edges */}
+                    <div style={{ ...resizeHandleBase, top: 0, left: 8, right: 8, height: 4, cursor: 'n-resize' }} onMouseDown={startResize('n')} />
+                    <div style={{ ...resizeHandleBase, bottom: 0, left: 8, right: 8, height: 4, cursor: 's-resize' }} onMouseDown={startResize('s')} />
+                    <div style={{ ...resizeHandleBase, left: 0, top: 8, bottom: 8, width: 4, cursor: 'w-resize' }} onMouseDown={startResize('w')} />
+                    <div style={{ ...resizeHandleBase, right: 0, top: 8, bottom: 8, width: 4, cursor: 'e-resize' }} onMouseDown={startResize('e')} />
+                    {/* Corners */}
+                    <div style={{ ...resizeHandleBase, top: 0, left: 0, width: 8, height: 8, cursor: 'nw-resize' }} onMouseDown={startResize('nw')} />
+                    <div style={{ ...resizeHandleBase, top: 0, right: 0, width: 8, height: 8, cursor: 'ne-resize' }} onMouseDown={startResize('ne')} />
+                    <div style={{ ...resizeHandleBase, bottom: 0, left: 0, width: 8, height: 8, cursor: 'sw-resize' }} onMouseDown={startResize('sw')} />
+                    <div style={{ ...resizeHandleBase, bottom: 0, right: 0, width: 8, height: 8, cursor: 'se-resize' }} onMouseDown={startResize('se')} />
+                </>
+            )}
+
+            {/* Title Bar (draggable) */}
             <div
                 style={{
                     display: 'flex',
@@ -219,10 +603,13 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     borderBottom: '1px solid rgba(0,0,0,0.08)',
                     padding: '0 12px',
                     gap: 8,
+                    cursor: window.isMaximized ? 'default' : 'grab',
+                    userSelect: 'none',
                 }}
+                onMouseDown={handleMouseDown}
             >
                 {/* Traffic Light Buttons */}
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }} onMouseDown={e => e.stopPropagation()}>
                     <button
                         onClick={(e) => { e.stopPropagation(); close(); }}
                         style={{
@@ -250,16 +637,17 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                         title="Minimize"
                     />
                     <button
+                        onClick={handleMaximize}
                         style={{
                             width: 12,
                             height: 12,
                             borderRadius: '50%',
                             background: isFocused ? '#28C840' : '#ccc',
                             border: isFocused ? '1px solid #1AAB29' : '1px solid #bbb',
-                            cursor: 'default',
+                            cursor: 'pointer',
                             padding: 0,
                         }}
-                        title="Maximize"
+                        title={window.isMaximized ? 'Restore' : 'Maximize'}
                     />
                 </div>
 
@@ -272,6 +660,7 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                         fontWeight: 500,
                         color: isFocused ? '#333' : '#888',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+                        pointerEvents: 'none',
                     }}
                 >
                     <span style={{ marginRight: 6 }}>{icon}</span>
@@ -293,6 +682,9 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                 {/* Phase 5: Render Ops Center for ops.center capability */}
                 {window.capabilityId === 'ops.center' ? (
                     <OpsCenterMVP />
+                ) : window.capabilityId === 'core.settings' ? (
+                    /* Settings → About: Show System Stack */
+                    <SettingsAboutContent window={window} />
                 ) : (
                     <>
                         <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
@@ -311,6 +703,8 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                             <div>Capability: {window.capabilityId}</div>
                             <div>State: {window.state}</div>
                             <div>Z-Index: {window.zIndex}</div>
+                            <div>Position: ({window.x}, {window.y})</div>
+                            <div>Size: {window.width} × {window.height}</div>
                         </div>
                     </>
                 )}
@@ -572,6 +966,17 @@ function StepUpModal() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CalmDesktop() {
+    const windowManager = getWindowManager();
+
+    // Phase 7.1: Click on empty desktop to defocus all windows
+    const handleDesktopClick = (e: React.MouseEvent) => {
+        // Only trigger on direct click to desktop, not bubbled from windows
+        if (e.target === e.currentTarget) {
+            const correlationId = createCorrelationId();
+            windowManager.defocusAll(correlationId);
+        }
+    };
+
     return (
         <div
             style={{
@@ -580,6 +985,7 @@ function CalmDesktop() {
                 background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                 zIndex: 0,
             }}
+            onClick={handleDesktopClick}
         >
             {/* Ambient gradient overlay - no text, no CTA */}
             <div
@@ -587,6 +993,7 @@ function CalmDesktop() {
                     position: 'absolute',
                     inset: 0,
                     background: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.03) 0%, transparent 50%)',
+                    pointerEvents: 'none',  // Phase 7.1: Allow click through to parent
                 }}
             />
             <div
@@ -594,6 +1001,7 @@ function CalmDesktop() {
                     position: 'absolute',
                     inset: 0,
                     background: 'radial-gradient(ellipse at 70% 80%, rgba(255,255,255,0.02) 0%, transparent 40%)',
+                    pointerEvents: 'none',  // Phase 7.1: Allow click through to parent
                 }}
             />
         </div>

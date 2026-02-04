@@ -1,3 +1,14 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * OS Layout — Full Configuration with Providers
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Layout for the /os route with all providers restored.
+ * 
+ * @module app/os/layout
+ * @version 2.0.0 (Phase 9.8)
+ */
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -31,6 +42,7 @@ export const metadata: Metadata = {
         index: false,
         follow: false,
     },
+    manifest: '/manifest.json',
 };
 
 function transformMessages(unifiedMessages: Record<string, any>, locale: string): Record<string, any> {

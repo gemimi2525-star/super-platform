@@ -1,9 +1,25 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * OS SHELL — Files / Data Explorer App
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * macOS-style Finder for browsing data and launching apps.
+ * Intent-based navigation, single-instance window.
+ * 
+ * Phase 9: Updated with NEXUS Design Tokens
+ * 
+ * @module components/os-shell/apps/explorer/ExplorerApp
+ * @version 2.0.0 (Phase 9)
+ */
+
+'use client';
+
 import React, { useState } from 'react';
+import '@/styles/nexus-tokens.css';
 import { Sidebar } from './Sidebar';
 import { MainList } from './MainList';
 import { useOpenCapability } from '@/governance/synapse';
 
-// No props needed for LaunchApp as we use the hook
 export function ExplorerApp() {
     // Current Path State
     const [currentPath, setCurrentPath] = useState('/');
@@ -22,33 +38,41 @@ export function ExplorerApp() {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: '#f5f5f7', // macOS-like background
-            color: '#1d1d1f'
+            background: 'var(--nx-surface-panel)',
+            color: 'var(--nx-text-primary)',
+            fontFamily: 'var(--nx-font-system)',
         }}>
             {/* Header / Path Bar */}
             <div style={{
                 height: 40,
-                borderBottom: '1px solid rgba(0,0,0,0.1)',
+                borderBottom: '1px solid var(--nx-border-divider)',
                 display: 'flex',
                 alignItems: 'center',
-                padding: '0 16px',
-                gap: 12,
-                background: 'rgba(255,255,255,0.8)',
-                backdropFilter: 'blur(10px)'
+                padding: '0 var(--nx-space-4)',
+                gap: 'var(--nx-space-3)',
+                background: 'var(--nx-surface-toolbar)',
+                backdropFilter: 'blur(10px)',
             }}>
                 <button
                     onClick={() => setCurrentPath('/')}
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                    style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: 'var(--nx-text-section)',
+                        color: 'var(--nx-text-secondary)',
+                    }}
+                    title="Home"
                 >
                     🏠
                 </button>
                 <div style={{
-                    fontSize: 13,
-                    color: '#555',
-                    background: 'rgba(0,0,0,0.05)',
-                    padding: '4px 12px',
-                    borderRadius: 6,
-                    flex: 1
+                    fontSize: 'var(--nx-text-body)',
+                    color: 'var(--nx-text-secondary)',
+                    background: 'var(--nx-surface-input)',
+                    padding: 'var(--nx-space-1) var(--nx-space-3)',
+                    borderRadius: 'var(--nx-radius-sm)',
+                    flex: 1,
                 }}>
                     {currentPath}
                 </div>
@@ -75,7 +99,7 @@ export const EXPLORER_APP_ID = 'system.explorer';
 export const EXPLORER_APP_META = {
     id: EXPLORER_APP_ID,
     title: 'Finder',
-    icon: 'compass', // Lucide icon name or similar
+    icon: '🗂️',
     width: 800,
     height: 500
 };

@@ -54,6 +54,10 @@ export {
     useIsAuthenticated,
     useCalmState,
     useCapabilityInfo,
+    // Phase 9: Single-instance & Persona
+    useExistingWindow,
+    useSingleInstanceOpen,
+    useCanLaunchApp,
     type Window,
     type SystemState,
     type CapabilityManifest,

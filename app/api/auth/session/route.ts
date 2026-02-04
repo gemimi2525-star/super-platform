@@ -19,6 +19,19 @@ export async function POST(request: NextRequest) {
         // Create the session cookie
         const sessionCookie = await createSessionCookie(idToken, EXPIRES_IN);
 
+        // Phase 10.1: Decode token to get uid for logging
+        const { verifyIdToken } = await import('@/lib/firebase-admin');
+        let uid = 'unknown';
+        try {
+            const decoded = await verifyIdToken(idToken);
+            uid = decoded.uid;
+        } catch {
+            // Token already verified by createSessionCookie, continue
+        }
+
+        const expiryDate = new Date(Date.now() + EXPIRES_IN);
+        console.log(`[AUTH] 🎫 Issued __session cookie: uid=${uid}, expires=${expiryDate.toISOString()}`);
+
         const response = NextResponse.json({ status: 'success' }, { status: 200 });
 
         // Set the cookie
@@ -30,6 +43,8 @@ export async function POST(request: NextRequest) {
             path: '/',
             sameSite: 'lax',
         });
+
+        console.log(`[AUTH] 🍪 Cookie flags: httpOnly=true, secure=${process.env.NODE_ENV === 'production'}, sameSite=lax, path=/`);
 
         return response;
     } catch (error) {

@@ -5,13 +5,16 @@
  * 
  * True Calm Desktop — NO text, NO CTA, just ambient wallpaper.
  * 
+ * Phase 8: Updated to use NEXUS Design Tokens
+ * 
  * @module components/os-shell/CalmDesktop
- * @version 1.0.0
+ * @version 2.0.0 (Phase 8)
  */
 
 'use client';
 
 import React from 'react';
+import '@/styles/nexus-tokens.css';
 
 export function CalmDesktop() {
     return (
@@ -19,8 +22,8 @@ export function CalmDesktop() {
             style={{
                 position: 'fixed',
                 inset: 0,
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                zIndex: 0,
+                background: 'var(--nx-surface-desktop)',
+                zIndex: 'var(--nx-z-desktop)',
             }}
         >
             {/* Ambient gradient overlay - no text, no CTA */}

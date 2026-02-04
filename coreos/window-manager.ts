@@ -1,12 +1,16 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS KERNEL — Window Manager (HARDENED)
+ * ORBIT Window System — Window Manager (HARDENED)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Window lifecycle management driven by capability manifest.
+ * ORBIT is the Window System layer of the APICOREDATA Client OS.
+ * Manages window lifecycle, spatial positioning, and window chrome.
+ * 
+ * Part of: NEXUS Shell → ORBIT Window System → SYNAPSE Kernel
  * 
  * @module coreos/window-manager
  * @version 2.0.0 (Hardened)
+ * @see /coreos/naming.ts for canonical naming constants
  */
 
 import type {
@@ -100,6 +104,19 @@ export class CoreOSWindowManager {
 
         // Create new window
         const windowId = `window-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Phase 7.1: Calculate initial position (cascade from top-left)
+        const windowCount = Object.keys(state.windows).length;
+        const CASCADE_OFFSET = 30;
+        const INITIAL_X = 120 + (windowCount * CASCADE_OFFSET);
+        const INITIAL_Y = 80 + (windowCount * CASCADE_OFFSET);
+
+        // Phase 7.1: Window size defaults and constraints
+        const DEFAULT_WIDTH = 520;
+        const DEFAULT_HEIGHT = 400;
+        const MIN_WIDTH = 300;
+        const MIN_HEIGHT = 200;
+
         const newWindow: Window = {
             id: windowId,
             capabilityId,
@@ -109,6 +126,14 @@ export class CoreOSWindowManager {
             contextId: contextId ?? null,
             spaceId: targetSpaceId,  // Phase O: Use explicit target space
             createdAt: Date.now(),
+            // Phase 7.1: Position & Size
+            x: Math.min(INITIAL_X, 500),  // Clamp to reasonable max
+            y: Math.min(INITIAL_Y, 300),
+            width: DEFAULT_WIDTH,
+            height: DEFAULT_HEIGHT,
+            isMaximized: false,
+            minWidth: MIN_WIDTH,
+            minHeight: MIN_HEIGHT,
         };
 
         store.dispatch({
@@ -212,6 +237,100 @@ export class CoreOSWindowManager {
             type: 'CALM_STATE_ENTERED',
             correlationId,
             timestamp: Date.now(),
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 7.1: WINDOW POSITION & SIZE MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Move a window to a new position
+     * Clamps position to keep window within desktop bounds
+     */
+    moveWindow(windowId: string, x: number, y: number, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        if (!window) return;
+
+        // Clamp to keep window visible (at least 100px on screen)
+        const clampedX = Math.max(-window.width + 100, Math.min(x, window.width + 500));
+        const clampedY = Math.max(28, Math.min(y, 600));  // 28 = menu bar height
+
+        store.dispatch({
+            type: 'WINDOW_MOVE',
+            windowId,
+            x: clampedX,
+            y: clampedY,
+            correlationId,
+        });
+    }
+
+    /**
+     * Resize a window
+     * Enforces min/max constraints from window state
+     */
+    resizeWindow(windowId: string, width: number, height: number, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        if (!window) return;
+
+        store.dispatch({
+            type: 'WINDOW_RESIZE',
+            windowId,
+            width,
+            height,
+            correlationId,
+        });
+    }
+
+    /**
+     * Maximize a window to fill desktop area
+     */
+    maximizeWindow(windowId: string, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        store.dispatch({
+            type: 'WINDOW_MAXIMIZE',
+            windowId,
+            correlationId,
+        });
+    }
+
+    /**
+     * Restore a maximized window to previous bounds
+     */
+    unmaximizeWindow(windowId: string, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        store.dispatch({
+            type: 'WINDOW_UNMAXIMIZE',
+            windowId,
+            correlationId,
+        });
+    }
+
+    /**
+     * Toggle maximize state
+     */
+    toggleMaximize(windowId: string, correlationId: CorrelationId): void {
+        const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        if (!window) return;
+
+        if (window.isMaximized) {
+            this.unmaximizeWindow(windowId, correlationId);
+        } else {
+            this.maximizeWindow(windowId, correlationId);
+        }
+    }
+
+    /**
+     * Defocus all windows (click on empty desktop)
+     */
+    defocusAll(correlationId: CorrelationId): void {
+        const store = getStateStore();
+        store.dispatch({
+            type: 'DESKTOP_DEFOCUS',
+            correlationId,
         });
     }
 
@@ -789,3 +908,19 @@ export function getWindowManager(): CoreOSWindowManager {
 export function resetWindowManager(): void {
     instance = null;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORBIT ALIASES (Backward-compatible naming)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * ORBIT Window Manager — Alias for CoreOSWindowManager
+ * Use this name for new code; old names remain for compatibility.
+ */
+export { CoreOSWindowManager as OrbitWindowManager };
+
+/**
+ * Get ORBIT Window System instance
+ * Alias for getWindowManager()
+ */
+export { getWindowManager as getOrbitWindowManager };

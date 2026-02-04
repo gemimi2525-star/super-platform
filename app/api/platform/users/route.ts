@@ -37,13 +37,10 @@ const createUserSchema = z.object({
 
 export async function GET() {
     try {
-        const auth = await getAuthContext();
-        if (!auth) {
-            return ApiErrorResponse.unauthorized();
-        }
-
-        // Dev Mode: Return mock users
+        // Phase 9.4: Dev Mode check FIRST (before auth)
+        // This allows OSShell to work without real session in local dev
         if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
+            console.log('[API:Users] Dev bypass mode - returning mock users');
             const mockUsers: PlatformUser[] = [
                 {
                     uid: 'o8peRpxaqrNtyz7NYocN4cujvhR2',
@@ -67,8 +64,24 @@ export async function GET() {
                     createdAt: new Date('2025-01-10'),
                     updatedAt: new Date('2025-01-10'),
                 },
+                {
+                    uid: 'mock-user-001',
+                    email: 'user@apicoredata.local',
+                    displayName: 'Regular User',
+                    role: 'user',
+                    permissions: [],
+                    enabled: true,
+                    createdBy: 'o8peRpxaqrNtyz7NYocN4cujvhR2',
+                    createdAt: new Date('2025-01-15'),
+                    updatedAt: new Date('2025-01-15'),
+                },
             ];
-            return ApiSuccessResponse.ok({ users: mockUsers });
+            return ApiSuccessResponse.ok({ users: mockUsers, authMode: 'DEV_BYPASS' });
+        }
+
+        const auth = await getAuthContext();
+        if (!auth) {
+            return ApiErrorResponse.unauthorized();
         }
 
         // Check permission
@@ -114,7 +127,7 @@ export async function GET() {
         // Policy: owner sees all, non-owner cannot see owner users
         const visibleUsers = filterVisibleUsers(allUsers, currentUser.role);
 
-        return ApiSuccessResponse.ok({ users: visibleUsers });
+        return ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
 
     } catch (error) {
         const appError = handleError(error as Error);
