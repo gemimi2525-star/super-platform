@@ -21,6 +21,19 @@ import { info, error as logError } from '../logging/logger';
 
 export type AlertLevel = 'info' | 'warning' | 'critical';
 
+/**
+ * Internal: Firestore document structure
+ * This matches the actual data in the 'alerts' collection
+ */
+interface AlertFirestoreDoc {
+    type: AlertLevel;
+    acknowledged: boolean;
+    description: string;
+    timestamp: FirebaseFirestore.Timestamp;
+    title: string;
+    correlatedRequestIds?: string[];
+}
+
 export interface Alert {
     id: string;
     level: AlertLevel;
@@ -54,6 +67,28 @@ export interface AlertListOptions {
 const COLLECTION = 'alerts';
 
 // ============================================================================
+// Internal Helpers
+// ============================================================================
+
+/**
+ * Map Firestore document to API Alert format
+ */
+function mapFirestoreToAlert(doc: FirebaseFirestore.DocumentSnapshot): Alert | null {
+    const data = doc.data() as AlertFirestoreDoc;
+    if (!data) return null;
+
+    return {
+        id: doc.id,
+        level: data.type,
+        resolved: data.acknowledged,
+        message: data.description,
+        source: 'system',
+        createdAt: data.timestamp.toDate().toISOString(),
+        title: data.title,
+    };
+}
+
+// ============================================================================
 // Repository Methods
 // ============================================================================
 
@@ -74,14 +109,14 @@ export async function listAlerts(options: AlertListOptions = {}): Promise<Docume
             async () => {
                 const db = getDb();
                 let query = db.collection(COLLECTION)
-                    .orderBy('createdAt', 'desc') as FirebaseFirestore.Query;
+                    .orderBy('timestamp', 'desc') as FirebaseFirestore.Query;
 
                 if (options.level) {
-                    query = query.where('level', '==', options.level);
+                    query = query.where('type', '==', options.level);
                 }
 
                 if (options.resolved !== undefined) {
-                    query = query.where('resolved', '==', options.resolved);
+                    query = query.where('acknowledged', '==', options.resolved);
                 }
 
                 const limit = options.limit || 50;
@@ -91,10 +126,9 @@ export async function listAlerts(options: AlertListOptions = {}): Promise<Docume
             }
         );
 
-        const alerts = result.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        })) as Alert[];
+        const alerts = result.docs
+            .map(mapFirestoreToAlert)
+            .filter((a): a is Alert => a !== null);
 
         return {
             ok: true,
@@ -196,24 +230,24 @@ export async function countByLevel(): Promise<DocumentResponse<Record<AlertLevel
             withProtection('countAlertInfo', async () => {
                 const db = getDb();
                 return db.collection(COLLECTION)
-                    .where('level', '==', 'info')
-                    .where('resolved', '==', false)
+                    .where('type', '==', 'info')
+                    .where('acknowledged', '==', false)
                     .count()
                     .get();
             }),
             withProtection('countAlertWarn', async () => {
                 const db = getDb();
                 return db.collection(COLLECTION)
-                    .where('level', '==', 'warning')
-                    .where('resolved', '==', false)
+                    .where('type', '==', 'warning')
+                    .where('acknowledged', '==', false)
                     .count()
                     .get();
             }),
             withProtection('countAlertCrit', async () => {
                 const db = getDb();
                 return db.collection(COLLECTION)
-                    .where('level', '==', 'critical')
-                    .where('resolved', '==', false)
+                    .where('type', '==', 'critical')
+                    .where('acknowledged', '==', false)
                     .count()
                     .get();
             }),
