@@ -609,8 +609,11 @@ function AuditTab() {
                     <tbody>
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ padding: 20, textAlign: 'center', color: tokens.textSecondary }}>
-                                    No logs found
+                                <td colSpan={4} style={{ padding: 20 }}>
+                                    <CalmState
+                                        message={filter ? "No Matching Logs" : "No Recent Activity"}
+                                        subtitle={filter ? "Try adjusting your filter" : "System logs will appear here as actions occur"}
+                                    />
                                 </td>
                             </tr>
                         ) : (
@@ -950,9 +953,10 @@ function AlertsTab() {
             {/* Active Alerts */}
             <Card title="Active Alerts" accent={data.alerts.length > 0 ? '#fff0f0' : tokens.bgSecondary}>
                 {data.alerts.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: tokens.success }}>
-                        ✅ No active alerts
-                    </div>
+                    <CalmState
+                        message="System Operating Normally"
+                        subtitle={`No active alerts detected • Last checked: ${new Date(data.timestamp).toLocaleTimeString()}`}
+                    />
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {data.alerts.map(alert => (
@@ -991,9 +995,10 @@ function AlertsTab() {
             {/* Alert History */}
             <Card title="Alert History (Last 50)">
                 {data.history.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: tokens.textSecondary }}>
-                        No alert history
-                    </div>
+                    <CalmState
+                        message="Clean History"
+                        subtitle="No alerts have been recorded in the system"
+                    />
                 ) : (
                     <div style={{ maxHeight: 300, overflow: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>

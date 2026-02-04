@@ -16,6 +16,7 @@ import { oms, CoreObject } from '@/coreos/oms';
 import { getFinderApps, type ShellAppManifest } from '../manifest';
 import { useSecurityContext } from '@/governance/synapse';
 import { type UserRole } from '../manifest';
+import { CoreEmptyState } from '@/core-ui';
 
 interface MainListProps {
     currentPath: string;
@@ -134,13 +135,13 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
                 ))}
 
                 {finderApps.length === 0 && (
-                    <div style={{
-                        gridColumn: '1 / -1',
-                        textAlign: 'center',
-                        color: 'var(--nx-text-tertiary)',
-                        marginTop: 'var(--nx-space-10)',
-                    }}>
-                        No applications available
+                    <div style={{ gridColumn: '1 / -1', marginTop: 'var(--nx-space-10)' }}>
+                        <CoreEmptyState
+                            icon="📦"
+                            title="No Applications Available"
+                            subtitle="Applications will appear here based on your role and permissions"
+                            size="md"
+                        />
                     </div>
                 )}
             </div>
@@ -233,13 +234,13 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
             ))}
 
             {items.length === 0 && (
-                <div style={{
-                    gridColumn: '1 / -1',
-                    textAlign: 'center',
-                    color: 'var(--nx-text-tertiary)',
-                    marginTop: 'var(--nx-space-10)',
-                }}>
-                    Folder is empty
+                <div style={{ gridColumn: '1 / -1', marginTop: 'var(--nx-space-10)' }}>
+                    <CoreEmptyState
+                        icon="📂"
+                        title="Empty Folder"
+                        subtitle="This folder doesn't contain any items yet"
+                        size="md"
+                    />
                 </div>
             )}
         </div>
