@@ -217,16 +217,29 @@ function useAlerts() {
     const [data, setData] = useState<AlertsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [errorId, setErrorId] = useState<string | null>(null);
+    const [errorTimestamp, setErrorTimestamp] = useState<string | null>(null);
 
     const refetch = () => {
         setLoading(true);
+        setError(null);
+        setErrorId(null);
+        setErrorTimestamp(null);
+
         fetch('/api/platform/alerts')
             .then(res => res.json())
             .then(json => {
-                if (json.success) setData(json.data);
-                else setError(json.error?.message || 'Failed to fetch alerts');
+                if (json.success) {
+                    setData(json.data);
+                } else {
+                    setError(json.error?.message || 'Failed to fetch alerts');
+                    setErrorId(json.error?.errorId || null);
+                    setErrorTimestamp(json.error?.timestamp || null);
+                }
             })
-            .catch(err => setError(err.message))
+            .catch(err => {
+                setError(err.message || 'Network error occurred');
+            })
             .finally(() => setLoading(false));
     };
 
@@ -237,7 +250,7 @@ function useAlerts() {
         return () => clearInterval(interval);
     }, []);
 
-    return { data, loading, error, refetch };
+    return { data, loading, error, errorId, errorTimestamp, refetch };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -324,7 +337,7 @@ function LoadingState({ message = 'Loading...' }: { message?: string }) {
     );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message, errorId, timestamp }: { message: string; errorId?: string; timestamp?: string }) {
     return (
         <div style={{
             padding: 20,
@@ -333,7 +346,19 @@ function ErrorState({ message }: { message: string }) {
             color: tokens.error,
             border: `1px solid ${tokens.error}`,
         }}>
-            ❌ {message}
+            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                ❌ {message}
+            </div>
+            {errorId && (
+                <div style={{ fontSize: 12, color: tokens.textSecondary, marginTop: 8, fontFamily: 'monospace' }}>
+                    Error ID: {errorId}
+                </div>
+            )}
+            {timestamp && (
+                <div style={{ fontSize: 11, color: tokens.textSecondary, marginTop: 4 }}>
+                    {new Date(timestamp).toLocaleString()}
+                </div>
+            )}
         </div>
     );
 }
@@ -879,10 +904,10 @@ function ApiMonitorTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function AlertsTab() {
-    const { data, loading, error, refetch } = useAlerts();
+    const { data, loading, error, errorId, errorTimestamp, refetch } = useAlerts();
 
     if (loading) return <LoadingState message="Loading alerts..." />;
-    if (error) return <ErrorState message={error} />;
+    if (error) return <ErrorState message={error} errorId={errorId || undefined} timestamp={errorTimestamp || undefined} />;
     if (!data) return <ErrorState message="No alerts data" />;
 
     const getSeverityColor = (severity: string) => {
