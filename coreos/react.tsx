@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
     getKernel,
     getStateStore,
@@ -22,6 +22,7 @@ import {
     type CapabilityId,
     type Window,
     type CapabilityManifest,
+    roleHasAccess,
 } from './index';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -90,6 +91,7 @@ export function useFocusedWindow(): Window | null {
 
 /**
  * Hook for window controls
+ * Phase 7.1: Extended with move, resize, maximize, and position controls
  */
 export function useWindowControls(windowId: string) {
     const kernel = getKernel();
@@ -110,7 +112,53 @@ export function useWindowControls(windowId: string) {
         kernel.emit(IntentFactory.restoreWindow(windowId));
     }, [windowId]);
 
-    return { focus, minimize, close, restore };
+    // Phase 7.1: Move window to new position (via WindowManager directly)
+    const move = useCallback((x: number, y: number) => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().moveWindow(windowId, x, y, createCorrelationId());
+    }, [windowId]);
+
+    // Phase 7.1: Resize window (via WindowManager directly)
+    const resize = useCallback((width: number, height: number) => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().resizeWindow(windowId, width, height, createCorrelationId());
+    }, [windowId]);
+
+    // Phase 7.1: Maximize window (via WindowManager directly)
+    const maximize = useCallback(() => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().maximizeWindow(windowId, createCorrelationId());
+    }, [windowId]);
+
+    // Phase 7.1: Unmaximize (restore from maximized, via WindowManager directly)
+    const unmaximize = useCallback(() => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().unmaximizeWindow(windowId, createCorrelationId());
+    }, [windowId]);
+
+    // Phase 7.1: Toggle maximize state (via WindowManager directly)
+    const toggleMaximize = useCallback(() => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().toggleMaximize(windowId, createCorrelationId());
+    }, [windowId]);
+
+    return { focus, minimize, close, restore, move, resize, maximize, unmaximize, toggleMaximize };
+}
+
+/**
+ * Phase 7.1: Hook for defocusing all windows (clicking empty desktop)
+ */
+export function useDefocusAll() {
+    return useCallback(() => {
+        const { createCorrelationId } = require('./types');
+        const { getWindowManager } = require('./window-manager');
+        getWindowManager().defocusAll(createCorrelationId());
+    }, []);
 }
 
 /**
@@ -163,10 +211,18 @@ export function useKernelBootstrap() {
 
 /**
  * Hook to get dock capabilities (for launcher)
+ * Phase 7.3: Filters by user role (persona gates)
  */
 export function useDockCapabilities(): CapabilityManifest[] {
     const graph = getCapabilityGraph();
-    return [...graph.getDockCapabilities()];
+    const state = useSystemState();
+    const userRole = state.security.role;
+
+    // Filter by requiredRole (undefined = visible to all)
+    return [...graph.getDockCapabilities()].filter(cap => {
+        if (!cap.requiredRole) return true;
+        return roleHasAccess(userRole, cap.requiredRole);
+    });
 }
 
 /**
@@ -192,3 +248,55 @@ export function useIsAuthenticated() {
     const state = useSystemState();
     return state.security.authenticated;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 7.2: CONNECTIVITY HOOKS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// (React hooks already imported at top)
+import {
+    type ConnectivityStatus,
+    type ConnectivityState,
+    subscribeToConnectivity,
+    forceConnectivityCheck,
+} from './connectivity';
+
+/**
+ * Hook to access connectivity status (Phase 7.2)
+ * 
+ * @returns { status, lastChangeAt, forceCheck }
+ * 
+ * @example
+ * const { status, forceCheck } = useConnectivity();
+ * if (status === 'OFFLINE') {
+ *     return <OfflineBanner onRetry={forceCheck} />;
+ * }
+ */
+export function useConnectivity() {
+    const [state, setState] = useState<ConnectivityState>({
+        status: 'ONLINE',
+        lastChangeAt: Date.now(),
+        lastCheckAt: Date.now(),
+        consecutiveFailures: 0,
+    });
+
+    useEffect(() => {
+        const unsubscribe = subscribeToConnectivity(setState);
+        return unsubscribe;
+    }, []);
+
+    const forceCheck = useCallback(async () => {
+        return await forceConnectivityCheck();
+    }, []);
+
+    return {
+        status: state.status,
+        lastChangeAt: state.lastChangeAt,
+        lastCheckAt: state.lastCheckAt,
+        isOnline: state.status === 'ONLINE',
+        isOffline: state.status === 'OFFLINE',
+        isDegraded: state.status === 'DEGRADED',
+        forceCheck,
+    };
+}
+

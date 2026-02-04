@@ -5,13 +5,21 @@
  * 
  * Maps capabilityId to React component for rendering inside windows.
  * 
+ * Phase 9: Added Intent Browser, updated styling to NEXUS tokens.
+ * Phase 9.1: Added SSOT enforcement and AppUnavailable fallback.
+ * 
+ * ⚠️ IMPORTANT: Registry MUST NOT contain duplicate keys.
+ * ⚠️ Each capabilityId should have exactly ONE entry.
+ * ⚠️ Use manifest.ts for visibility control, not registry manipulation.
+ * 
  * @module components/os-shell/apps/registry
- * @version 1.0.0
+ * @version 2.1.0 (Phase 9.1)
  */
 
 import React, { lazy, Suspense, type ComponentType } from 'react';
 import type { CapabilityId } from '@/governance/synapse';
-import { tokens } from '../tokens';
+import '@/styles/nexus-tokens.css';
+import { APP_MANIFESTS } from './manifest';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // APP COMPONENT PROPS
@@ -60,13 +68,28 @@ const OpsCenterAppLazy = lazy(() =>
     import('@/coreos/ui/OpsCenterMVP').then(m => ({ default: m.OpsCenterMVP }))
 );
 
+// Phase 9: Intent Browser
+const IntentBrowserAppLazy = lazy(() =>
+    import('./browser/IntentBrowserApp').then(m => ({ default: m.IntentBrowserApp }))
+);
+
+// Phase 9.1: App Unavailable Fallback
+const AppUnavailableLazy = lazy(() =>
+    import('./AppUnavailable').then(m => ({ default: m.AppUnavailable }))
+);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOADING PLACEHOLDER
+// ═══════════════════════════════════════════════════════════════════════════
+
 function LoadingPlaceholder() {
     return (
         <div style={{
-            padding: 24,
-            color: '#888',
+            padding: 'var(--nx-space-6)',
+            color: 'var(--nx-text-secondary)',
             textAlign: 'center',
-            fontFamily: tokens.fontFamily,
+            fontFamily: 'var(--nx-font-system)',
+            fontSize: 'var(--nx-text-body)',
         }}>
             Loading...
         </div>
@@ -84,39 +107,106 @@ function createLazyApp(LazyComponent: React.LazyExoticComponent<ComponentType<Ap
     };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// APP REGISTRY — SSOT (Single Source of Truth)
+// ═══════════════════════════════════════════════════════════════════════════
+
 /**
- * Registry mapping capabilityId to app component
+ * Registry mapping capabilityId to app component.
  * 
- * IMPORTANT: capabilityId must match the manifest ID in coreos/manifests/
+ * ⚠️ SSOT RULES (Phase 9.1):
+ * - Registry MUST NOT contain duplicate keys
+ * - Each capabilityId should have exactly ONE entry
+ * - Visibility is controlled by manifest.ts, NOT by registry manipulation
+ * - See: components/os-shell/apps/manifest.ts for shell manifests
  */
 export const appRegistry: Record<string, ComponentType<AppProps>> = {
-    // Core Apps (match manifest IDs)
+    // ─────────────────────────────────────────────────────────────────────────
+    // CORE APPS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'core.settings': createLazyApp(SettingsAppLazy),
+    'system.explorer': createLazyApp(ExplorerAppLazy),
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ADMIN APPS
+    // ─────────────────────────────────────────────────────────────────────────
+
     'user.manage': createLazyApp(UsersAppLazy),
     'audit.view': createLazyApp(AuditLogsAppLazy),
-    'core.settings': createLazyApp(SettingsAppLazy),
     'org.manage': createLazyApp(OrganizationsAppLazy),
     'system.configure': createLazyApp(SystemConfigureAppLazy),
 
-    // Explorer (Finder)
-    'system.explorer': createLazyApp(ExplorerAppLazy),
+    // ─────────────────────────────────────────────────────────────────────────
+    // OPS CENTER (Phase 5.4)
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // Phase 5: Ops Center (observability dashboard)
     'ops.center': createLazyApp(OpsCenterAppLazy),
 
-    // Experimental Apps (hidden from Dock)
+    // ─────────────────────────────────────────────────────────────────────────
+    // UTILITY APPS (Phase 9)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'intent.browser': createLazyApp(IntentBrowserAppLazy),
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EXPERIMENTAL APPS (hidden from Dock)
+    // ─────────────────────────────────────────────────────────────────────────
+
     'plugin.analytics': createLazyApp(AnalyticsAppLazy),
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// REGISTRY HELPERS WITH SSOT ENFORCEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Lazy-loaded AppUnavailable fallback */
+const AppUnavailableComponent = createLazyApp(AppUnavailableLazy);
+
 /**
- * Get app component for a capability
+ * Get app component for a capability.
+ * 
+ * Phase 9.1: If manifest exists but component doesn't, returns AppUnavailable
+ * instead of null (prevents crash, shows informational window).
  */
 export function getAppComponent(capabilityId: string): ComponentType<AppProps> | null {
-    return appRegistry[capabilityId] || null;
+    const component = appRegistry[capabilityId];
+
+    if (component) {
+        return component;
+    }
+
+    // Check if manifest exists — if so, show "App Unavailable" fallback
+    const manifest = APP_MANIFESTS[capabilityId];
+    if (manifest) {
+        console.warn(
+            `[Registry] App "${manifest.name}" (${capabilityId}) has manifest but no component. Showing fallback.`
+        );
+        return AppUnavailableComponent;
+    }
+
+    // No manifest, no component — truly unknown app
+    return null;
 }
 
 /**
- * Check if an app is registered
+ * Check if an app is registered (has component in registry).
  */
 export function hasAppComponent(capabilityId: string): boolean {
     return capabilityId in appRegistry;
 }
+
+/**
+ * Check if an app can be opened (has component OR manifest with fallback).
+ */
+export function canOpenApp(capabilityId: string): boolean {
+    return hasAppComponent(capabilityId) || APP_MANIFESTS[capabilityId] !== undefined;
+}
+
+/**
+ * Get all registered app IDs.
+ */
+export function getRegisteredAppIds(): string[] {
+    return Object.keys(appRegistry);
+}
+

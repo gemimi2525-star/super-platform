@@ -53,8 +53,11 @@ export const apiDataSource: UsersDataSource = {
                 return [];
             }
 
-            const data = await res.json();
-            const users: PlatformUser[] = data.users || [];
+            const json = await res.json();
+            console.log('[ApiDataSource] Raw response:', json);
+
+            // Handle nested API response: { success: true, data: { users: [...] } }
+            const users: PlatformUser[] = json.data?.users || json.users || [];
 
             return users.map(mapPlatformUserToUser);
         } catch (error) {

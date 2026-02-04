@@ -6,23 +6,35 @@
  * System settings app with basic preferences.
  * MVP includes: Appearance, Language, Security (Step-up status)
  * 
+ * Phase 9: Added persona-aware sections & NEXUS tokens
+ * 
  * @module components/os-shell/apps/settings/SettingsApp
- * @version 1.0.0 — Phase XI
+ * @version 2.0.0 (Phase 9)
  */
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import '@/styles/nexus-tokens.css';
 import type { AppProps } from '../registry';
-import { tokens } from '../../tokens';
 import { addDecisionLog } from '../../system-log';
 import { useStepUpAuth } from '@/governance/synapse/stepup';
+import { useSecurityContext } from '@/governance/synapse';
+import { roleHasAccess, type UserRole } from '../manifest';
+
+// Naming Constants (from coreos/naming.ts)
+import {
+    SYSTEM_KERNEL_NAME,
+    SYSTEM_SHELL_NAME,
+    SYSTEM_WINDOW_SYSTEM_NAME,
+    SYSTEM_STACK_LABEL,
+} from '@/coreos/naming';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-type SettingsSection = 'general' | 'security' | 'about';
+type SettingsSection = 'general' | 'security' | 'about' | 'admin' | 'system';
 
 interface SettingsPanelProps {
     title: string;
@@ -141,44 +153,64 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
         return `${minutes}m ${seconds}s`;
     };
 
+    // Phase 9: Persona-aware sections
+    const { role } = useSecurityContext();
+    const userRole = (role || 'user') as UserRole;
+
+    // Define sections with persona gating
+    const allSections = useMemo(() => [
+        { id: 'general' as const, label: 'General', icon: '⚙️', minRole: 'user' as UserRole },
+        { id: 'security' as const, label: 'Security', icon: '🔒', minRole: 'user' as UserRole },
+        { id: 'admin' as const, label: 'Admin', icon: '🛡️', minRole: 'admin' as UserRole },
+        { id: 'system' as const, label: 'System', icon: '🔧', minRole: 'owner' as UserRole },
+        { id: 'about' as const, label: 'About', icon: 'ℹ️', minRole: 'user' as UserRole },
+    ], []);
+
+    const visibleSections = useMemo(() =>
+        allSections.filter(s => roleHasAccess(userRole, s.minRole)),
+        [allSections, userRole]
+    );
+
     return (
         <div style={{
             height: '100%',
             display: 'flex',
-            fontFamily: tokens.fontFamily,
+            fontFamily: 'var(--nx-font-system)',
+            background: 'var(--nx-surface-window)',
         }}>
             {/* Sidebar */}
             <div style={{
                 width: 200,
-                background: '#f8f8f8',
-                borderRight: '1px solid #eee',
-                padding: '20px 0',
+                background: 'var(--nx-surface-panel)',
+                borderRight: '1px solid var(--nx-border-divider)',
+                padding: 'var(--nx-space-5) 0',
             }}>
-                <div style={{ padding: '0 16px', marginBottom: 20 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
+                <div style={{ padding: '0 var(--nx-space-4)', marginBottom: 'var(--nx-space-5)' }}>
+                    <h2 style={{
+                        margin: 0,
+                        fontSize: 'var(--nx-text-title)',
+                        fontWeight: 'var(--nx-weight-semibold)',
+                        color: 'var(--nx-text-primary)',
+                    }}>
                         ⚙️ Settings
                     </h2>
                 </div>
 
-                {[
-                    { id: 'general' as const, label: 'General', icon: '⚙️' },
-                    { id: 'security' as const, label: 'Security', icon: '🔒' },
-                    { id: 'about' as const, label: 'About', icon: 'ℹ️' },
-                ].map(section => (
+                {visibleSections.map(section => (
                     <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
                         style={{
                             width: '100%',
-                            padding: '10px 16px',
-                            background: activeSection === section.id ? '#fff' : 'transparent',
+                            padding: 'var(--nx-space-2) var(--nx-space-4)',
+                            background: activeSection === section.id ? 'var(--nx-surface-window)' : 'transparent',
                             border: 'none',
-                            borderLeft: activeSection === section.id ? '3px solid #007AFF' : '3px solid transparent',
+                            borderLeft: activeSection === section.id ? '3px solid var(--nx-accent)' : '3px solid transparent',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            fontSize: 13,
-                            color: activeSection === section.id ? '#000' : '#666',
-                            fontWeight: activeSection === section.id ? 500 : 400,
+                            fontSize: 'var(--nx-text-body)',
+                            color: activeSection === section.id ? 'var(--nx-text-primary)' : 'var(--nx-text-secondary)',
+                            fontWeight: activeSection === section.id ? 'var(--nx-weight-medium)' : 'var(--nx-weight-regular)',
                         }}
                     >
                         {section.icon} {section.label}
@@ -285,40 +317,197 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
                 )}
 
                 {activeSection === 'about' && (
-                    <>
-                        <SettingsPanel title="System Information" icon="💻">
-                            <SettingRow label="Platform">
-                                <div style={{ fontSize: 13, color: '#666' }}>
-                                    Core OS Demo
-                                </div>
-                            </SettingRow>
-                            <SettingRow label="Version">
-                                <div style={{ fontSize: 13, color: '#666' }}>
-                                    Phase XI — Settings App
-                                </div>
-                            </SettingRow>
-                            <SettingRow label="Kernel">
-                                <div style={{ fontSize: 13, color: '#666' }}>
-                                    SYNAPSE v1.0 (FROZEN)
-                                </div>
-                            </SettingRow>
-                        </SettingsPanel>
-
-                        <SettingsPanel title="Governance" icon="⚖️">
-                            <SettingRow label="Consistency Gate">
-                                <div style={{ fontSize: 13, color: '#22c55e' }}>
-                                    ✓ Active
-                                </div>
-                            </SettingRow>
-                            <SettingRow label="Audit Logging">
-                                <div style={{ fontSize: 13, color: '#22c55e' }}>
-                                    ✓ Enabled
-                                </div>
-                            </SettingRow>
-                        </SettingsPanel>
-                    </>
+                    <AboutSection />
                 )}
             </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ABOUT SECTION (macOS-like, Micro-Polished)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AboutSection() {
+    const [showAdvanced, setShowAdvanced] = useState(false);
+
+    const systemFont = '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
+    const monoFont = 'SF Mono, Monaco, Consolas, monospace';
+
+    return (
+        <div style={{ fontFamily: systemFont }}>
+            {/* Hero Section */}
+            <div style={{
+                textAlign: 'center',
+                marginBottom: 32,
+                padding: '24px 0',
+            }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🖥️</div>
+                <h2 style={{
+                    margin: '0 0 6px',
+                    fontSize: 20,
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    letterSpacing: '-0.2px',
+                }}>
+                    APICOREDATA Client OS
+                </h2>
+                <div style={{
+                    fontSize: 13,
+                    color: '#888',
+                    fontWeight: 400,
+                }}>
+                    Phase 7.1 — Window System
+                </div>
+            </div>
+
+            {/* Architecture Stack (Compact Table) */}
+            <div style={{
+                background: '#fafafa',
+                borderRadius: 10,
+                border: '1px solid rgba(0,0,0,0.06)',
+                overflow: 'hidden',
+                marginBottom: 24,
+            }}>
+                <div style={{
+                    padding: '10px 16px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#888',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                }}>
+                    Architecture Stack
+                </div>
+                {[
+                    { layer: 'Shell', name: SYSTEM_SHELL_NAME },
+                    { layer: 'Window System', name: SYSTEM_WINDOW_SYSTEM_NAME },
+                    { layer: 'Kernel', name: SYSTEM_KERNEL_NAME },
+                ].map((row, i, arr) => (
+                    <div
+                        key={row.name}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '11px 16px',
+                            borderBottom: i < arr.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                        }}
+                    >
+                        <span style={{
+                            fontSize: 13,
+                            color: '#555',
+                            fontWeight: 400,
+                        }}>
+                            {row.layer}
+                        </span>
+                        <span style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            fontFamily: monoFont,
+                            color: '#1a1a1a',
+                            background: 'rgba(0,0,0,0.04)',
+                            padding: '3px 10px',
+                            borderRadius: 5,
+                        }}>
+                            {row.name}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Governance Status */}
+            <div style={{
+                background: '#fafafa',
+                borderRadius: 10,
+                border: '1px solid rgba(0,0,0,0.06)',
+                overflow: 'hidden',
+                marginBottom: 24,
+            }}>
+                <div style={{
+                    padding: '10px 16px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#888',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '1px solid rgba(0,0,0,0.04)',
+                }}>
+                    Governance
+                </div>
+                {[
+                    { label: 'Consistency Gate', status: 'Active' },
+                    { label: 'Audit Logging', status: 'Enabled' },
+                ].map((item, i, arr) => (
+                    <div
+                        key={item.label}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '11px 16px',
+                            borderBottom: i < arr.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                        }}
+                    >
+                        <span style={{ fontSize: 13, color: '#555' }}>{item.label}</span>
+                        <span style={{
+                            fontSize: 12,
+                            color: '#22c55e',
+                            fontWeight: 500,
+                        }}>
+                            ✓ {item.status}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Advanced (Collapsible) */}
+            <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{
+                    width: '100%',
+                    padding: '10px 16px',
+                    background: 'transparent',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: '#888',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontFamily: systemFont,
+                }}
+            >
+                <span>Advanced</span>
+                <span style={{
+                    transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                }}>
+                    ▼
+                </span>
+            </button>
+
+            {showAdvanced && (
+                <div style={{
+                    marginTop: 12,
+                    padding: 14,
+                    background: '#f5f5f5',
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontFamily: monoFont,
+                    color: '#666',
+                    lineHeight: 1.6,
+                }}>
+                    <div>Kernel: {SYSTEM_KERNEL_NAME} v1.0 (FROZEN)</div>
+                    <div>Window System: {SYSTEM_WINDOW_SYSTEM_NAME}</div>
+                    <div>Shell: {SYSTEM_SHELL_NAME}</div>
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                        Build: 2026.02.03
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

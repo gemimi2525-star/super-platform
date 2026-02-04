@@ -62,7 +62,7 @@ export type {
     SystemState,
 } from './types';
 
-export { createCorrelationId, IntentFactory, DEFAULT_SPACE_ID, DEFAULT_SPACE_PERMISSIONS } from './types';
+export { createCorrelationId, IntentFactory, DEFAULT_SPACE_ID, DEFAULT_SPACE_PERMISSIONS, roleHasAccess } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KERNEL CORE
@@ -119,6 +119,12 @@ export {
     getCalmStateSummary,
     type CalmStateResult,
 } from './calm-detector';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HYDRATION SAFETY (Phase 9.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export { useMounted } from './useMounted';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COGNITIVE STATE DERIVATION (Phase J)

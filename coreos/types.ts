@@ -108,6 +108,9 @@ export interface CapabilityManifest {
     readonly certificationTier: CertificationTier;
     readonly certifiedAt?: string;    // ISO8601 (for certified tier)
     readonly certifiedBy?: string;    // (for certified tier)
+
+    // Phase 7.3: Persona Gates
+    readonly requiredRole?: UserRole;  // Minimum role required to see in Dock
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -136,6 +139,7 @@ export const DEFAULT_SPACE_ID: SpaceId = 'space:default';
 
 /**
  * Window instance in the system
+ * Phase 7.1: Extended with position, size, and constraints
  */
 export interface Window {
     readonly id: string;
@@ -146,6 +150,29 @@ export interface Window {
     readonly contextId: string | null;  // For multiByContext mode
     readonly spaceId: SpaceId;          // Phase L: Virtual context
     readonly createdAt: number;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 7.1: Position, Size & Constraints
+    // ─────────────────────────────────────────────────────────────────────────
+    readonly x: number;                  // Window left position (px)
+    readonly y: number;                  // Window top position (px)
+    readonly width: number;              // Window width (px)
+    readonly height: number;             // Window height (px)
+    readonly isMaximized: boolean;       // Maximize toggle state
+
+    // Size constraints (enforced during resize)
+    readonly minWidth: number;           // Minimum width (mandatory)
+    readonly minHeight: number;          // Minimum height (mandatory)
+    readonly maxWidth?: number;          // Maximum width (optional)
+    readonly maxHeight?: number;         // Maximum height (optional)
+
+    // Stored position/size before maximize (for restore)
+    readonly preMaximizeBounds?: {
+        readonly x: number;
+        readonly y: number;
+        readonly width: number;
+        readonly height: number;
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -269,6 +296,24 @@ export interface SpacePolicyContext {
  * User role - strictly typed
  */
 export type UserRole = 'guest' | 'user' | 'admin' | 'owner';
+
+/**
+ * Phase 7.3: Role hierarchy for persona gates
+ * Higher index = higher privilege
+ */
+const ROLE_HIERARCHY: readonly UserRole[] = ['guest', 'user', 'admin', 'owner'];
+
+/**
+ * Phase 7.3: Check if userRole meets or exceeds requiredRole
+ * @param userRole - Current user's role
+ * @param requiredRole - Minimum role required
+ * @returns true if access granted
+ */
+export function roleHasAccess(userRole: UserRole, requiredRole: UserRole): boolean {
+    const userIndex = ROLE_HIERARCHY.indexOf(userRole);
+    const requiredIndex = ROLE_HIERARCHY.indexOf(requiredRole);
+    return userIndex >= requiredIndex;
+}
 
 /**
  * Current security context - immutable

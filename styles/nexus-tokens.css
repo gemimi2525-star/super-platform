@@ -1,0 +1,444 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEXUS DESIGN TOKENS v1.0
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * OS-First • Calm • Premium • macOS-like
+ * 
+ * Design Philosophy:
+ * - Typography-driven (ก่อนสี/กราฟิก)
+ * - Subtle depth > heavy shadows
+ * - Motion = minimal, purpose-driven
+ * - Neutral, low-noise aesthetic
+ * 
+ * Naming Convention: --nx-[category]-[variant]
+ * 
+ * @module styles/nexus-tokens
+ * @version 1.0.0 (Phase 8)
+ */
+
+:root {
+    /* ═══════════════════════════════════════════════════════════════════════
+       1. TYPOGRAPHY
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Font Stacks (macOS priority) */
+    --nx-font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --nx-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --nx-font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    /* Type Scale (deterministic) */
+    --nx-text-display: 32px;
+    /* Hero headings, app titles */
+    --nx-text-title: 20px;
+    /* Window titles, section headers */
+    --nx-text-section: 16px;
+    /* Subsection headers */
+    --nx-text-body: 14px;
+    /* Default body text */
+    --nx-text-caption: 12px;
+    /* Labels, helper text */
+    --nx-text-micro: 11px;
+    /* Timestamps, badges */
+
+    /* Font Weights */
+    --nx-weight-regular: 400;
+    --nx-weight-medium: 500;
+    --nx-weight-semibold: 600;
+    --nx-weight-bold: 700;
+
+    /* Line Heights */
+    --nx-leading-tight: 1.2;
+    /* Headings */
+    --nx-leading-snug: 1.35;
+    /* Subheadings */
+    --nx-leading-normal: 1.5;
+    /* Body text */
+    --nx-leading-relaxed: 1.65;
+    /* Long-form content */
+
+    /* Letter Spacing */
+    --nx-tracking-tight: -0.02em;
+    /* Display text */
+    --nx-tracking-normal: 0;
+    /* Body text */
+    --nx-tracking-wide: 0.02em;
+    /* Caps, labels */
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       2. COLORS — SURFACES
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Desktop Background */
+    --nx-surface-desktop: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    --nx-surface-desktop-solid: #1a1a2e;
+
+    /* Window Surfaces */
+    --nx-surface-window: #ffffff;
+    --nx-surface-window-alt: #fafafa;
+
+    /* Panel/Card Surfaces */
+    --nx-surface-panel: #f5f5f7;
+    --nx-surface-card: #ffffff;
+    --nx-surface-elevated: #ffffff;
+
+    /* Header/Title Bar */
+    --nx-surface-titlebar: linear-gradient(180deg, #f6f6f6 0%, #e8e8e8 100%);
+    --nx-surface-titlebar-unfocused: #f0f0f0;
+    --nx-surface-menubar: rgba(30, 30, 30, 0.85);
+
+    /* Dock */
+    --nx-surface-dock: rgba(255, 255, 255, 0.18);
+    --nx-surface-dock-item: rgba(255, 255, 255, 0.15);
+    --nx-surface-dock-item-hover: rgba(255, 255, 255, 0.3);
+
+    /* Overlays */
+    --nx-surface-overlay: rgba(0, 0, 0, 0.5);
+    --nx-surface-scrim: rgba(0, 0, 0, 0.3);
+
+    /* Toolbar (Phase 9) */
+    --nx-surface-toolbar: rgba(255, 255, 255, 0.8);
+
+    /* Input (Phase 9) */
+    --nx-surface-input: rgba(0, 0, 0, 0.05);
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       3. COLORS — TEXT
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Light Background Text */
+    --nx-text-primary: #1d1d1f;
+    --nx-text-secondary: #6e6e73;
+    --nx-text-tertiary: #86868b;
+    --nx-text-disabled: #aeaeb2;
+
+    /* Window Chrome Text */
+    --nx-text-titlebar: #333333;
+    --nx-text-titlebar-unfocused: #888888;
+
+    /* Dark Background Text (Dock, Menu Bar) */
+    --nx-text-inverse: #ffffff;
+    --nx-text-inverse-muted: rgba(255, 255, 255, 0.85);
+    --nx-text-inverse-subtle: rgba(255, 255, 255, 0.65);
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       4. COLORS — SEMANTIC
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Accent (Calm Blue) */
+    --nx-accent: #007aff;
+    --nx-accent-hover: #0066d6;
+    --nx-accent-soft: #e5f1ff;
+
+    /* Success */
+    --nx-success: #34c759;
+    --nx-success-soft: #e8f8ed;
+
+    /* Warning */
+    --nx-warning: #ff9500;
+    --nx-warning-soft: #fff4e5;
+
+    /* Danger/Error */
+    --nx-danger: #ff3b30;
+    --nx-danger-soft: #ffeeee;
+
+    /* Info */
+    --nx-info: #5ac8fa;
+    --nx-info-soft: #e8f7fc;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       5. COLORS — BORDERS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Light Theme Borders */
+    --nx-border-subtle: rgba(0, 0, 0, 0.06);
+    --nx-border-default: rgba(0, 0, 0, 0.1);
+    --nx-border-strong: rgba(0, 0, 0, 0.15);
+    --nx-border-divider: rgba(0, 0, 0, 0.08);
+
+    /* Dark Theme Borders (Dock, Menu) */
+    --nx-border-inverse: rgba(255, 255, 255, 0.1);
+    --nx-border-inverse-strong: rgba(255, 255, 255, 0.2);
+
+    /* Focus */
+    --nx-border-focus: #007aff;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       6. ELEVATION & SHADOWS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Window Shadows (macOS-like) */
+    --nx-shadow-window:
+        0 24px 80px rgba(0, 0, 0, 0.35),
+        0 4px 16px rgba(0, 0, 0, 0.15);
+    --nx-shadow-window-unfocused:
+        0 12px 40px rgba(0, 0, 0, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+
+    /* Dock Shadow */
+    --nx-shadow-dock: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+    /* Dropdown/Menu Shadow */
+    --nx-shadow-dropdown: 0 18px 50px rgba(0, 0, 0, 0.38);
+
+    /* Card/Panel Shadows */
+    --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --nx-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06);
+    --nx-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.08);
+
+    /* Focus Ring */
+    --nx-shadow-focus: 0 0 0 3px rgba(0, 122, 255, 0.25);
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       7. SPACING (4px Grid)
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    --nx-space-0: 0;
+    --nx-space-1: 4px;
+    --nx-space-2: 8px;
+    --nx-space-3: 12px;
+    --nx-space-4: 16px;
+    --nx-space-5: 20px;
+    --nx-space-6: 24px;
+    --nx-space-8: 32px;
+    --nx-space-10: 40px;
+    --nx-space-12: 48px;
+    --nx-space-16: 64px;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       8. LAYOUT DIMENSIONS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Menu Bar */
+    --nx-menubar-height: 28px;
+    --nx-menubar-padding-x: 12px;
+
+    /* Title Bar */
+    --nx-titlebar-height: 32px;
+    --nx-titlebar-padding-x: 12px;
+
+    /* Window */
+    --nx-window-radius: 12px;
+    --nx-window-min-width: 400px;
+    --nx-window-min-height: 300px;
+
+    /* Dock */
+    --nx-dock-height: 72px;
+    --nx-dock-padding: 8px;
+    --nx-dock-radius: 16px;
+    --nx-dock-item-size: 52px;
+    --nx-dock-gap: 4px;
+
+    /* Traffic Lights */
+    --nx-traffic-size: 12px;
+    --nx-traffic-gap: 8px;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       9. BORDER RADIUS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    --nx-radius-none: 0;
+    --nx-radius-sm: 4px;
+    --nx-radius-md: 6px;
+    --nx-radius-base: 8px;
+    --nx-radius-lg: 10px;
+    --nx-radius-xl: 12px;
+    --nx-radius-2xl: 16px;
+    --nx-radius-full: 9999px;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       10. MOTION
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* Durations (short, purpose-driven) */
+    --nx-duration-instant: 80ms;
+    --nx-duration-fast: 120ms;
+    --nx-duration-normal: 180ms;
+    --nx-duration-slow: 250ms;
+
+    /* Easing (ease-out only) */
+    --nx-ease-out: cubic-bezier(0.25, 0.1, 0.25, 1.0);
+    --nx-ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+    --nx-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       11. TRAFFIC LIGHT COLORS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    --nx-traffic-close: #ff5f57;
+    --nx-traffic-close-border: #e64940;
+    --nx-traffic-minimize: #ffbd2e;
+    --nx-traffic-minimize-border: #e6a21e;
+    --nx-traffic-maximize: #28c840;
+    --nx-traffic-maximize-border: #1aab29;
+    --nx-traffic-inactive: #cccccc;
+    --nx-traffic-inactive-border: #bbbbbb;
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       12. Z-INDEX LAYERS
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    --nx-z-desktop: 0;
+    --nx-z-window-base: 100;
+    --nx-z-sidebar: 200;
+    --nx-z-dropdown: 300;
+    --nx-z-menubar: 400;
+    --nx-z-overlay: 500;
+    --nx-z-modal: 600;
+    --nx-z-dock: 9999;
+    --nx-z-toast: 10000;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WINDOW ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes nx-window-open {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes nx-window-close {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes nx-minimize {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.5) translateY(100px);
+    }
+}
+
+@keyframes nx-restore {
+    from {
+        opacity: 0;
+        transform: scale(0.5) translateY(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Animation Classes */
+.nx-animate-open {
+    animation: nx-window-open var(--nx-duration-normal) var(--nx-ease-out-expo) forwards;
+}
+
+.nx-animate-close {
+    animation: nx-window-close var(--nx-duration-fast) var(--nx-ease-out) forwards;
+}
+
+.nx-animate-minimize {
+    animation: nx-minimize var(--nx-duration-normal) var(--nx-ease-out) forwards;
+}
+
+.nx-animate-restore {
+    animation: nx-restore var(--nx-duration-normal) var(--nx-ease-spring) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nx-text-display {
+    font-family: var(--nx-font-display);
+    font-size: var(--nx-text-display);
+    font-weight: var(--nx-weight-bold);
+    line-height: var(--nx-leading-tight);
+    letter-spacing: var(--nx-tracking-tight);
+    color: var(--nx-text-primary);
+}
+
+.nx-text-title {
+    font-family: var(--nx-font-system);
+    font-size: var(--nx-text-title);
+    font-weight: var(--nx-weight-semibold);
+    line-height: var(--nx-leading-snug);
+    color: var(--nx-text-primary);
+}
+
+.nx-text-section {
+    font-family: var(--nx-font-system);
+    font-size: var(--nx-text-section);
+    font-weight: var(--nx-weight-medium);
+    line-height: var(--nx-leading-snug);
+    color: var(--nx-text-primary);
+}
+
+.nx-text-body {
+    font-family: var(--nx-font-system);
+    font-size: var(--nx-text-body);
+    font-weight: var(--nx-weight-regular);
+    line-height: var(--nx-leading-normal);
+    color: var(--nx-text-primary);
+}
+
+.nx-text-caption {
+    font-family: var(--nx-font-system);
+    font-size: var(--nx-text-caption);
+    font-weight: var(--nx-weight-regular);
+    line-height: var(--nx-leading-normal);
+    color: var(--nx-text-secondary);
+}
+
+.nx-text-mono {
+    font-family: var(--nx-font-mono);
+    font-size: var(--nx-text-caption);
+    line-height: var(--nx-leading-normal);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SURFACE UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nx-surface-window {
+    background: var(--nx-surface-window);
+    border-radius: var(--nx-window-radius);
+}
+
+.nx-surface-panel {
+    background: var(--nx-surface-panel);
+    border-radius: var(--nx-radius-lg);
+}
+
+.nx-surface-card {
+    background: var(--nx-surface-card);
+    border-radius: var(--nx-radius-base);
+    box-shadow: var(--nx-shadow-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSITION UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nx-transition {
+    transition-duration: var(--nx-duration-normal);
+    transition-timing-function: var(--nx-ease-out);
+}
+
+.nx-transition-fast {
+    transition-duration: var(--nx-duration-fast);
+    transition-timing-function: var(--nx-ease-out);
+}

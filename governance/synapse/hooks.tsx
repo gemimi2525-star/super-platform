@@ -6,13 +6,16 @@
  * React hooks for OS Shell to interact with SYNAPSE kernel.
  * All hooks import from the governance adapter layer only.
  * 
+ * Phase 9: Added single-instance enforcement and enhanced persona gating.
+ * Phase 9.1: Hardened single-instance semantics (restore+focus for hidden/minimized).
+ * 
  * @module governance/synapse/hooks
- * @version 1.0.0
+ * @version 2.1.0 (Phase 9.1)
  */
 
 'use client';
 
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore, useMemo } from 'react';
 import {
     getKernel,
     getStateStore,
@@ -21,6 +24,12 @@ import {
     type Intent,
     type CapabilityId,
 } from './synapse-adapter';
+import {
+    APP_MANIFESTS,
+    roleHasAccess,
+    isSingleInstance,
+    type UserRole,
+} from '@/components/os-shell/apps/manifest';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -188,10 +197,24 @@ export function useKernelBootstrap() {
 
 /**
  * Hook to get dock capabilities (for launcher)
+ * Phase 9: Enhanced with persona gating via shell manifests
  */
 export function useDockCapabilities(): CapabilityManifest[] {
     const graph = getCapabilityGraph();
-    return [...graph.getDockCapabilities()];
+    const security = useSecurityContext();
+    const userRole = (security.role || 'guest') as UserRole;
+
+    // Get manifests from SYNAPSE capability graph
+    const synapseManifests = [...graph.getDockCapabilities()];
+
+    // Filter by shell manifest persona requirements
+    return synapseManifests.filter(m => {
+        const shellManifest = APP_MANIFESTS[m.id];
+        // If no shell manifest exists, use SYNAPSE manifest's showInDock
+        if (!shellManifest) return true;
+        // Check persona gate
+        return roleHasAccess(userRole, shellManifest.requiredRole);
+    });
 }
 
 /**
@@ -235,4 +258,81 @@ export function useCapabilityInfo(capabilityId: CapabilityId) {
         icon: graph.getIcon(capabilityId),
         title: graph.getTitle(capabilityId),
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 9: SINGLE-INSTANCE HOOKS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Hook to find existing window for a capability
+ * Returns the window ID if found, null otherwise
+ */
+export function useExistingWindow(capabilityId: CapabilityId): string | null {
+    const state = useSystemState();
+
+    const existingWindow = useMemo(() => {
+        return Object.values(state.windows).find(
+            w => w.capabilityId === capabilityId && w.state !== 'hidden'
+        );
+    }, [state.windows, capabilityId]);
+
+    return existingWindow?.id ?? null;
+}
+
+/**
+ * Hook to open capability with single-instance support.
+ * If app is single-instance and already open, focuses existing window instead.
+ * 
+ * Phase 9.1: Deterministic state handling:
+ * - minimized/hidden → restoreWindow then focusWindow
+ * - active → focusWindow only
+ * 
+ * @returns Function to open capability with single-instance awareness
+ */
+export function useSingleInstanceOpen() {
+    const kernel = getKernel();
+    const state = useSystemState();
+
+    return useCallback((capabilityId: CapabilityId) => {
+        // Check if this app enforces single instance
+        const singleInstance = isSingleInstance(capabilityId);
+
+        if (singleInstance) {
+            // Look for existing window (any state except truly destroyed)
+            const existing = Object.values(state.windows).find(
+                w => w.capabilityId === capabilityId
+            );
+
+            if (existing) {
+                // Deterministic handling based on state
+                if (existing.state === 'minimized' || existing.state === 'hidden') {
+                    // Restore first, then focus
+                    kernel.emit(IntentFactory.restoreWindow(existing.id));
+                    // Focus after restore (kernel handles sequencing)
+                    kernel.emit(IntentFactory.focusWindow(existing.id));
+                } else {
+                    // Active window - just focus
+                    kernel.emit(IntentFactory.focusWindow(existing.id));
+                }
+                return;
+            }
+        }
+
+        // No existing window or not single-instance - open new
+        kernel.emit(IntentFactory.openCapability(capabilityId));
+    }, [state.windows]);
+}
+
+/**
+ * Hook to check if app can be launched (persona check)
+ */
+export function useCanLaunchApp(capabilityId: CapabilityId): boolean {
+    const security = useSecurityContext();
+    const userRole = (security.role || 'guest') as UserRole;
+
+    const shellManifest = APP_MANIFESTS[capabilityId];
+    if (!shellManifest) return true; // Default: allow if no manifest
+
+    return roleHasAccess(userRole, shellManifest.requiredRole);
 }

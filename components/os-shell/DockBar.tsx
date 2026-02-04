@@ -5,18 +5,21 @@
  * 
  * macOS-style dock with app launchers and minimized windows.
  * 
+ * Phase 8: Updated to use NEXUS Design Tokens (CSS variables)
+ * Phase 9.1: Use useSingleInstanceOpen for single-instance enforcement
+ * 
  * @module components/os-shell/DockBar
- * @version 1.0.0
+ * @version 2.1.0 (Phase 9.1)
  */
 
 'use client';
 
 import React from 'react';
-import { tokens } from './tokens';
+import '@/styles/nexus-tokens.css';
 import {
     useDockCapabilities,
     useMinimizedWindows,
-    useOpenCapability,
+    useSingleInstanceOpen,
     useSystemState,
     useWindowControls,
     useCapabilityInfo,
@@ -45,17 +48,19 @@ function DockItem({ icon, title, onClick, isRunning }: DockItemProps) {
                 onMouseEnter={() => setHover(true)}
                 onMouseLeave={() => setHover(false)}
                 style={{
-                    width: tokens.dockItemSize,
-                    height: tokens.dockItemSize,
+                    width: 'var(--nx-dock-item-size)',
+                    height: 'var(--nx-dock-item-size)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: hover ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
+                    background: hover
+                        ? 'var(--nx-surface-dock-item-hover)'
+                        : 'var(--nx-surface-dock-item)',
                     border: 'none',
-                    borderRadius: 12,
+                    borderRadius: 'var(--nx-radius-xl)',
                     cursor: 'pointer',
                     fontSize: 28,
-                    transition: 'all 0.15s ease',
+                    transition: `all var(--nx-duration-fast) var(--nx-ease-out)`,
                     transform: hover ? 'translateY(-8px) scale(1.1)' : 'none',
                 }}
                 title={title}
@@ -74,7 +79,7 @@ function DockItem({ icon, title, onClick, isRunning }: DockItemProps) {
                         width: 5,
                         height: 5,
                         borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.9)',
+                        background: 'var(--nx-text-inverse-muted)',
                     }}
                 />
             )}
@@ -97,17 +102,19 @@ function MinimizedWindowItem({ window }: { window: Window }) {
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
             style={{
-                width: tokens.dockItemSize,
-                height: tokens.dockItemSize,
+                width: 'var(--nx-dock-item-size)',
+                height: 'var(--nx-dock-item-size)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: hover ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: 12,
+                background: hover
+                    ? 'rgba(255,255,255,0.4)'
+                    : 'rgba(255,255,255,0.25)',
+                border: '1px solid var(--nx-border-inverse-strong)',
+                borderRadius: 'var(--nx-radius-xl)',
                 cursor: 'pointer',
                 fontSize: 20,
-                transition: 'all 0.15s ease',
+                transition: `all var(--nx-duration-fast) var(--nx-ease-out)`,
                 transform: hover ? 'translateY(-8px) scale(1.1)' : 'none',
             }}
             title={`Restore: ${window.title}`}
@@ -124,7 +131,7 @@ function MinimizedWindowItem({ window }: { window: Window }) {
 export function DockBar() {
     const dockCapabilities = useDockCapabilities();
     const minimizedWindows = useMinimizedWindows();
-    const openCapability = useOpenCapability();
+    const openCapability = useSingleInstanceOpen(); // Phase 9.1: Single-instance aware
     const state = useSystemState();
 
     // Check if capability has open window
@@ -138,19 +145,20 @@ export function DockBar() {
         <div
             style={{
                 position: 'fixed',
-                bottom: 8,
+                bottom: 'var(--nx-space-2)',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'flex-end',
-                gap: 4,
-                padding: `${tokens.dockPadding}px ${tokens.dockPadding + 4}px`,
-                background: tokens.dockBackground,
+                gap: 'var(--nx-dock-gap)',
+                padding: 'var(--nx-dock-padding) calc(var(--nx-dock-padding) + 4px)',
+                background: 'var(--nx-surface-dock)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                borderRadius: tokens.dockRadius,
-                border: `1px solid ${tokens.dockBorder}`,
-                zIndex: 9999,
+                borderRadius: 'var(--nx-dock-radius)',
+                border: '1px solid var(--nx-border-inverse)',
+                boxShadow: 'var(--nx-shadow-dock)',
+                zIndex: 'var(--nx-z-dock)',
             }}
         >
             {/* Capability Launchers */}
@@ -170,8 +178,8 @@ export function DockBar() {
                     style={{
                         width: 1,
                         height: 40,
-                        background: 'rgba(255,255,255,0.3)',
-                        margin: '0 4px',
+                        background: 'var(--nx-border-inverse-strong)',
+                        margin: '0 var(--nx-space-1)',
                     }}
                 />
             )}

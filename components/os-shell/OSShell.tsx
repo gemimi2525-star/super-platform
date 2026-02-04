@@ -6,16 +6,20 @@
  * Complete OS Shell with Desktop, TopBar, DockBar, Windows, and Persistence.
  * All interactions go through the governance adapter.
  * 
+ * Phase 8: Updated to use NEXUS Design Tokens
+ * Phase 9.1: Added manifest SSOT validation on startup
+ * 
  * @module components/os-shell/OSShell
- * @version 2.0.0
+ * @version 3.1.0 (Phase 9.1)
  */
 
 'use client';
 
 import React from 'react';
-import { tokens } from './tokens';
-import { LoginScreen } from './LoginScreen';
+import '@/styles/nexus-tokens.css';
+// Phase 9.4: Removed LoginScreen import (decoupled to /login page)
 import { CalmDesktop } from './CalmDesktop';
+
 import { TopBar } from './TopBar';
 import { DockBar } from './DockBar';
 import { WindowChrome } from './WindowChrome';
@@ -34,6 +38,20 @@ import {
 } from './shell-persistence';
 import { restoreFromSnapshotSync } from './restore-flow';
 import { addDecisionLog } from './system-log';
+import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
+import { activateKeyboardHandler, deactivateKeyboardHandler } from '@/coreos/keyboard-handler';
+import { runStartupValidation } from './apps/manifest-validation';
+
+// Debug: Check for undefined components
+console.log('[OSShell Debug] Component imports:', {
+    CalmDesktop: CalmDesktop ? 'OK' : 'UNDEFINED',
+    TopBar: TopBar ? 'OK' : 'UNDEFINED',
+    DockBar: DockBar ? 'OK' : 'UNDEFINED',
+    WindowChrome: WindowChrome ? 'OK' : 'UNDEFINED',
+    StepUpModal: StepUpModal ? 'OK' : 'UNDEFINED',
+    SystemLogPanel: SystemLogPanel ? 'OK' : 'UNDEFINED',
+    ServiceWorkerRegistration: ServiceWorkerRegistration ? 'OK' : 'UNDEFINED',
+});
 
 export function OSShell() {
     const windows = useWindows();
@@ -53,6 +71,17 @@ export function OSShell() {
 
     // Get userId from security context
     const userId = state.security.userId || 'guest';
+
+    // Phase 9.1: Run manifest/registry validation on startup
+    React.useEffect(() => {
+        runStartupValidation();
+    }, []);
+
+    // Phase 7.3: Activate keyboard handler on mount
+    React.useEffect(() => {
+        activateKeyboardHandler();
+        return () => deactivateKeyboardHandler();
+    }, []);
 
     // Bootstrap on mount if not authenticated
     React.useEffect(() => {
@@ -108,13 +137,16 @@ export function OSShell() {
             position: 'fixed',
             inset: 0,
             overflow: 'hidden',
-            fontFamily: tokens.fontFamily,
+            fontFamily: 'var(--nx-font-system)',
         }}>
             {/* Phase XI: Lock Screen - Removed in favor of /login page */}
             {/* isLocked logic removed */}
 
             {/* Background */}
             <CalmDesktop />
+
+            {/* Phase 7.2: Service Worker Registration */}
+            <ServiceWorkerRegistration />
 
             {/* Top Bar */}
             <TopBar
@@ -126,8 +158,8 @@ export function OSShell() {
             <div style={{
                 position: 'absolute',
                 inset: 0,
-                paddingTop: tokens.menubarHeight,
-                paddingBottom: tokens.dockHeight + 20,
+                paddingTop: 'var(--nx-menubar-height)',
+                paddingBottom: 'calc(var(--nx-dock-height) + 20px)',
             }}>
                 {windows.map(window => (
                     <WindowChrome
