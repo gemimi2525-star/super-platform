@@ -76,8 +76,21 @@ async function getHeader(key: string, req?: NextRequest): Promise<string | null>
 export async function getAuthContext(req?: NextRequest): Promise<AuthContext | null> {
     try {
         const token = await getAuthToken();
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 10.0: Enhanced Auth Logging
+        // ═══════════════════════════════════════════════════════════════════════════
+        const isDev = process.env.NODE_ENV === 'development';
+        const bypassEnabled = isDev && process.env.AUTH_DEV_BYPASS === 'true';
+
+        if (isDev) {
+            console.log(`[AUTH] Session check: hasToken=${!!token}, bypassEnabled=${bypassEnabled}`);
+        }
+
         if (!token) {
-            // console.log('[AUTH] No session token found');
+            if (isDev) {
+                console.log('[AUTH] No session token found');
+            }
             return null;
         }
 
@@ -198,6 +211,11 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
                         console.error(`[AUTH] Context Switch Error:`, err);
                     }
                 }
+            }
+
+            // Phase 10.0: Log successful auth
+            if (isDev) {
+                console.log(`[AUTH] ✅ Session verified: uid=${decodedToken.uid}, email=${decodedToken.email}, role=${role}, source=__session`);
             }
 
             return {
