@@ -51,7 +51,7 @@ export interface AlertListOptions {
 // ============================================================================
 
 // Canonical collection name
-const COLLECTION = 'platform_alerts';
+const COLLECTION = 'alerts';
 
 // ============================================================================
 // Repository Methods
