@@ -24,7 +24,7 @@ import { listAlerts, countByLevel } from '@/lib/platform/data/alerts.repo';
 export const runtime = 'nodejs';
 
 export async function GET() {
-    const traceId = getTraceId();
+    const traceId = await getTraceId();
 
     try {
         // ═══════════════════════════════════════════════════════════════════════════
