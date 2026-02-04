@@ -42,17 +42,6 @@ import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
 import { activateKeyboardHandler, deactivateKeyboardHandler } from '@/coreos/keyboard-handler';
 import { runStartupValidation } from './apps/manifest-validation';
 
-// Debug: Check for undefined components
-console.log('[OSShell Debug] Component imports:', {
-    CalmDesktop: CalmDesktop ? 'OK' : 'UNDEFINED',
-    TopBar: TopBar ? 'OK' : 'UNDEFINED',
-    DockBar: DockBar ? 'OK' : 'UNDEFINED',
-    WindowChrome: WindowChrome ? 'OK' : 'UNDEFINED',
-    StepUpModal: StepUpModal ? 'OK' : 'UNDEFINED',
-    SystemLogPanel: SystemLogPanel ? 'OK' : 'UNDEFINED',
-    ServiceWorkerRegistration: ServiceWorkerRegistration ? 'OK' : 'UNDEFINED',
-});
-
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
