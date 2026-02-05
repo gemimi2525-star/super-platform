@@ -120,7 +120,10 @@ export async function POST(request: NextRequest) {
 
             // Target and metadata
             target: payload.target || null,
-            metadata: payload.meta || {},
+            metadata: {
+                ...payload.meta,
+                simulated: payload.meta?.test === true, // Mark test scenarios as simulated
+            },
 
             // Trace and timing
             traceId: finalTraceId,

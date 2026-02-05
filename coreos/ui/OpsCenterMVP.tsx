@@ -65,6 +65,10 @@ interface AuditLogEntry {
         capability?: string;
         ruleHit?: string; // Phase 14.3
     };
+    metadata?: {
+        simulated?: boolean; // Phase 14.3 UI Hardening: mark test scenarios
+        [key: string]: unknown;
+    };
     rawPayload?: Record<string, unknown>;
 }
 
@@ -946,6 +950,49 @@ function AuditTab() {
                                                         gap: '8px 16px',
                                                         fontSize: 12,
                                                     }}>
+                                                        {/* Decision (Policy) - What governance decided */}
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Decision (Policy):</span>
+                                                        <div>
+                                                            <span style={{
+                                                                fontWeight: 600,
+                                                                color: normalized?.decision === 'DENY' ? tokens.warning : tokens.success
+                                                            }}>
+                                                                {normalized?.decision || 'ALLOW'}
+                                                            </span>
+                                                            {normalized?.policyId && (
+                                                                <span style={{ color: tokens.textSecondary, fontSize: 12, marginLeft: 8 }}>
+                                                                    ({normalized.policyId})
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Result (Execution) - What actually happened */}
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Result (Execution):</span>
+                                                        <div>
+                                                            <span style={{
+                                                                fontWeight: 600,
+                                                                color: log.status === 'SUCCESS' || log.status === 'INFO' ? tokens.success :
+                                                                    log.status === 'DENIED' ? tokens.warning :
+                                                                        tokens.error
+                                                            }}>
+                                                                {log.status}
+                                                            </span>
+                                                            {log.metadata?.simulated && (
+                                                                <span style={{
+                                                                    color: tokens.warning,
+                                                                    fontSize: 11,
+                                                                    fontWeight: 600,
+                                                                    marginLeft: 8,
+                                                                    padding: '2px 6px',
+                                                                    background: `${tokens.warning}15`,
+                                                                    borderRadius: 3
+                                                                }}>
+                                                                    [SIMULATED TEST]
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Trace ID */}
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Trace ID:</span>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                             <code style={{
@@ -974,12 +1021,15 @@ function AuditTab() {
                                                             )}
                                                         </div>
 
-                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Policy Key:</span>
-                                                        <span>{normalized?.policyId || 'N/A'}</span>
+                                                        {/* Rule Hit */}
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Rule Hit:</span>
+                                                        <span>
+                                                            {log.metadata?.simulated
+                                                                ? `✓ Test Scenario: ${normalized?.ruleHit || 'Simulated governance test'}`
+                                                                : (normalized?.ruleHit || 'N/A')}
+                                                        </span>
 
-                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Reason:</span>
-                                                        <span>{normalized?.ruleHit || log.reason?.summary || 'N/A'}</span>
-
+                                                        {/* Capability */}
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Capability:</span>
                                                         <span>{normalized?.capability || 'N/A'}</span>
 
