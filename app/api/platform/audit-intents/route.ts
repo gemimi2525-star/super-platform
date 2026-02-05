@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
             target: payload.target || null,
             metadata: {
                 ...payload.meta,
-                simulated: payload.meta?.test === true, // Mark test scenarios as simulated
+                simulated: payload.meta?.simulated === true, // Mark test scenarios as simulated
             },
 
             // Trace and timing
