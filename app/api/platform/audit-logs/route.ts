@@ -17,6 +17,11 @@ import { hasPermission } from '@/lib/platform/types';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
 import { handleError } from '@super-platform/core';
 
+// Phase 13: Governance Legibility imports
+import type { AuditViewModel } from '@/lib/platform/types/audit-view-model';
+import { resolveActor } from '@/lib/platform/resolvers/actor-resolver';
+import { mapToStatus, generateReason, extractDecisionInfo } from '@/lib/platform/mappers/audit-status-mapper';
+
 export const runtime = 'nodejs';
 
 // Inline collection constants to avoid webpack path resolution issues
@@ -127,12 +132,54 @@ export async function GET(request: NextRequest) {
         // Execute
         const snapshot = await query.get();
 
-        const logs = snapshot.docs.map(doc => {
+        // Phase 13: Map to AuditViewModel with enriched data
+        const logs: AuditViewModel[] = snapshot.docs.map(doc => {
             const data = doc.data();
+
+            // Resolve actor truth (never "-")
+            const actor = resolveActor({
+                actorId: data.actorId,
+                actorRole: data.actorRole,
+                actor: data.actor,
+                action: data.action || data.eventType,
+            });
+
+            // Categorize status (DENIED vs FAILED distinction)
+            const status = mapToStatus({
+                success: data.success,
+                decision: data.decision,
+                action: data.action || data.eventType,
+                metadata: data.metadata || data.details,
+            });
+
+            // Generate human-readable reason if applicable
+            const reason = generateReason({
+                success: data.success,
+                decision: data.decision,
+                action: data.action || data.eventType,
+                metadata: data.metadata || data.details,
+            });
+
+            // Extract decision info if present
+            const decision = extractDecisionInfo({
+                decision: data.decision,
+                metadata: data.metadata || data.details,
+            });
+
             return {
                 id: doc.id,
-                ...data,
-                timestamp: data.timestamp?.toDate?.()?.toISOString() || null,
+                traceId: data.traceId || doc.id,
+                action: data.action || data.eventType || 'unknown',
+                status,
+                actor,
+                reason,
+                decision,
+                timestamp: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString(),
+                rawPayload: {
+                    ...data,
+                    // Truncate large metadata to avoid bloat
+                    metadata: data.metadata ? JSON.stringify(data.metadata).slice(0, 200) : undefined,
+                },
             };
         });
 
@@ -164,58 +211,89 @@ export async function GET(request: NextRequest) {
 
 /**
  * Mock audit logs for dev bypass mode
+ * Phase 13: Updated to return AuditViewModel format
  */
 function getMockAuditLogs() {
-    const mockLogs = [
+    const mockLogs: AuditViewModel[] = [
         {
             id: 'audit-001',
-            eventType: 'user',
+            traceId: 'trace-001',
             action: 'login',
-            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
-            target: { id: 'dev-user-001', type: 'user' },
-            success: true,
+            status: 'INFO',
+            actor: {
+                kind: 'user',
+                displayName: 'admin@apicoredata.local',
+                actorId: 'dev-user-001',
+            },
             timestamp: new Date().toISOString(),
-            metadata: { source: 'dev-bypass' },
         },
         {
             id: 'audit-002',
-            eventType: 'org',
-            action: 'created',
-            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
-            target: { id: 'org-001', type: 'org', name: 'Acme Corp' },
-            success: true,
+            traceId: 'trace-002',
+            action: 'org.created',
+            status: 'SUCCESS',
+            actor: {
+                kind: 'user',
+                displayName: 'admin@apicoredata.local',
+                actorId: 'dev-user-001',
+            },
+            decision: {
+                decision: 'ALLOW',
+                capability: 'platform:orgs:write',
+            },
             timestamp: new Date(Date.now() - 3600000).toISOString(),
-            metadata: { source: 'dev-bypass' },
         },
         {
             id: 'audit-003',
-            eventType: 'user',
-            action: 'role_change',
-            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
-            target: { id: 'user-002', type: 'user', name: 'John Doe' },
-            success: true,
+            traceId: 'trace-003',
+            action: 'user.role_change',
+            status: 'SUCCESS',
+            actor: {
+                kind: 'user',
+                displayName: 'admin@apicoredata.local',
+                actorId: 'dev-user-001',
+            },
+            decision: {
+                decision: 'ALLOW',
+                capability: 'platform:users:write',
+            },
             timestamp: new Date(Date.now() - 7200000).toISOString(),
-            metadata: { oldRole: 'user', newRole: 'admin', source: 'dev-bypass' },
         },
         {
             id: 'audit-004',
-            eventType: 'settings',
-            action: 'updated',
-            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
-            target: { id: 'org-001', type: 'org', name: 'Acme Corp' },
-            success: true,
+            traceId: 'trace-004',
+            action: 'org.settings.update',
+            status: 'DENIED',
+            actor: {
+                kind: 'user',
+                displayName: 'user@example.com',
+                actorId: 'regular-user-001',
+            },
+            reason: {
+                code: 'POLICY_VIOLATION',
+                summary: 'Access denied: insufficient permission for "platform:orgs:write"',
+            },
+            decision: {
+                decision: 'DENY',
+                capability: 'platform:orgs:write',
+            },
             timestamp: new Date(Date.now() - 86400000).toISOString(),
-            metadata: { source: 'dev-bypass' },
         },
         {
             id: 'audit-005',
-            eventType: 'user',
-            action: 'invite_sent',
-            actor: { uid: 'dev-user-001', email: 'admin@apicoredata.local' },
-            target: { id: 'invite-001', type: 'user', name: 'jane@example.com' },
-            success: true,
+            traceId: 'trace-005',
+            action: 'api.call',
+            status: 'FAILED',
+            actor: {
+                kind: 'system',
+                displayName: 'system',
+                actorId: 'system',
+            },
+            reason: {
+                code: 'EXECUTION_ERROR',
+                summary: 'Database query failed: connection timeout',
+            },
             timestamp: new Date(Date.now() - 172800000).toISOString(),
-            metadata: { source: 'dev-bypass' },
         },
     ];
 
