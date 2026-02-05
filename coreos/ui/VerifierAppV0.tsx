@@ -1,9 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFileSystem } from '../../lib/filesystem/FileSystemProvider';
 import { FileSystemError, FsError } from '../../lib/filesystem/types';
+import { FsIntentHandler } from '../../lib/filesystem/FsIntentHandler';
 
 interface TestResult {
     gateId: string;
@@ -14,13 +15,16 @@ interface TestResult {
     error?: string;
 }
 
-const STORAGE_KEY = 'verifier_state_v0';
+const STORAGE_KEY = 'verifier_state_v1';
 
 export const VerifierAppV0 = () => {
     const fs = useFileSystem();
+    const intentHandler = useMemo(() => new FsIntentHandler(fs), [fs]);
+
     const [results, setResults] = useState<TestResult[]>([]);
     const [isRunning, setIsRunning] = useState(false);
     const [isReloading, setIsReloading] = useState(false);
+    const [phase, setPhase] = useState<'15A.1' | '15A.2'>('15A.1');
 
     // Auto-Resume after reload
     useEffect(() => {
@@ -32,6 +36,7 @@ export const VerifierAppV0 = () => {
             if (state.pending === 'G1') {
                 console.log('[Verifier] Resuming G1 after reload...');
                 setIsRunning(true);
+                setPhase(state.phase || '15A.1');
                 await verifyG1PostReload(state);
             }
         };
@@ -58,6 +63,7 @@ export const VerifierAppV0 = () => {
             // 2. Set State
             const state = {
                 pending: 'G1',
+                phase,
                 traceBase: traceId,
                 startTime: Date.now(),
                 expected: {
@@ -101,14 +107,11 @@ export const VerifierAppV0 = () => {
             }
 
             // 2. Check Temp (Should be Gone or Empty)
-            // Note: MemoryAdapter is fresh on reload, so readFile should throw or return empty
             try {
                 await fs.readFile(state.expected.tempPath);
-                // If we get here, file exists!
                 throw new Error('Volatile data persisted! Security Failure.');
             } catch (e: any) {
-                // We EXPECT an error (Not Found) or empty
-                // Ideally FsError.notFound
+                // We EXPECT an error (Not Found)
             }
 
             g1Result = {
@@ -130,7 +133,6 @@ export const VerifierAppV0 = () => {
             };
         }
 
-        // Clean up
         localStorage.removeItem(STORAGE_KEY);
         setResults(prev => [...prev, g1Result]);
 
@@ -148,7 +150,6 @@ export const VerifierAppV0 = () => {
                 await fs.writeFile('system://hack.txt', 'HACK');
                 throw new Error('System write succeeded unexpectedly');
             } catch (e: any) {
-                // Must be Access Denied code
                 if ((e as FsError).code !== FileSystemError.accessDenied) {
                     throw new Error(`Wrong error code: ${e.code || e.message}`);
                 }
@@ -183,12 +184,199 @@ export const VerifierAppV0 = () => {
             }]);
         }
 
+        // Continue to Phase 15A.2 gates if selected
+        if (phase === '15A.2') {
+            await runG6(traceBase);
+        } else {
+            setIsRunning(false);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 15A.2 Gates
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const runG6 = async (traceBase: string) => {
+        const traceId = `${traceBase}-G6`;
+        const start = performance.now();
+
+        try {
+            // G6: Intent-only Enforcement
+            // Write via Intent Handler and verify audit entry exists
+            intentHandler.clearAuditLog();
+
+            const result = await intentHandler.execute({
+                action: 'os.fs.write',
+                meta: { path: 'user://g6_test.txt', scheme: 'user', fileSize: 10 },
+                content: 'G6_TEST_DATA',
+                options: { create: true }
+            });
+
+            if (!result.success) {
+                throw new Error(`Intent execution failed: ${result.errorCode}`);
+            }
+
+            // Check audit log
+            const lastAudit = intentHandler.getLastAuditEntry();
+            if (!lastAudit) {
+                throw new Error('No audit entry found');
+            }
+            if (lastAudit.capability !== 'fs.write') {
+                throw new Error(`Wrong capability: ${lastAudit.capability}`);
+            }
+            if (lastAudit.decision !== 'ALLOW') {
+                throw new Error(`Wrong decision: ${lastAudit.decision}`);
+            }
+            if (lastAudit.result !== 'SUCCESS') {
+                throw new Error(`Wrong result: ${lastAudit.result}`);
+            }
+
+            setResults(prev => [...prev, {
+                gateId: 'G6',
+                description: 'Intent-only Enforcement (Audit Fields)',
+                status: 'PASS',
+                traceId: lastAudit.traceId,
+                latency: Math.round(performance.now() - start)
+            }]);
+
+        } catch (e: any) {
+            setResults(prev => [...prev, {
+                gateId: 'G6',
+                description: 'Intent-only Enforcement (Audit Fields)',
+                status: 'FAIL',
+                traceId,
+                latency: Math.round(performance.now() - start),
+                error: e.message
+            }]);
+        }
+
+        await runG7(traceBase);
+    };
+
+    const runG7 = async (traceBase: string) => {
+        const traceId = `${traceBase}-G7`;
+        const start = performance.now();
+
+        try {
+            // G7: Policy DENY for system write
+            intentHandler.clearAuditLog();
+
+            const result = await intentHandler.execute({
+                action: 'os.fs.write',
+                meta: { path: 'system://hack.txt', scheme: 'system' },
+                content: 'HACK_ATTEMPT'
+            });
+
+            // Must be denied
+            if (result.success) {
+                throw new Error('System write via Intent succeeded unexpectedly');
+            }
+            if (result.errorCode !== FileSystemError.accessDenied) {
+                throw new Error(`Wrong errorCode: ${result.errorCode}`);
+            }
+
+            // Check audit
+            const lastAudit = intentHandler.getLastAuditEntry();
+            if (!lastAudit) {
+                throw new Error('No audit entry found');
+            }
+            if (lastAudit.decision !== 'DENY') {
+                throw new Error(`Audit decision should be DENY, got: ${lastAudit.decision}`);
+            }
+            if (lastAudit.errorCode !== FileSystemError.accessDenied) {
+                throw new Error(`Audit errorCode should be FS_ACCESS_DENIED, got: ${lastAudit.errorCode}`);
+            }
+
+            setResults(prev => [...prev, {
+                gateId: 'G7',
+                description: 'Policy DENY (system:// write)',
+                status: 'PASS',
+                traceId: lastAudit.traceId,
+                latency: Math.round(performance.now() - start)
+            }]);
+
+        } catch (e: any) {
+            setResults(prev => [...prev, {
+                gateId: 'G7',
+                description: 'Policy DENY (system:// write)',
+                status: 'FAIL',
+                traceId,
+                latency: Math.round(performance.now() - start),
+                error: e.message
+            }]);
+        }
+
+        await runG8(traceBase);
+    };
+
+    const runG8 = async (traceBase: string) => {
+        const traceId = `${traceBase}-G8`;
+        const start = performance.now();
+
+        try {
+            // G8: Trace Correlation
+            intentHandler.clearAuditLog();
+
+            // Execute multiple operations
+            const r1 = await intentHandler.execute({
+                action: 'os.fs.write',
+                meta: { path: 'user://g8_a.txt', scheme: 'user' },
+                content: 'A'
+            });
+            const r2 = await intentHandler.execute({
+                action: 'os.fs.read',
+                meta: { path: 'user://g8_a.txt', scheme: 'user' }
+            });
+
+            // Each operation should have unique traceId
+            const auditLog = intentHandler.getAuditLog();
+            if (auditLog.length < 2) {
+                throw new Error('Expected 2 audit entries');
+            }
+
+            const traceIds = auditLog.map(a => a.traceId);
+            const uniqueTraceIds = new Set(traceIds);
+            if (uniqueTraceIds.size !== traceIds.length) {
+                throw new Error('TraceIds are not unique!');
+            }
+
+            // Verify traceId format
+            for (const t of traceIds) {
+                if (!t.startsWith('FS-')) {
+                    throw new Error(`Invalid traceId format: ${t}`);
+                }
+            }
+
+            setResults(prev => [...prev, {
+                gateId: 'G8',
+                description: 'Trace Correlation (Unique traceId)',
+                status: 'PASS',
+                traceId: auditLog[0].traceId,
+                latency: Math.round(performance.now() - start)
+            }]);
+
+        } catch (e: any) {
+            setResults(prev => [...prev, {
+                gateId: 'G8',
+                description: 'Trace Correlation (Unique traceId)',
+                status: 'FAIL',
+                traceId,
+                latency: Math.round(performance.now() - start),
+                error: e.message
+            }]);
+        }
+
         setIsRunning(false);
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Export Evidence
+    // ═══════════════════════════════════════════════════════════════════════════
+
     const exportEvidence = () => {
+        const phaseLabel = phase === '15A.2' ? '15A.2' : '15A.1';
         const md = `
-# Phase 15A.1 Verification Evidence
+# Phase ${phaseLabel} Verification Evidence
 **Date**: ${new Date().toLocaleString()}
 **Environment**: Production
 **Commit**: (Manual Input)
@@ -198,19 +386,49 @@ export const VerifierAppV0 = () => {
 |------|--------|----------|--------------|------|
 ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : '❌'} | ${r.traceId} | ${r.latency} | ${r.error || '-'} |`).join('\n')}
 
-**Verified By**: VerifierAppV0 (Automated 2-Phase Test)
+**Verified By**: VerifierAppV0 (Automated ${phaseLabel} Test)
 `;
         const blob = new Blob([md], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `evidence_15A1_${new Date().getTime()}.md`;
+        a.download = `evidence_${phaseLabel.replace('.', '')}_${new Date().getTime()}.md`;
         a.click();
     };
 
     return (
         <div style={{ padding: 20, background: '#111', color: '#eee', borderRadius: 8, fontFamily: 'monospace', border: '1px solid #333' }}>
-            <h3 style={{ marginTop: 0 }}>🧪 VerifierApp v0 (Phase 15A.1)</h3>
+            <h3 style={{ marginTop: 0 }}>🧪 VerifierApp v0.2 (Phase 15A.1 + 15A.2)</h3>
+
+            {/* Phase Selector */}
+            <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+                <button
+                    onClick={() => setPhase('15A.1')}
+                    style={{
+                        padding: '6px 12px',
+                        background: phase === '15A.1' ? '#3b82f6' : '#333',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        borderRadius: 4
+                    }}
+                >
+                    15A.1 (G1-G2)
+                </button>
+                <button
+                    onClick={() => setPhase('15A.2')}
+                    style={{
+                        padding: '6px 12px',
+                        background: phase === '15A.2' ? '#8b5cf6' : '#333',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        borderRadius: 4
+                    }}
+                >
+                    15A.2 (G1-G8)
+                </button>
+            </div>
 
             {isReloading && (
                 <div style={{ padding: 20, background: '#eab308', color: '#000', fontWeight: 'bold' }}>

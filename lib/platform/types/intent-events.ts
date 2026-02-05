@@ -25,7 +25,20 @@ export type IntentAction =
     | 'os.view.switch'
     // Phase 14.3: Test actions
     | 'os.governance.bypass'
-    | 'os.test.internal_error';
+    | 'os.test.internal_error'
+    // Phase 15A.2: Filesystem Intents
+    | 'os.fs.read'
+    | 'os.fs.write'
+    | 'os.fs.delete'
+    | 'os.fs.list'
+    | 'os.fs.mkdir'
+    | 'os.fs.stat'
+    | 'os.fs.rename'
+    | 'os.fs.move'
+    | 'os.fs.copy'
+    | 'os.fs.openHandle'
+    | 'os.fs.closeHandle'
+    | 'os.fs.shareHandle';
 
 /**
  * Target information for intent events
@@ -35,6 +48,18 @@ export interface IntentTarget {
     windowId?: string;     // Window identifier
     viewName?: string;     // View/tab name (e.g., 'Audit Trail', 'Alerts')
 }
+
+/**
+ * Filesystem-specific metadata for os.fs.* intents
+ */
+export interface FsIntentMeta {
+    path: string;                           // Full path (scheme://...)
+    scheme: 'user' | 'temp' | 'system';     // Extracted scheme
+    fileSize?: number;                      // For write operations
+    destPath?: string;                      // For move/copy/rename
+    mimeType?: string;                      // For write operations
+}
+
 
 /**
  * Complete intent event payload
