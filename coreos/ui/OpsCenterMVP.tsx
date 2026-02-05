@@ -608,7 +608,8 @@ function AuditTab() {
         ? logs.filter(l =>
             l.action?.toLowerCase().includes(filter.toLowerCase()) ||
             l.decision?.capability?.toLowerCase().includes(filter.toLowerCase()) ||
-            l.actor.displayName.toLowerCase().includes(filter.toLowerCase())
+            l.actor.displayName.toLowerCase().includes(filter.toLowerCase()) ||
+            l.traceId?.toLowerCase().includes(filter.toLowerCase()) // Phase 14.2
         )
         : logs;
 
@@ -617,7 +618,7 @@ function AuditTab() {
             {/* Search */}
             <input
                 type="text"
-                placeholder="Filter by action, capability, or email..."
+                placeholder="Filter by action, capability, email, or traceId..."
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
                 style={{
@@ -642,13 +643,14 @@ function AuditTab() {
                             <th style={{ padding: 10, textAlign: 'left' }}>Time</th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Action</th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Actor</th>
+                            <th style={{ padding: 10, textAlign: 'left' }}>Trace</th>
                             <th style={{ padding: 10, textAlign: 'center' }}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ padding: 20 }}>
+                                <td colSpan={5} style={{ padding: 20 }}>
                                     <CalmState
                                         message={filter ? "No Matching Logs" : "No Recent Activity"}
                                         subtitle={filter ? "Try adjusting your filter" : "System logs will appear here as actions occur"}
@@ -690,6 +692,42 @@ function AuditTab() {
                                                 {log.actor.kind === 'system' && '⚙️'}
                                                 {log.actor.displayName}
                                             </span>
+                                        </td>
+                                        <td style={{ padding: '6px 10px' }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                            }}>
+                                                <code style={{
+                                                    fontSize: 10,
+                                                    fontFamily: 'SF Mono, Menlo, Monaco, monospace',
+                                                    color: tokens.textSecondary,
+                                                    background: tokens.bgSecondary,
+                                                    padding: '2px 6px',
+                                                    borderRadius: 4,
+                                                }}>
+                                                    {log.traceId?.substring(0, 8) || 'legacy'}
+                                                </code>
+                                                {log.traceId && (
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(log.traceId!);
+                                                        }}
+                                                        style={{
+                                                            padding: '2px 6px',
+                                                            fontSize: 10,
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            cursor: 'pointer',
+                                                            opacity: 0.6,
+                                                        }}
+                                                        title="Copy full traceId"
+                                                    >
+                                                        📋
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                         <td style={{
                                             padding: 10,
@@ -1124,10 +1162,16 @@ export function OpsCenterMVP() {
 
     // Phase 14.1: Emit intent event when switching tabs
     const handleTabSwitch = (tabId: TabId, tabLabel: string) => {
+        // Phase 14.2: Generate traceId for this interaction
+        const traceId = crypto.randomUUID();
+
         // Emit intent event (fire-and-forget)
         fetch('/api/platform/audit-intents', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-trace-id': traceId, // Phase 14.2: Trace propagation
+            },
             body: JSON.stringify({
                 action: 'os.view.switch',
                 target: { viewName: tabLabel },

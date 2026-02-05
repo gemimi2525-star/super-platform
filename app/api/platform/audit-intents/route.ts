@@ -15,6 +15,7 @@ import { getAdminFirestore } from '@/lib/firebase-admin';
 import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
 import { handleError } from '@super-platform/core';
 import type { IntentEventPayload, IntentEventResponse } from '@/lib/platform/types/intent-events';
+import { extractOrGenerateTraceId, createTracedResponse } from '@/lib/platform/trace/server';
 
 export const runtime = 'nodejs';
 
@@ -23,34 +24,50 @@ const COLLECTION_AUDIT_LOGS = 'platform_audit_logs';
 export async function POST(request: NextRequest) {
     try {
         // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 14.2: Extract or generate traceId
+        // ═══════════════════════════════════════════════════════════════════════════
+        const traceId = extractOrGenerateTraceId(request);
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // AUTH CHECK (NO DEV BYPASS - Production-first requirement)
         // ═══════════════════════════════════════════════════════════════════════════
         const auth = await getAuthContext();
         if (!auth) {
-            return ApiErrorResponse.unauthorized();
+            return createTracedResponse(
+                { error: 'Unauthorized' },
+                traceId,
+                401
+            );
         }
 
         // Parse payload
         const payload: IntentEventPayload = await request.json();
 
+        // Validate minimal fields
         if (!payload.action) {
-            return ApiErrorResponse.validationError([{
-                field: 'action',
-                code: 'REQUIRED',
-                message: 'Action is required',
-            }]);
+            return createTracedResponse(
+                {
+                    error: 'Validation failed',
+                    details: [{ field: 'action', code: 'REQUIRED', message: 'Action is required' }],
+                },
+                traceId,
+                400
+            );
         }
 
         if (!payload.action.startsWith('os.')) {
-            return ApiErrorResponse.validationError([{
-                field: 'action',
-                code: 'INVALID_FORMAT',
-                message: 'Intent action must start with "os."',
-            }]);
+            return createTracedResponse(
+                {
+                    error: 'Validation failed',
+                    details: [{ field: 'action', code: 'INVALID_FORMAT', message: 'Intent action must start with "os."' }],
+                },
+                traceId,
+                400
+            );
         }
 
-        // Generate traceId if not provided
-        const traceId = payload.traceId || crypto.randomUUID();
+        // Use traceId from header (already extracted) or payload (fallback)
+        const finalTraceId = payload.traceId || traceId;
 
         // Create audit entry
         const db = getAdminFirestore();
@@ -71,8 +88,8 @@ export async function POST(request: NextRequest) {
             target: payload.target || null,
             metadata: payload.meta || {},
 
-            // Trace and timing
-            traceId,
+            // Trace and timing (Phase 14.2: use extracted traceId)
+            traceId: finalTraceId,
             timestamp: new Date(payload.timestamp || Date.now()),
 
             // Status (intent events are informational, always success)
@@ -87,14 +104,22 @@ export async function POST(request: NextRequest) {
 
         const response: IntentEventResponse = {
             id: docRef.id,
-            traceId,
+            traceId: finalTraceId,
         };
 
-        return ApiSuccessResponse.created(response);
+        // Phase 14.2: Return response with x-trace-id header
+        return createTracedResponse(response, finalTraceId, 201);
 
     } catch (error: unknown) {
         const appError = handleError(error as Error);
         console.error(`[API:AuditIntents] Failed to persist intent [${appError.errorId}]:`, appError.message);
-        return ApiErrorResponse.internalError();
+
+        // Phase 14.2: Include trace in error response
+        const traceId = extractOrGenerateTraceId(request);
+        return createTracedResponse(
+            { error: 'Internal server error' },
+            traceId,
+            500
+        );
     }
 }

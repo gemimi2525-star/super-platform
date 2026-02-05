@@ -143,10 +143,16 @@ export function DockBar() {
 
     // Phase 14.1: Emit intent event when opening app
     const handleAppOpen = async (capabilityId: CapabilityId, title: string) => {
+        // Phase 14.2: Generate traceId for this interaction
+        const traceId = crypto.randomUUID();
+
         // Emit intent event (fire-and-forget, non-blocking)
         fetch('/api/platform/audit-intents', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-trace-id': traceId, // Phase 14.2: Trace propagation
+            },
             body: JSON.stringify({
                 action: 'os.app.open',
                 target: { appId: capabilityId },
