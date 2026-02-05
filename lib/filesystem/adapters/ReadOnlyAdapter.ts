@@ -1,6 +1,6 @@
 
-import { FileSystemAdapter, WriteOptions, DirEntry } from '../types';
-import { FileSystemError, FsError } from '../../types';
+
+import { FileSystemAdapter, WriteOptions, DirEntry, FileSystemError, FsError } from '../types';
 
 /**
  * @internal Adapter for system:// scheme.
