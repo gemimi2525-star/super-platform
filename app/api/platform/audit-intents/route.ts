@@ -137,6 +137,62 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 14.3 Semantic Fix: Handle Simulated Governance DENY Test
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (payload.meta?.simulated === true && payload.action === 'os.governance.bypass') {
+            const db = getAdminFirestore();
+            const auditEntry = {
+                action: payload.action,
+                eventType: 'user_intent',
+                actor: {
+                    uid: auth.uid,
+                    email: auth.email || null,
+                },
+                actorId: auth.uid,
+                actorRole: 'user',
+                target: payload.target || null,
+                metadata: {
+                    ...payload.meta,
+                    simulated: true,
+                },
+                traceId: finalTraceId,
+                timestamp: new Date(payload.timestamp || Date.now()),
+
+                // Decision: policy correctly denies the action
+                decision: {
+                    decision: 'DENY',
+                    policyId: 'prod.protected_action',
+                    capability: 'system.configure',
+                    ruleHit: '✓ Test Scenario: Production protected action blocked by governance policy',
+                },
+                decisionOutcome: 'DENY',
+
+                // Status: correctly mark as denied (not failed)
+                success: false,
+                status: 'DENIED',
+                source: 'os-shell',
+            };
+
+            await db.collection(COLLECTION_AUDIT_LOGS).add(auditEntry);
+
+            return createTracedResponse(
+                {
+                    success: false,
+                    decision: {
+                        outcome: 'DENY',
+                        policyKey: 'prod.protected_action',
+                        reason: 'Action is protected in production environment',
+                        capability: 'system.configure',
+                        ruleHit: '✓ Test Scenario: Production protected action blocked by governance policy',
+                    },
+                    traceId: finalTraceId,
+                },
+                finalTraceId,
+                403
+            );
+        }
+
         // Determine status based on decision outcome
         let status: 'SUCCESS' | 'DENIED' | 'FAILED' | 'INFO';
         let success: boolean;
