@@ -128,11 +128,10 @@ export async function POST(request: NextRequest) {
 
             // Decision (Phase 14.3)
             decision: {
-                outcome: decision.outcome,
-                policyKey: decision.policyKey || null,
-                reason: decision.reason || null,
+                decision: decision.outcome,  // Frontend expects 'decision', not 'outcome'
+                policyId: decision.policyKey || null,
                 capability: decision.capability || null,
-                severity: decision.severity || null,
+                ruleHit: decision.reason || null,  // Map reason to ruleHit for UI
             },
             decisionOutcome: decision.outcome,
 
