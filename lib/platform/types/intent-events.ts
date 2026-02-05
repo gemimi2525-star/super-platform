@@ -22,7 +22,10 @@ export type IntentAction =
     | 'os.app.close'
     | 'os.window.focus'
     | 'os.window.move'
-    | 'os.view.switch';
+    | 'os.view.switch'
+    // Phase 14.3: Test actions
+    | 'os.governance.bypass'
+    | 'os.test.internal_error';
 
 /**
  * Target information for intent events

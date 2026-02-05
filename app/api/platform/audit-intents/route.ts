@@ -86,6 +86,57 @@ export async function POST(request: NextRequest) {
             env: getCurrentEnvironment(),
         });
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 14.3 Semantic Fix: Handle Simulated Internal Error Test
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (payload.meta?.simulated === true && payload.action === 'os.test.internal_error') {
+            const db = getAdminFirestore();
+            const auditEntry = {
+                action: payload.action,
+                eventType: 'user_intent',
+                actor: {
+                    uid: auth.uid,
+                    email: auth.email || null,
+                },
+                actorId: auth.uid,
+                actorRole: 'user',
+                target: payload.target || null,
+                metadata: {
+                    ...payload.meta,
+                    simulated: true,
+                },
+                traceId: finalTraceId,
+                timestamp: new Date(payload.timestamp || Date.now()),
+
+                // Decision: policy allows the test action
+                decision: {
+                    decision: 'ALLOW',
+                    policyId: 'test-harness',
+                    capability: 'system.test',
+                    ruleHit: '✓ Test Scenario: Simulated internal error for testing error handling',
+                },
+                decisionOutcome: 'ALLOW',
+
+                // Status: intentionally mark as failed
+                success: false,
+                status: 'FAILED',
+                source: 'os-shell',
+            };
+
+            await db.collection(COLLECTION_AUDIT_LOGS).add(auditEntry);
+
+            return createTracedResponse(
+                {
+                    id: 'simulated-error-test',
+                    traceId: finalTraceId,
+                    simulated: true,
+                    message: 'Simulated internal error test completed - check audit log for [SIMULATED TEST] entry'
+                },
+                finalTraceId,
+                200
+            );
+        }
+
         // Determine status based on decision outcome
         let status: 'SUCCESS' | 'DENIED' | 'FAILED' | 'INFO';
         let success: boolean;

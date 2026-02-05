@@ -598,6 +598,7 @@ function HealthTab() {
             {/* Phase 14.3: Test Governance DENY */}
             <Card title="🛡️ Governance Testing">
                 <TestGovernanceDenyButton />
+                <TestInternalErrorButton />
             </Card>
         </div>
     );
@@ -622,7 +623,11 @@ function TestGovernanceDenyButton() {
                 body: JSON.stringify({
                     action: 'os.governance.bypass',
                     target: 'system.production',
-                    meta: { test: true },
+                    meta: {
+                        test: true,
+                        simulated: true,  // Mark as simulated for [SIMULATED TEST] badge
+                        scenario: 'policy_deny'
+                    },
                     timestamp: Date.now(),
                 }),
             });
@@ -696,6 +701,107 @@ function TestGovernanceDenyButton() {
         </div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPONENT: Test Internal Error Button (Phase 14.3 Semantic Fix)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TestInternalErrorButton() {
+    const [testing, setTesting] = useState(false);
+    const [result, setResult] = useState<{ success: boolean; status: number; message: string } | null>(null);
+
+    const testInternalError = async () => {
+        setTesting(true);
+        setResult(null);
+
+        try {
+            const response = await fetch('/api/platform/audit-intents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'os.test.internal_error',
+                    target: 'system.production',
+                    meta: {
+                        test: true,
+                        simulated: true,
+                        scenario: 'internal_error',
+                        intentional: true,
+                    },
+                    timestamp: Date.now(),
+                }),
+            });
+
+            const data = await response.json();
+
+            setResult({
+                success: true,  // Success means test executed, not that the simulated error didn't occur
+                status: response.status,
+                message: response.ok
+                    ? `✅ Simulated error test completed: ${data.message || 'Check audit log'}`
+                    : `✅ Test executed (Status ${response.status}): Check audit log for simulated error entry`,
+            });
+        } catch (error: unknown) {
+            setResult({
+                success: true,  // Error is expected for simulated tests
+                status: 0,
+                message: '✅ Test completed with simulated error scenario',
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    return (
+        <div style={{ fontSize: 13, marginTop: 20 }}>
+            <div style={{ marginBottom: 12, color: tokens.textSecondary }}>
+                Test error handling by simulating an internal error.
+                This creates a <strong>FAILED</strong> audit entry marked as <strong>[SIMULATED TEST]</strong>.
+            </div>
+
+            <button
+                onClick={testInternalError}
+                disabled={testing}
+                style={{
+                    padding: '10px 16px',
+                    background: testing ? tokens.bgSecondary : tokens.error,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: tokens.radius,
+                    cursor: testing ? 'wait' : 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    opacity: testing ? 0.6 : 1,
+                }}
+            >
+                {testing ? '⏳ Testing...' : '⚠️ Test Internal Error (Simulated)'}
+            </button>
+
+            {result && (
+                <div style={{
+                    marginTop: 12,
+                    padding: 12,
+                    borderRadius: tokens.radius,
+                    background: '#f0f0f0',
+                    border: `1px solid ${tokens.textSecondary}`,
+                }}>
+                    <div style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                        color: tokens.textSecondary,
+                    }}>
+                        Test Status: {result.status || 'Completed'}
+                    </div>
+                    <div style={{ fontSize: 12, color: tokens.textPrimary }}>
+                        {result.message}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB: AUDIT TRAIL
@@ -920,17 +1026,27 @@ function AuditTab() {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                                                <span style={{
-                                                    display: 'inline-block',
-                                                    padding: '3px 8px',
-                                                    borderRadius: 12,
-                                                    background: dc.bg,
-                                                    color: dc.text,
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                }}>
-                                                    {dc.icon} {decisionOutcome}
-                                                </span>
+                                                {/* Phase 14.3: Decision chip with simulated indicator */}
+                                                {(() => {
+                                                    const isSimulated = log.metadata?.simulated === true;
+                                                    return (
+                                                        <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 4,
+                                                            padding: '3px 8px',
+                                                            borderRadius: 12,
+                                                            background: isSimulated ? `${tokens.textSecondary}20` : dc.bg,
+                                                            color: isSimulated ? tokens.textSecondary : dc.text,
+                                                            fontSize: 11,
+                                                            fontWeight: 600,
+                                                            border: isSimulated ? `1px dashed ${tokens.textSecondary}` : 'none',
+                                                        }}>
+                                                            {dc.icon} {decisionOutcome}
+                                                            {isSimulated && <span style={{ fontSize: 10 }}>🧪</span>}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td style={{
                                                 padding: 10,
