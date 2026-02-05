@@ -1122,6 +1122,24 @@ function AlertsTab() {
 export function OpsCenterMVP() {
     const [activeTab, setActiveTab] = useState<TabId>('health');
 
+    // Phase 14.1: Emit intent event when switching tabs
+    const handleTabSwitch = (tabId: TabId, tabLabel: string) => {
+        // Emit intent event (fire-and-forget)
+        fetch('/api/platform/audit-intents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'os.view.switch',
+                target: { viewName: tabLabel },
+                meta: { viewId: tabId, context: 'ops-center' },
+                timestamp: new Date().toISOString(),
+            }),
+        }).catch(err => console.warn('[Intent] Failed to emit os.view.switch:', err));
+
+        // Switch tab (original logic)
+        setActiveTab(tabId);
+    };
+
     return (
         <div style={{
             height: '100%',
@@ -1139,7 +1157,7 @@ export function OpsCenterMVP() {
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => handleTabSwitch(tab.id, tab.label)}
                         style={{
                             flex: 1,
                             padding: '12px 16px',

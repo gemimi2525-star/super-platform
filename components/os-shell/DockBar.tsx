@@ -141,6 +141,24 @@ export function DockBar() {
         );
     };
 
+    // Phase 14.1: Emit intent event when opening app
+    const handleAppOpen = async (capabilityId: CapabilityId, title: string) => {
+        // Emit intent event (fire-and-forget, non-blocking)
+        fetch('/api/platform/audit-intents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'os.app.open',
+                target: { appId: capabilityId },
+                meta: { appTitle: title },
+                timestamp: new Date().toISOString(),
+            }),
+        }).catch(err => console.warn('[Intent] Failed to emit os.app.open:', err));
+
+        // Open app (original logic)
+        openCapability(capabilityId);
+    };
+
     return (
         <div
             style={{
@@ -167,7 +185,7 @@ export function DockBar() {
                     key={cap.id}
                     icon={cap.icon}
                     title={cap.title}
-                    onClick={() => openCapability(cap.id)}
+                    onClick={() => handleAppOpen(cap.id, cap.title)}
                     isRunning={hasOpenWindow(cap.id)}
                 />
             ))}
