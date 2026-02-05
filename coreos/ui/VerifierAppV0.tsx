@@ -15,7 +15,7 @@ interface TestResult {
     error?: string;
 }
 
-const STORAGE_KEY = 'verifier_state_v2';
+const STORAGE_KEY = 'verifier_state_v3';
 
 export const VerifierAppV0 = () => {
     // Note: useFileSystem is used ONLY for local OPFS operations (G1/G2)
@@ -26,6 +26,12 @@ export const VerifierAppV0 = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [isReloading, setIsReloading] = useState(false);
     const [phase, setPhase] = useState<'15A.1' | '15A.2'>('15A.2');
+    const [logs, setLogs] = useState<string[]>([]);
+
+    const log = (msg: string) => {
+        console.log(`[Verifier] ${msg}`);
+        setLogs(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+    };
 
     // Auto-Resume after reload
     useEffect(() => {
@@ -35,7 +41,7 @@ export const VerifierAppV0 = () => {
 
             const state = JSON.parse(savedState);
             if (state.pending === 'G1') {
-                console.log('[Verifier] Resuming G1 after reload...');
+                log('Resuming G1 after reload...');
                 setIsRunning(true);
                 setPhase(state.phase || '15A.1');
                 await verifyG1PostReload(state);
@@ -47,6 +53,8 @@ export const VerifierAppV0 = () => {
     const runTests = async () => {
         setIsRunning(true);
         setResults([]);
+        setLogs([]);
+        log('Starting test suite...');
         await runG1PreReload();
     };
 
@@ -55,7 +63,7 @@ export const VerifierAppV0 = () => {
     // ═══════════════════════════════════════════════════════════════════════════
     const runG1PreReload = async () => {
         const traceId = `TEST-${Date.now()}-G1-PRE`;
-        console.log('[Verifier] Starting G1A (Pre-Reload)...');
+        log('G1: Pre-reload setup...');
 
         try {
             await fs.writeFile('user://verify_persist.txt', 'PERSISTENT_DATA', { create: true });
@@ -75,9 +83,11 @@ export const VerifierAppV0 = () => {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
             setIsReloading(true);
+            log('Triggering page reload...');
             setTimeout(() => window.location.reload(), 1000);
 
         } catch (e: any) {
+            log(`G1 PRE FAILED: ${e.message}`);
             setResults(prev => [...prev, {
                 gateId: 'G1',
                 description: 'Scheme Isolation (Pre-check)',
@@ -97,6 +107,7 @@ export const VerifierAppV0 = () => {
         const traceId = `${state.traceBase}-POST`;
         const start = performance.now();
         let g1Result: TestResult;
+        log('G1: Post-reload verification...');
 
         try {
             const userContent = await (await fs.readFile(state.expected.userPath)).text();
@@ -116,7 +127,9 @@ export const VerifierAppV0 = () => {
                 traceId,
                 latency: Math.round(performance.now() - start + (Date.now() - state.startTime))
             };
+            log('G1: PASS');
         } catch (e: any) {
+            log(`G1: FAIL - ${e.message}`);
             g1Result = {
                 gateId: 'G1',
                 description: 'Scheme Isolation (Persistence)',
@@ -138,6 +151,7 @@ export const VerifierAppV0 = () => {
     const runG2 = async (traceBase: string) => {
         const traceId = `${traceBase}-G2`;
         const start = performance.now();
+        log('G2: Testing system:// read-only...');
 
         try {
             try {
@@ -158,6 +172,7 @@ export const VerifierAppV0 = () => {
                 }
             }
 
+            log('G2: PASS');
             setResults(prev => [...prev, {
                 gateId: 'G2',
                 description: 'System Read-Only Enforcement',
@@ -166,6 +181,7 @@ export const VerifierAppV0 = () => {
                 latency: Math.round(performance.now() - start)
             }]);
         } catch (e: any) {
+            log(`G2: FAIL - ${e.message}`);
             setResults(prev => [...prev, {
                 gateId: 'G2',
                 description: 'System Read-Only Enforcement',
@@ -189,6 +205,7 @@ export const VerifierAppV0 = () => {
     const runG6 = async (traceBase: string) => {
         const traceId = `${traceBase}-G6`;
         const start = performance.now();
+        log('G6: Intent-only enforcement via API...');
 
         try {
             const result = await dispatchFsIntent({
@@ -198,11 +215,12 @@ export const VerifierAppV0 = () => {
                 options: { create: true }
             });
 
+            log(`G6: API response: ${JSON.stringify(result)}`);
+
             if (!result.success) {
-                throw new Error(`Intent failed: ${result.errorCode}`);
+                throw new Error(`Intent failed: ${result.errorCode || JSON.stringify(result)}`);
             }
 
-            // Verify opId and traceId exist
             if (!result.opId) {
                 throw new Error('No opId in response');
             }
@@ -213,6 +231,7 @@ export const VerifierAppV0 = () => {
                 throw new Error('Decision not ALLOW');
             }
 
+            log('G6: PASS');
             setResults(prev => [...prev, {
                 gateId: 'G6',
                 description: 'Intent-only Enforcement (API opId + traceId)',
@@ -221,6 +240,7 @@ export const VerifierAppV0 = () => {
                 latency: Math.round(performance.now() - start)
             }]);
         } catch (e: any) {
+            log(`G6: FAIL - ${e.message}`);
             setResults(prev => [...prev, {
                 gateId: 'G6',
                 description: 'Intent-only Enforcement (API opId + traceId)',
@@ -231,6 +251,7 @@ export const VerifierAppV0 = () => {
             }]);
         }
 
+        // Always continue to G7 regardless of G6 result
         await runG7(traceBase);
     };
 
@@ -240,6 +261,7 @@ export const VerifierAppV0 = () => {
     const runG7 = async (traceBase: string) => {
         const traceId = `${traceBase}-G7`;
         const start = performance.now();
+        log('G7: Testing Policy DENY for system:// via API...');
 
         try {
             const result = await dispatchFsIntent({
@@ -248,17 +270,25 @@ export const VerifierAppV0 = () => {
                 content: 'HACK_ATTEMPT'
             });
 
+            log(`G7: API response: ${JSON.stringify(result)}`);
+
             // Must be denied
-            if (result.success) {
+            if (result.success === true) {
                 throw new Error('System write via API succeeded unexpectedly');
             }
-            if (!result.decision || result.decision.outcome !== 'DENY') {
-                throw new Error('Decision not DENY');
+
+            // Check decision
+            if (!result.decision) {
+                throw new Error(`No decision in response: ${JSON.stringify(result)}`);
+            }
+            if (result.decision.outcome !== 'DENY') {
+                throw new Error(`Decision not DENY: ${result.decision.outcome}`);
             }
             if (result.decision.errorCode !== FileSystemError.accessDenied) {
-                throw new Error(`Wrong errorCode: ${result.decision.errorCode}`);
+                throw new Error(`Wrong errorCode: ${result.decision.errorCode}, expected FS_ACCESS_DENIED`);
             }
 
+            log('G7: PASS');
             setResults(prev => [...prev, {
                 gateId: 'G7',
                 description: 'Policy DENY (system:// via API)',
@@ -267,6 +297,7 @@ export const VerifierAppV0 = () => {
                 latency: Math.round(performance.now() - start)
             }]);
         } catch (e: any) {
+            log(`G7: FAIL - ${e.message}`);
             setResults(prev => [...prev, {
                 gateId: 'G7',
                 description: 'Policy DENY (system:// via API)',
@@ -277,53 +308,79 @@ export const VerifierAppV0 = () => {
             }]);
         }
 
+        // Always continue to G8 regardless of G7 result
         await runG8(traceBase);
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // G8: Trace Correlation (opId format)
+    // G8: Trace Correlation + Audit Verification
     // ═══════════════════════════════════════════════════════════════════════════
     const runG8 = async (traceBase: string) => {
         const traceId = `${traceBase}-G8`;
         const start = performance.now();
+        log('G8: Testing Trace Correlation + Audit...');
 
         try {
-            const r1 = await dispatchFsIntent({
+            // Step 1: Make a request and capture opId
+            const writeResult = await dispatchFsIntent({
                 action: 'os.fs.write',
-                meta: buildFsMeta('user://g8_a.txt'),
-                content: 'A'
+                meta: buildFsMeta('user://g8_audit_test.txt'),
+                content: 'AUDIT_TEST'
             });
 
-            const r2 = await dispatchFsIntent({
-                action: 'os.fs.read',
-                meta: buildFsMeta('user://g8_a.txt')
-            });
+            log(`G8: Write response: ${JSON.stringify(writeResult)}`);
 
-            // Both must have opId
-            if (!r1.opId || !r2.opId) {
-                throw new Error('Missing opId in responses');
+            if (!writeResult.opId) {
+                throw new Error('No opId in write response');
+            }
+            if (!writeResult.traceId) {
+                throw new Error('No traceId in write response');
             }
 
-            // opId format: traceId:action:path
+            // Step 2: Verify opId format (traceId:action:path)
             const opIdPattern = /^[A-Za-z0-9-]+:os\.fs\.[a-z]+:.+$/;
-            if (!opIdPattern.test(r1.opId)) {
-                throw new Error(`Invalid opId format: ${r1.opId}`);
-            }
-            if (!opIdPattern.test(r2.opId)) {
-                throw new Error(`Invalid opId format: ${r2.opId}`);
+            if (!opIdPattern.test(writeResult.opId)) {
+                throw new Error(`Invalid opId format: ${writeResult.opId}`);
             }
 
+            // Step 3: Lookup audit record via API
+            const lookupResponse = await fetch(`/api/platform/audit-lookup?opId=${encodeURIComponent(writeResult.opId)}`);
+            const lookupResult = await lookupResponse.json();
+
+            log(`G8: Audit lookup: ${JSON.stringify(lookupResult)}`);
+
+            if (!lookupResult.success || !lookupResult.found) {
+                throw new Error(`Audit record not found for opId: ${writeResult.opId}`);
+            }
+
+            const auditRecord = lookupResult.records[0];
+
+            // Step 4: Verify audit record has required fields
+            const requiredFields = ['capability', 'path', 'scheme', 'decision', 'result', 'traceId', 'opId'];
+            for (const field of requiredFields) {
+                if (!auditRecord[field]) {
+                    throw new Error(`Audit record missing field: ${field}`);
+                }
+            }
+
+            // Step 5: Verify traceId correlation
+            if (auditRecord.traceId !== writeResult.traceId) {
+                throw new Error(`TraceId mismatch: audit=${auditRecord.traceId}, response=${writeResult.traceId}`);
+            }
+
+            log('G8: PASS');
             setResults(prev => [...prev, {
                 gateId: 'G8',
-                description: 'Trace Correlation (opId format)',
+                description: 'Trace Correlation + Audit Verification',
                 status: 'PASS',
-                traceId: r1.traceId || traceId,
+                traceId: writeResult.traceId || traceId,
                 latency: Math.round(performance.now() - start)
             }]);
         } catch (e: any) {
+            log(`G8: FAIL - ${e.message}`);
             setResults(prev => [...prev, {
                 gateId: 'G8',
-                description: 'Trace Correlation (opId format)',
+                description: 'Trace Correlation + Audit Verification',
                 status: 'FAIL',
                 traceId,
                 latency: Math.round(performance.now() - start),
@@ -332,6 +389,7 @@ export const VerifierAppV0 = () => {
         }
 
         setIsRunning(false);
+        log('Test suite complete.');
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -350,7 +408,7 @@ export const VerifierAppV0 = () => {
 |------|--------|----------|--------------|------|
 ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : '❌'} | ${r.traceId} | ${r.latency} | ${r.error || '-'} |`).join('\n')}
 
-**Verified By**: VerifierAppV0.2 (Automated ${phaseLabel} Test)
+**Verified By**: VerifierAppV0.3 (Automated ${phaseLabel} Test)
 `;
         const blob = new Blob([md], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
@@ -362,7 +420,7 @@ ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : 
 
     return (
         <div style={{ padding: 20, background: '#111', color: '#eee', borderRadius: 8, fontFamily: 'monospace', border: '1px solid #333' }}>
-            <h3 style={{ marginTop: 0 }}>🧪 VerifierApp v0.2 (Phase 15A.1 + 15A.2)</h3>
+            <h3 style={{ marginTop: 0 }}>🧪 VerifierApp v0.3 (Phase 15A.1 + 15A.2)</h3>
 
             {/* Phase Selector */}
             <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
@@ -437,6 +495,16 @@ ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : 
                     ))}
                 </tbody>
             </table>
+
+            {/* Debug Logs */}
+            {logs.length > 0 && (
+                <div style={{ marginTop: 20, padding: 10, background: '#000', borderRadius: 4, fontSize: 11, maxHeight: 200, overflow: 'auto' }}>
+                    <div style={{ color: '#666', marginBottom: 5 }}>Debug Logs:</div>
+                    {logs.map((l, i) => (
+                        <div key={i} style={{ color: '#888' }}>{l}</div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
