@@ -23,6 +23,7 @@ import { resolveActor } from '@/lib/platform/resolvers/actor-resolver';
 import { mapToStatus, generateReason, extractDecisionInfo } from '@/lib/platform/mappers/audit-status-mapper';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'; // Phase 14.3: Prevent caching of audit logs
 
 // Inline collection constants to avoid webpack path resolution issues
 const COLLECTION_PLATFORM_USERS = 'platform_users';
@@ -180,6 +181,7 @@ export async function GET(request: NextRequest) {
                     // Truncate large metadata to avoid bloat
                     metadata: data.metadata ? JSON.stringify(data.metadata).slice(0, 200) : undefined,
                 },
+                metadata: data.metadata || null, // Phase 14.3: Expose metadata for frontend badges (e.g. simulated)
             };
         });
 

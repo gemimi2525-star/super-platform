@@ -83,5 +83,6 @@ export interface AuditViewModel {
     reason?: AuditReason;
     decision?: AuditDecisionInfo;
     timestamp: string;              // ISO 8601 format
+    metadata?: Record<string, unknown>; // Additional context (including 'simulated' flag)
     rawPayload?: Record<string, unknown>;  // Original data (may be truncated)
 }
