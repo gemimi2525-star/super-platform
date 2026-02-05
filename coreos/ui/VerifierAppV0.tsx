@@ -1,4 +1,6 @@
 
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useFileSystem } from '../../lib/filesystem/FileSystemProvider';
 import { FileSystemError, FsError } from '../../lib/filesystem/types';
