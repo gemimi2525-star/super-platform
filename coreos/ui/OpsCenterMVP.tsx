@@ -697,6 +697,54 @@ function TestGovernanceDenyButton() {
 // TAB: AUDIT TRAIL
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Phase 14.3: Legacy Compatibility Guard
+ * 
+ * Normalizes decision field from audit logs to handle both:
+ * - Old schema: {outcome, policyKey, reason, severity}
+ * - New schema: {decision, policyId, ruleHit, capability}
+ * 
+ * This prevents React crashes when rendering legacy audit logs.
+ */
+function normalizeDecision(log: AuditLogEntry): {
+    decision: 'ALLOW' | 'DENY' | 'SKIP';
+    policyId?: string;
+    capability?: string;
+    ruleHit?: string;
+} | null {
+    if (!log.decision) return null;
+
+    const raw: any = log.decision;
+
+    // New schema (already normalized)
+    if (raw.decision && typeof raw.decision === 'string') {
+        return {
+            decision: raw.decision as 'ALLOW' | 'DENY' | 'SKIP',
+            policyId: raw.policyId || undefined,
+            capability: raw.capability || undefined,
+            ruleHit: raw.ruleHit || undefined,
+        };
+    }
+
+    // Old schema (needs normalization)
+    if (raw.outcome && typeof raw.outcome === 'string') {
+        return {
+            decision: raw.outcome as 'ALLOW' | 'DENY' | 'SKIP',
+            policyId: raw.policyKey || undefined,
+            capability: raw.capability || undefined,
+            ruleHit: raw.reason || undefined,
+        };
+    }
+
+    // Fallback: assume ALLOW if decision exists but is malformed
+    return {
+        decision: 'ALLOW',
+        policyId: undefined,
+        capability: undefined,
+        ruleHit: undefined,
+    };
+}
+
 function AuditTab() {
     const { data: logs, loading, error } = useAuditLogs(50);
     const [filter, setFilter] = useState('');
@@ -779,8 +827,9 @@ function AuditTab() {
                                     INFO: tokens.textSecondary,
                                 };
 
-                                // Phase 14.3: Decision chips
-                                const decisionOutcome = log.decision?.decision || 'ALLOW';
+                                // Phase 14.3: Decision chips (with legacy compatibility)
+                                const normalized = normalizeDecision(log);
+                                const decisionOutcome = normalized?.decision || 'ALLOW';
                                 const decisionConfig = {
                                     ALLOW: { icon: '✅', bg: '#e8f8e8', text: tokens.success },
                                     DENY: { icon: '⛔', bg: '#fff8e0', text: tokens.warning },
@@ -923,13 +972,13 @@ function AuditTab() {
                                                         </div>
 
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Policy Key:</span>
-                                                        <span>{log.decision?.policyId || 'N/A'}</span>
+                                                        <span>{normalized?.policyId || 'N/A'}</span>
 
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Reason:</span>
-                                                        <span>{log.reason?.summary || log.decision?.ruleHit || 'N/A'}</span>
+                                                        <span>{normalized?.ruleHit || log.reason?.summary || 'N/A'}</span>
 
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Capability:</span>
-                                                        <span>{log.decision?.capability || 'N/A'}</span>
+                                                        <span>{normalized?.capability || 'N/A'}</span>
 
                                                         <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Timestamp:</span>
                                                         <span>{new Date(log.timestamp).toLocaleString()}</span>
