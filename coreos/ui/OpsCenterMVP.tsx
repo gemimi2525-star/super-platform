@@ -455,10 +455,15 @@ function StatusBadge({ status }: { status: 'healthy' | 'degraded' | 'down' | str
 // TAB: SYSTEM HEALTH
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { VerifierAppV0 } from './VerifierAppV0';
+
+// ... (existing code)
+
 function HealthTab() {
     const health = useHealthData();
     const me = useMeData();
     const session = useSessionDebug();
+    const [showVerifier, setShowVerifier] = useState(false);
 
     if (health.loading || me.loading) return <LoadingState />;
     if (health.error) return <ErrorState message={health.error} />;
@@ -468,6 +473,33 @@ function HealthTab() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Phase 15A.1 Verification Access (Production Permanent) */}
+            <Card title="🧪 OS Verification (Admin)" accent="#333">
+                <div style={{ color: '#fff', fontSize: 13, marginBottom: 12 }}>
+                    Production Verification Suite. Keep closed during normal operations.
+                </div>
+                <button
+                    onClick={() => setShowVerifier(!showVerifier)}
+                    style={{
+                        background: showVerifier ? '#ef4444' : '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showVerifier ? 'Close Verifier' : 'Launch Verifier Suite'}
+                </button>
+
+                {showVerifier && (
+                    <div style={{ marginTop: 16 }}>
+                        <VerifierAppV0 />
+                    </div>
+                )}
+            </Card>
+
             {/* Status Overview */}
             <Card title="System Status" accent={tokens.bgAccent}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -477,6 +509,8 @@ function HealthTab() {
                     </span>
                 </div>
             </Card>
+
+            {/* ... rest of existing HealthTab ... */}
 
             {/* Phase 5.4: Session Status */}
             <Card title="🔐 Session Status">
