@@ -43,15 +43,28 @@ interface MeData {
     permissions: string[];
 }
 
+// Phase 13: Governance Legibility - Audit Log Entry
 interface AuditLogEntry {
     id: string;
+    traceId: string;
     timestamp: string;
     action: string;
-    actor?: { uid: string; email?: string };
-    target?: { type: string; id: string };
-    success: boolean;
-    decision?: string;
-    capability?: string;
+    status: 'SUCCESS' | 'DENIED' | 'FAILED' | 'INFO';
+    actor: {
+        kind: 'user' | 'service' | 'system';
+        displayName: string;
+        actorId?: string;
+    };
+    reason?: {
+        code: string;
+        summary: string;
+    };
+    decision?: {
+        decision: 'ALLOW' | 'DENY' | 'SKIP';
+        policyId?: string;
+        capability?: string;
+    };
+    rawPayload?: Record<string, unknown>;
 }
 
 // Phase 5.4: Session Debug
@@ -270,7 +283,7 @@ function detectIncidents(logs: AuditLogEntry[]): Incident[] {
 
     for (const log of logs) {
         // Skip stepup.cancel — this is NORMAL user behavior
-        if (log.action === 'stepup.cancel' || log.capability === 'stepup.cancel') {
+        if (log.action === 'stepup.cancel' || log.decision?.capability === 'stepup.cancel') {
             continue;
         }
 
@@ -286,20 +299,21 @@ function detectIncidents(logs: AuditLogEntry[]): Incident[] {
             continue;
         }
 
-        // Security denials (DENY decisions)
-        if (log.decision === 'DENY' && log.success === false) {
+        // Security denials (DENY decisions) - Phase 13: use new status
+        if (log.status === 'DENIED' || log.decision?.decision === 'DENY') {
+            const capability = log.decision?.capability || log.action;
             const isSensitive = [
                 'org.manage',
                 'platform:users:write',
                 'platform:users:delete',
                 'system.configure',
-            ].some(cap => log.capability?.includes(cap) || log.action?.includes(cap));
+            ].some(cap => capability?.includes(cap));
 
             if (isSensitive) {
                 incidents.push({
                     id: log.id,
                     type: 'warning',
-                    message: `Access denied: ${log.capability || log.action}`,
+                    message: `Access denied: ${capability}`,
                     timestamp: log.timestamp,
                     source: log,
                 });
@@ -593,8 +607,8 @@ function AuditTab() {
     const filtered = filter
         ? logs.filter(l =>
             l.action?.toLowerCase().includes(filter.toLowerCase()) ||
-            l.capability?.toLowerCase().includes(filter.toLowerCase()) ||
-            l.actor?.email?.toLowerCase().includes(filter.toLowerCase())
+            l.decision?.capability?.toLowerCase().includes(filter.toLowerCase()) ||
+            l.actor.displayName.toLowerCase().includes(filter.toLowerCase())
         )
         : logs;
 
@@ -642,22 +656,51 @@ function AuditTab() {
                                 </td>
                             </tr>
                         ) : (
-                            filtered.slice(0, 20).map(log => (
-                                <tr key={log.id} style={{ borderTop: `1px solid ${tokens.border}` }}>
-                                    <td style={{ padding: 10, color: tokens.textSecondary }}>
-                                        {new Date(log.timestamp).toLocaleTimeString()}
-                                    </td>
-                                    <td style={{ padding: 10 }}>
-                                        {log.action || log.capability || '-'}
-                                    </td>
-                                    <td style={{ padding: 10 }}>
-                                        {log.actor?.email?.split('@')[0] || log.actor?.uid?.slice(0, 8) || '-'}
-                                    </td>
-                                    <td style={{ padding: 10, textAlign: 'center' }}>
-                                        {log.success ? '✅' : '❌'}
-                                    </td>
-                                </tr>
-                            ))
+                            filtered.slice(0, 20).map(log => {
+                                // Phase 13: Status icons
+                                const statusIcons = {
+                                    SUCCESS: '✅',
+                                    DENIED: '⛔',
+                                    FAILED: '❌',
+                                    INFO: 'ℹ️',
+                                };
+                                const statusColors = {
+                                    SUCCESS: tokens.success,
+                                    DENIED: tokens.warning,
+                                    FAILED: tokens.error,
+                                    INFO: tokens.textSecondary,
+                                };
+
+                                return (
+                                    <tr key={log.id} style={{ borderTop: `1px solid ${tokens.border}` }}>
+                                        <td style={{ padding: 10, color: tokens.textSecondary }}>
+                                            {new Date(log.timestamp).toLocaleTimeString()}
+                                        </td>
+                                        <td style={{ padding: 10 }}>
+                                            {log.action}
+                                        </td>
+                                        <td style={{ padding: 10 }}>
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4,
+                                            }}>
+                                                {log.actor.kind === 'user' && '👤'}
+                                                {log.actor.kind === 'service' && '🔧'}
+                                                {log.actor.kind === 'system' && '⚙️'}
+                                                {log.actor.displayName}
+                                            </span>
+                                        </td>
+                                        <td style={{
+                                            padding: 10,
+                                            textAlign: 'center',
+                                            color: statusColors[log.status],
+                                        }}>
+                                            {statusIcons[log.status]}
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
@@ -738,7 +781,7 @@ function IncidentsTab() {
                                 </span>
                             </div>
                             <div style={{ fontSize: 11, color: tokens.textSecondary }}>
-                                Actor: {incident.source.actor?.email || incident.source.actor?.uid || 'system'}
+                                Actor: {incident.source.actor.displayName || 'system'}
                             </div>
                         </div>
                     ))}
