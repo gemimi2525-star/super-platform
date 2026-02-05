@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFileSystem } from '../../lib/filesystem/FileSystemProvider';
 import { FileSystemError, FsError } from '../../lib/filesystem/types';
-import { FsIntentHandler } from '../../lib/filesystem/FsIntentHandler';
+import { dispatchFsIntent, buildFsMeta } from '../../lib/filesystem/dispatchFsIntent';
 
 interface TestResult {
     gateId: string;
@@ -15,16 +15,17 @@ interface TestResult {
     error?: string;
 }
 
-const STORAGE_KEY = 'verifier_state_v1';
+const STORAGE_KEY = 'verifier_state_v2';
 
 export const VerifierAppV0 = () => {
+    // Note: useFileSystem is used ONLY for local OPFS operations (G1/G2)
+    // G6/G7/G8 use dispatchFsIntent which goes through API
     const fs = useFileSystem();
-    const intentHandler = useMemo(() => new FsIntentHandler(fs), [fs]);
 
     const [results, setResults] = useState<TestResult[]>([]);
     const [isRunning, setIsRunning] = useState(false);
     const [isReloading, setIsReloading] = useState(false);
-    const [phase, setPhase] = useState<'15A.1' | '15A.2'>('15A.1');
+    const [phase, setPhase] = useState<'15A.1' | '15A.2'>('15A.2');
 
     // Auto-Resume after reload
     useEffect(() => {
@@ -46,21 +47,20 @@ export const VerifierAppV0 = () => {
     const runTests = async () => {
         setIsRunning(true);
         setResults([]);
-
-        // Start G1 (Phase A)
         await runG1PreReload();
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // G1: Scheme Isolation (Pre-Reload)
+    // ═══════════════════════════════════════════════════════════════════════════
     const runG1PreReload = async () => {
         const traceId = `TEST-${Date.now()}-G1-PRE`;
         console.log('[Verifier] Starting G1A (Pre-Reload)...');
 
         try {
-            // 1. Prepare Data
             await fs.writeFile('user://verify_persist.txt', 'PERSISTENT_DATA', { create: true });
             await fs.writeFile('temp://verify_volatile.txt', 'VOLATILE_DATA', { create: true });
 
-            // 2. Set State
             const state = {
                 pending: 'G1',
                 phase,
@@ -74,14 +74,10 @@ export const VerifierAppV0 = () => {
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-            // 3. Trigger Reload
             setIsReloading(true);
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            setTimeout(() => window.location.reload(), 1000);
 
         } catch (e: any) {
-            console.error(e);
             setResults(prev => [...prev, {
                 gateId: 'G1',
                 description: 'Scheme Isolation (Pre-check)',
@@ -94,25 +90,24 @@ export const VerifierAppV0 = () => {
         }
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // G1: Scheme Isolation (Post-Reload)
+    // ═══════════════════════════════════════════════════════════════════════════
     const verifyG1PostReload = async (state: any) => {
         const traceId = `${state.traceBase}-POST`;
         const start = performance.now();
         let g1Result: TestResult;
 
         try {
-            // 1. Check User (Should Exist)
             const userContent = await (await fs.readFile(state.expected.userPath)).text();
             if (userContent !== state.expected.userValue) {
-                throw new Error(`User data mismatch. Expected ${state.expected.userValue}, got ${userContent}`);
+                throw new Error(`User data mismatch`);
             }
 
-            // 2. Check Temp (Should be Gone or Empty)
             try {
                 await fs.readFile(state.expected.tempPath);
-                throw new Error('Volatile data persisted! Security Failure.');
-            } catch (e: any) {
-                // We EXPECT an error (Not Found)
-            }
+                throw new Error('Volatile data persisted!');
+            } catch { }
 
             g1Result = {
                 gateId: 'G1',
@@ -121,7 +116,6 @@ export const VerifierAppV0 = () => {
                 traceId,
                 latency: Math.round(performance.now() - start + (Date.now() - state.startTime))
             };
-
         } catch (e: any) {
             g1Result = {
                 gateId: 'G1',
@@ -135,17 +129,17 @@ export const VerifierAppV0 = () => {
 
         localStorage.removeItem(STORAGE_KEY);
         setResults(prev => [...prev, g1Result]);
-
-        // Continue to G2
         await runG2(state.traceBase);
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // G2: System Read-Only (Local FS)
+    // ═══════════════════════════════════════════════════════════════════════════
     const runG2 = async (traceBase: string) => {
         const traceId = `${traceBase}-G2`;
         const start = performance.now();
 
         try {
-            // 1. Try Write (Fail)
             try {
                 await fs.writeFile('system://hack.txt', 'HACK');
                 throw new Error('System write succeeded unexpectedly');
@@ -155,7 +149,6 @@ export const VerifierAppV0 = () => {
                 }
             }
 
-            // 2. Try Delete (Fail)
             try {
                 await fs.deleteFile('system://logs/boot.log');
                 throw new Error('System delete succeeded unexpectedly');
@@ -172,7 +165,6 @@ export const VerifierAppV0 = () => {
                 traceId,
                 latency: Math.round(performance.now() - start)
             }]);
-
         } catch (e: any) {
             setResults(prev => [...prev, {
                 gateId: 'G2',
@@ -184,7 +176,6 @@ export const VerifierAppV0 = () => {
             }]);
         }
 
-        // Continue to Phase 15A.2 gates if selected
         if (phase === '15A.2') {
             await runG6(traceBase);
         } else {
@@ -193,56 +184,46 @@ export const VerifierAppV0 = () => {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 15A.2 Gates
+    // G6: Intent-only Enforcement (via API)
     // ═══════════════════════════════════════════════════════════════════════════
-
     const runG6 = async (traceBase: string) => {
         const traceId = `${traceBase}-G6`;
         const start = performance.now();
 
         try {
-            // G6: Intent-only Enforcement
-            // Write via Intent Handler and verify audit entry exists
-            intentHandler.clearAuditLog();
-
-            const result = await intentHandler.execute({
+            const result = await dispatchFsIntent({
                 action: 'os.fs.write',
-                meta: { path: 'user://g6_test.txt', scheme: 'user', fileSize: 10 },
+                meta: buildFsMeta('user://g6_test.txt', { fileSize: 10 }),
                 content: 'G6_TEST_DATA',
                 options: { create: true }
             });
 
             if (!result.success) {
-                throw new Error(`Intent execution failed: ${result.errorCode}`);
+                throw new Error(`Intent failed: ${result.errorCode}`);
             }
 
-            // Check audit log
-            const lastAudit = intentHandler.getLastAuditEntry();
-            if (!lastAudit) {
-                throw new Error('No audit entry found');
+            // Verify opId and traceId exist
+            if (!result.opId) {
+                throw new Error('No opId in response');
             }
-            if (lastAudit.capability !== 'fs.write') {
-                throw new Error(`Wrong capability: ${lastAudit.capability}`);
+            if (!result.traceId) {
+                throw new Error('No traceId in response');
             }
-            if (lastAudit.decision !== 'ALLOW') {
-                throw new Error(`Wrong decision: ${lastAudit.decision}`);
-            }
-            if (lastAudit.result !== 'SUCCESS') {
-                throw new Error(`Wrong result: ${lastAudit.result}`);
+            if (!result.decision || result.decision.outcome !== 'ALLOW') {
+                throw new Error('Decision not ALLOW');
             }
 
             setResults(prev => [...prev, {
                 gateId: 'G6',
-                description: 'Intent-only Enforcement (Audit Fields)',
+                description: 'Intent-only Enforcement (API opId + traceId)',
                 status: 'PASS',
-                traceId: lastAudit.traceId,
+                traceId: result.traceId || traceId,
                 latency: Math.round(performance.now() - start)
             }]);
-
         } catch (e: any) {
             setResults(prev => [...prev, {
                 gateId: 'G6',
-                description: 'Intent-only Enforcement (Audit Fields)',
+                description: 'Intent-only Enforcement (API opId + traceId)',
                 status: 'FAIL',
                 traceId,
                 latency: Math.round(performance.now() - start),
@@ -253,52 +234,42 @@ export const VerifierAppV0 = () => {
         await runG7(traceBase);
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // G7: Policy DENY (system:// via API)
+    // ═══════════════════════════════════════════════════════════════════════════
     const runG7 = async (traceBase: string) => {
         const traceId = `${traceBase}-G7`;
         const start = performance.now();
 
         try {
-            // G7: Policy DENY for system write
-            intentHandler.clearAuditLog();
-
-            const result = await intentHandler.execute({
+            const result = await dispatchFsIntent({
                 action: 'os.fs.write',
-                meta: { path: 'system://hack.txt', scheme: 'system' },
+                meta: buildFsMeta('system://hack.txt'),
                 content: 'HACK_ATTEMPT'
             });
 
             // Must be denied
             if (result.success) {
-                throw new Error('System write via Intent succeeded unexpectedly');
+                throw new Error('System write via API succeeded unexpectedly');
             }
-            if (result.errorCode !== FileSystemError.accessDenied) {
-                throw new Error(`Wrong errorCode: ${result.errorCode}`);
+            if (!result.decision || result.decision.outcome !== 'DENY') {
+                throw new Error('Decision not DENY');
             }
-
-            // Check audit
-            const lastAudit = intentHandler.getLastAuditEntry();
-            if (!lastAudit) {
-                throw new Error('No audit entry found');
-            }
-            if (lastAudit.decision !== 'DENY') {
-                throw new Error(`Audit decision should be DENY, got: ${lastAudit.decision}`);
-            }
-            if (lastAudit.errorCode !== FileSystemError.accessDenied) {
-                throw new Error(`Audit errorCode should be FS_ACCESS_DENIED, got: ${lastAudit.errorCode}`);
+            if (result.decision.errorCode !== FileSystemError.accessDenied) {
+                throw new Error(`Wrong errorCode: ${result.decision.errorCode}`);
             }
 
             setResults(prev => [...prev, {
                 gateId: 'G7',
-                description: 'Policy DENY (system:// write)',
+                description: 'Policy DENY (system:// via API)',
                 status: 'PASS',
-                traceId: lastAudit.traceId,
+                traceId: result.traceId || traceId,
                 latency: Math.round(performance.now() - start)
             }]);
-
         } catch (e: any) {
             setResults(prev => [...prev, {
                 gateId: 'G7',
-                description: 'Policy DENY (system:// write)',
+                description: 'Policy DENY (system:// via API)',
                 status: 'FAIL',
                 traceId,
                 latency: Math.round(performance.now() - start),
@@ -309,56 +280,50 @@ export const VerifierAppV0 = () => {
         await runG8(traceBase);
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // G8: Trace Correlation (opId format)
+    // ═══════════════════════════════════════════════════════════════════════════
     const runG8 = async (traceBase: string) => {
         const traceId = `${traceBase}-G8`;
         const start = performance.now();
 
         try {
-            // G8: Trace Correlation
-            intentHandler.clearAuditLog();
-
-            // Execute multiple operations
-            const r1 = await intentHandler.execute({
+            const r1 = await dispatchFsIntent({
                 action: 'os.fs.write',
-                meta: { path: 'user://g8_a.txt', scheme: 'user' },
+                meta: buildFsMeta('user://g8_a.txt'),
                 content: 'A'
             });
-            const r2 = await intentHandler.execute({
+
+            const r2 = await dispatchFsIntent({
                 action: 'os.fs.read',
-                meta: { path: 'user://g8_a.txt', scheme: 'user' }
+                meta: buildFsMeta('user://g8_a.txt')
             });
 
-            // Each operation should have unique traceId
-            const auditLog = intentHandler.getAuditLog();
-            if (auditLog.length < 2) {
-                throw new Error('Expected 2 audit entries');
+            // Both must have opId
+            if (!r1.opId || !r2.opId) {
+                throw new Error('Missing opId in responses');
             }
 
-            const traceIds = auditLog.map(a => a.traceId);
-            const uniqueTraceIds = new Set(traceIds);
-            if (uniqueTraceIds.size !== traceIds.length) {
-                throw new Error('TraceIds are not unique!');
+            // opId format: traceId:action:path
+            const opIdPattern = /^[A-Za-z0-9-]+:os\.fs\.[a-z]+:.+$/;
+            if (!opIdPattern.test(r1.opId)) {
+                throw new Error(`Invalid opId format: ${r1.opId}`);
             }
-
-            // Verify traceId format
-            for (const t of traceIds) {
-                if (!t.startsWith('FS-')) {
-                    throw new Error(`Invalid traceId format: ${t}`);
-                }
+            if (!opIdPattern.test(r2.opId)) {
+                throw new Error(`Invalid opId format: ${r2.opId}`);
             }
 
             setResults(prev => [...prev, {
                 gateId: 'G8',
-                description: 'Trace Correlation (Unique traceId)',
+                description: 'Trace Correlation (opId format)',
                 status: 'PASS',
-                traceId: auditLog[0].traceId,
+                traceId: r1.traceId || traceId,
                 latency: Math.round(performance.now() - start)
             }]);
-
         } catch (e: any) {
             setResults(prev => [...prev, {
                 gateId: 'G8',
-                description: 'Trace Correlation (Unique traceId)',
+                description: 'Trace Correlation (opId format)',
                 status: 'FAIL',
                 traceId,
                 latency: Math.round(performance.now() - start),
@@ -372,9 +337,8 @@ export const VerifierAppV0 = () => {
     // ═══════════════════════════════════════════════════════════════════════════
     // Export Evidence
     // ═══════════════════════════════════════════════════════════════════════════
-
     const exportEvidence = () => {
-        const phaseLabel = phase === '15A.2' ? '15A.2' : '15A.1';
+        const phaseLabel = phase;
         const md = `
 # Phase ${phaseLabel} Verification Evidence
 **Date**: ${new Date().toLocaleString()}
@@ -386,13 +350,13 @@ export const VerifierAppV0 = () => {
 |------|--------|----------|--------------|------|
 ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : '❌'} | ${r.traceId} | ${r.latency} | ${r.error || '-'} |`).join('\n')}
 
-**Verified By**: VerifierAppV0 (Automated ${phaseLabel} Test)
+**Verified By**: VerifierAppV0.2 (Automated ${phaseLabel} Test)
 `;
         const blob = new Blob([md], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `evidence_${phaseLabel.replace('.', '')}_${new Date().getTime()}.md`;
+        a.download = `evidence_${phaseLabel.replace('.', '')}_${Date.now()}.md`;
         a.click();
     };
 
