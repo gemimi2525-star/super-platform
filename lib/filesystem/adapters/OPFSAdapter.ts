@@ -122,8 +122,17 @@ export class OPFSAdapter implements FileSystemAdapter {
         return entries;
     }
 
+
     async exists(path: string): Promise<boolean> {
         const handle = await this.getHandle(path);
         return !!handle;
+    }
+
+    async wipe(): Promise<void> {
+        const root = await this.getRoot();
+        // @ts-ignore
+        for await (const entry of root.values()) {
+            await root.removeEntry(entry.name, { recursive: true });
+        }
     }
 }
