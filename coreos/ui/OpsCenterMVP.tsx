@@ -63,6 +63,7 @@ interface AuditLogEntry {
         decision: 'ALLOW' | 'DENY' | 'SKIP';
         policyId?: string;
         capability?: string;
+        ruleHit?: string; // Phase 14.3
     };
     rawPayload?: Record<string, unknown>;
 }
@@ -589,6 +590,105 @@ function HealthTab() {
                     </div>
                 </Card>
             )}
+
+            {/* Phase 14.3: Test Governance DENY */}
+            <Card title="🛡️ Governance Testing">
+                <TestGovernanceDenyButton />
+            </Card>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPONENT: Test Governance DENY Button (Phase 14.3)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TestGovernanceDenyButton() {
+    const [testing, setTesting] = useState(false);
+    const [result, setResult] = useState<{ success: boolean; status: number; message: string } | null>(null);
+
+    const testDeny = async () => {
+        setTesting(true);
+        setResult(null);
+
+        try {
+            const response = await fetch('/api/platform/audit-intents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'os.governance.bypass',
+                    target: 'system.production',
+                    meta: { test: true },
+                    timestamp: Date.now(),
+                }),
+            });
+
+            const data = await response.json();
+
+            setResult({
+                success: response.status === 403,
+                status: response.status,
+                message: response.status === 403
+                    ? `✅ DENY policy enforced correctly (${data.decision?.reason || 'Production protected action'})`
+                    : `❌ Expected 403, got ${response.status}`,
+            });
+        } catch (error: unknown) {
+            setResult({
+                success: false,
+                status: 0,
+                message: error instanceof Error ? error.message : 'Network error',
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    return (
+        <div style={{ fontSize: 13 }}>
+            <div style={{ marginBottom: 12, color: tokens.textSecondary }}>
+                Test the governance policy evaluator by attempting a production-protected action.
+                This should result in a <strong>403 Forbidden</strong> response with a <strong>DENY</strong> decision.
+            </div>
+
+            <button
+                onClick={testDeny}
+                disabled={testing}
+                style={{
+                    padding: '10px 16px',
+                    background: testing ? tokens.bgSecondary : tokens.warning,
+                    color: testing ? tokens.textSecondary : '#fff',
+                    border: 'none',
+                    borderRadius: tokens.radius,
+                    cursor: testing ? 'wait' : 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    opacity: testing ? 0.6 : 1,
+                }}
+            >
+                {testing ? '⏳ Testing...' : '⛔ Test Governance DENY'}
+            </button>
+
+            {result && (
+                <div style={{
+                    marginTop: 12,
+                    padding: 12,
+                    borderRadius: tokens.radius,
+                    background: result.success ? '#e8f8e8' : '#fff8f0',
+                    border: `1px solid ${result.success ? tokens.success : tokens.warning}`,
+                }}>
+                    <div style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                        color: result.success ? tokens.success : tokens.warning,
+                    }}>
+                        Status: {result.status}
+                    </div>
+                    <div style={{ fontSize: 12, color: tokens.textPrimary }}>
+                        {result.message}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -600,16 +700,20 @@ function HealthTab() {
 function AuditTab() {
     const { data: logs, loading, error } = useAuditLogs(50);
     const [filter, setFilter] = useState('');
+    const [expandedRow, setExpandedRow] = useState<string | null>(null); // Phase 14.3: Row expand
 
     if (loading) return <LoadingState message="Loading audit logs..." />;
     if (error) return <ErrorState message={error} />;
 
+    // Phase 14.3: Enhanced filter - decision/policyKey/capability
     const filtered = filter
         ? logs.filter(l =>
             l.action?.toLowerCase().includes(filter.toLowerCase()) ||
             l.decision?.capability?.toLowerCase().includes(filter.toLowerCase()) ||
             l.actor.displayName.toLowerCase().includes(filter.toLowerCase()) ||
-            l.traceId?.toLowerCase().includes(filter.toLowerCase()) // Phase 14.2
+            l.traceId?.toLowerCase().includes(filter.toLowerCase()) || // Phase 14.2
+            l.decision?.decision?.toLowerCase().includes(filter.toLowerCase()) || // Phase 14.3
+            l.decision?.policyId?.toLowerCase().includes(filter.toLowerCase()) // Phase 14.3
         )
         : logs;
 
@@ -618,7 +722,7 @@ function AuditTab() {
             {/* Search */}
             <input
                 type="text"
-                placeholder="Filter by action, capability, email, or traceId..."
+                placeholder="Filter by action, decision, policyKey, capability, email, or traceId..."
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
                 style={{
@@ -640,17 +744,19 @@ function AuditTab() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                         <tr style={{ background: tokens.bgSecondary }}>
+                            <th style={{ padding: 10, textAlign: 'left', width: 30 }}></th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Time</th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Action</th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Actor</th>
                             <th style={{ padding: 10, textAlign: 'left' }}>Trace</th>
+                            <th style={{ padding: 10, textAlign: 'center' }}>Decision</th>
                             <th style={{ padding: 10, textAlign: 'center' }}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={5} style={{ padding: 20 }}>
+                                <td colSpan={7} style={{ padding: 20 }}>
                                     <CalmState
                                         message={filter ? "No Matching Logs" : "No Recent Activity"}
                                         subtitle={filter ? "Try adjusting your filter" : "System logs will appear here as actions occur"}
@@ -673,70 +779,165 @@ function AuditTab() {
                                     INFO: tokens.textSecondary,
                                 };
 
+                                // Phase 14.3: Decision chips
+                                const decisionOutcome = log.decision?.decision || 'ALLOW';
+                                const decisionConfig = {
+                                    ALLOW: { icon: '✅', bg: '#e8f8e8', text: tokens.success },
+                                    DENY: { icon: '⛔', bg: '#fff8e0', text: tokens.warning },
+                                    SKIP: { icon: '⏭', bg: tokens.bgSecondary, text: tokens.textSecondary },
+                                };
+                                const dc = decisionConfig[decisionOutcome as keyof typeof decisionConfig] || decisionConfig.ALLOW;
+
+                                const isExpanded = expandedRow === log.id;
+
                                 return (
-                                    <tr key={log.id} style={{ borderTop: `1px solid ${tokens.border}` }}>
-                                        <td style={{ padding: 10, color: tokens.textSecondary }}>
-                                            {new Date(log.timestamp).toLocaleTimeString()}
-                                        </td>
-                                        <td style={{ padding: 10 }}>
-                                            {log.action}
-                                        </td>
-                                        <td style={{ padding: 10 }}>
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 4,
-                                            }}>
-                                                {log.actor.kind === 'user' && '👤'}
-                                                {log.actor.kind === 'service' && '🔧'}
-                                                {log.actor.kind === 'system' && '⚙️'}
-                                                {log.actor.displayName}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '6px 10px' }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 6,
-                                            }}>
-                                                <code style={{
-                                                    fontSize: 10,
-                                                    fontFamily: 'SF Mono, Menlo, Monaco, monospace',
-                                                    color: tokens.textSecondary,
-                                                    background: tokens.bgSecondary,
-                                                    padding: '2px 6px',
-                                                    borderRadius: 4,
+                                    <React.Fragment key={log.id}>
+                                        <tr style={{ borderTop: `1px solid ${tokens.border}` }}>
+                                            <td style={{ padding: '6px 10px' }}>
+                                                <button
+                                                    onClick={() => setExpandedRow(isExpanded ? null : log.id)}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        fontSize: 12,
+                                                        padding: '2px 4px',
+                                                        opacity: 0.6,
+                                                    }}
+                                                    title="Expand details"
+                                                >
+                                                    {isExpanded ? '▼' : '▶'}
+                                                </button>
+                                            </td>
+                                            <td style={{ padding: 10, color: tokens.textSecondary }}>
+                                                {new Date(log.timestamp).toLocaleTimeString()}
+                                            </td>
+                                            <td style={{ padding: 10 }}>
+                                                {log.action}
+                                            </td>
+                                            <td style={{ padding: 10 }}>
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 4,
                                                 }}>
-                                                    {log.traceId?.substring(0, 8) || 'legacy'}
-                                                </code>
-                                                {log.traceId && (
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(log.traceId!);
-                                                        }}
-                                                        style={{
-                                                            padding: '2px 6px',
-                                                            fontSize: 10,
-                                                            border: 'none',
-                                                            background: 'transparent',
-                                                            cursor: 'pointer',
-                                                            opacity: 0.6,
-                                                        }}
-                                                        title="Copy full traceId"
-                                                    >
-                                                        📋
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td style={{
-                                            padding: 10,
-                                            textAlign: 'center',
-                                            color: statusColors[log.status],
-                                        }}>
-                                            {statusIcons[log.status]}
-                                        </td>
-                                    </tr>
+                                                    {log.actor.kind === 'user' && '👤'}
+                                                    {log.actor.kind === 'service' && '🔧'}
+                                                    {log.actor.kind === 'system' && '⚙️'}
+                                                    {log.actor.displayName}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '6px 10px' }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                }}>
+                                                    <code style={{
+                                                        fontSize: 10,
+                                                        fontFamily: 'SF Mono, Menlo, Monaco, monospace',
+                                                        color: tokens.textSecondary,
+                                                        background: tokens.bgSecondary,
+                                                        padding: '2px 6px',
+                                                        borderRadius: 4,
+                                                    }}>
+                                                        {log.traceId?.substring(0, 8) || 'legacy'}
+                                                    </code>
+                                                    {log.traceId && (
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(log.traceId!);
+                                                            }}
+                                                            style={{
+                                                                padding: '2px 6px',
+                                                                fontSize: 10,
+                                                                border: 'none',
+                                                                background: 'transparent',
+                                                                cursor: 'pointer',
+                                                                opacity: 0.6,
+                                                            }}
+                                                            title="Copy full traceId"
+                                                        >
+                                                            📋
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    padding: '3px 8px',
+                                                    borderRadius: 12,
+                                                    background: dc.bg,
+                                                    color: dc.text,
+                                                    fontSize: 11,
+                                                    fontWeight: 600,
+                                                }}>
+                                                    {dc.icon} {decisionOutcome}
+                                                </span>
+                                            </td>
+                                            <td style={{
+                                                padding: 10,
+                                                textAlign: 'center',
+                                                color: statusColors[log.status],
+                                            }}>
+                                                {statusIcons[log.status]}
+                                            </td>
+                                        </tr>
+                                        {/* Phase 14.3: Expanded Details Row */}
+                                        {isExpanded && (
+                                            <tr style={{ borderTop: `1px solid ${tokens.border}`, background: tokens.bgSecondary }}>
+                                                <td colSpan={7} style={{ padding: 16 }}>
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'auto 1fr',
+                                                        gap: '8px 16px',
+                                                        fontSize: 12,
+                                                    }}>
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Trace ID:</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <code style={{
+                                                                background: tokens.bgPrimary,
+                                                                padding: '4px 8px',
+                                                                borderRadius: 4,
+                                                                fontFamily: 'monospace',
+                                                                fontSize: 11,
+                                                            }}>
+                                                                {log.traceId || 'N/A'}
+                                                            </code>
+                                                            {log.traceId && (
+                                                                <button
+                                                                    onClick={() => navigator.clipboard.writeText(log.traceId!)}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        fontSize: 11,
+                                                                        background: tokens.bgPrimary,
+                                                                        border: `1px solid ${tokens.border}`,
+                                                                        borderRadius: 4,
+                                                                        cursor: 'pointer',
+                                                                    }}
+                                                                >
+                                                                    📋 Copy
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Policy Key:</span>
+                                                        <span>{log.decision?.policyId || 'N/A'}</span>
+
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Reason:</span>
+                                                        <span>{log.reason?.summary || log.decision?.ruleHit || 'N/A'}</span>
+
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Capability:</span>
+                                                        <span>{log.decision?.capability || 'N/A'}</span>
+
+                                                        <span style={{ color: tokens.textSecondary, fontWeight: 600 }}>Timestamp:</span>
+                                                        <span>{new Date(log.timestamp).toLocaleString()}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })
                         )}

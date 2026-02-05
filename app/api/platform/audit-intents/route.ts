@@ -1,12 +1,13 @@
 /**
  * API: Platform Audit Intents Writer
  * 
- * Phase 14.1: User Intent Event Pipeline
+ * Phase 14.3: User Intent Event Pipeline + Governance Decisions
  * 
  * POST /api/platform/audit-intents
  * 
  * Accepts user intent events from OS shell and persists to audit store.
  * Protected: requires authenticated session (no bypass mode for production).
+ * Evaluates platform policy and persists decision outcome.
  */
 
 import { NextRequest } from 'next/server';
@@ -16,6 +17,7 @@ import { ApiSuccessResponse, ApiErrorResponse } from '@/lib/api';
 import { handleError } from '@super-platform/core';
 import type { IntentEventPayload, IntentEventResponse } from '@/lib/platform/types/intent-events';
 import { extractOrGenerateTraceId, createTracedResponse } from '@/lib/platform/trace/server';
+import { evaluateIntentPolicy, getCurrentEnvironment } from '@/lib/platform/policy/intent-policy';
 
 export const runtime = 'nodejs';
 
@@ -69,7 +71,39 @@ export async function POST(request: NextRequest) {
         // Use traceId from header (already extracted) or payload (fallback)
         const finalTraceId = payload.traceId || traceId;
 
-        // Create audit entry
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 14.3: Evaluate Intent Policy
+        // ═══════════════════════════════════════════════════════════════════════════
+        const decision = evaluateIntentPolicy({
+            action: payload.action,
+            target: payload.target,
+            meta: payload.meta,
+            actor: {
+                uid: auth.uid,
+                email: auth.email || undefined,
+                role: 'owner', // TODO: get real role from session/DB
+            },
+            env: getCurrentEnvironment(),
+        });
+
+        // Determine status based on decision outcome
+        let status: 'SUCCESS' | 'DENIED' | 'FAILED' | 'INFO';
+        let success: boolean;
+
+        if (decision.outcome === 'DENY') {
+            status = 'DENIED';
+            success = false;
+        } else if (decision.outcome === 'ALLOW') {
+            // Intent events are informational by default
+            status = payload.action.includes('.switch') || payload.action.includes('.open') ? 'INFO' : 'SUCCESS';
+            success = true;
+        } else {
+            // SKIP
+            status = 'INFO';
+            success = true;
+        }
+
+        // Create audit entry with decision
         const db = getAdminFirestore();
         const auditEntry = {
             // Core fields
@@ -82,25 +116,55 @@ export async function POST(request: NextRequest) {
                 email: auth.email || null,
             },
             actorId: auth.uid,
-            actorRole: 'user', // Intent events always from user sessions
+            actorRole: 'user',
 
             // Target and metadata
             target: payload.target || null,
             metadata: payload.meta || {},
 
-            // Trace and timing (Phase 14.2: use extracted traceId)
+            // Trace and timing
             traceId: finalTraceId,
             timestamp: new Date(payload.timestamp || Date.now()),
 
-            // Status (intent events are informational, always success)
-            success: true,
-            decision: null, // No policy decision for intent events
+            // Decision (Phase 14.3)
+            decision: {
+                outcome: decision.outcome,
+                policyKey: decision.policyKey || null,
+                reason: decision.reason || null,
+                capability: decision.capability || null,
+                severity: decision.severity || null,
+            },
+            decisionOutcome: decision.outcome,
 
-            // Phase 14.1 marker
+            // Status
+            success,
+            status,
+
+            // Source
             source: 'os-shell',
         };
 
         const docRef = await db.collection(COLLECTION_AUDIT_LOGS).add(auditEntry);
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // Response based on decision
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (decision.outcome === 'DENY') {
+            return createTracedResponse(
+                {
+                    success: false,
+                    decision: {
+                        outcome: decision.outcome,
+                        policyKey: decision.policyKey,
+                        reason: decision.reason,
+                        capability: decision.capability,
+                    },
+                    traceId: finalTraceId,
+                },
+                finalTraceId,
+                403
+            );
+        }
 
         const response: IntentEventResponse = {
             id: docRef.id,
