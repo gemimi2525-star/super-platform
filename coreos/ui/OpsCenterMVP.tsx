@@ -755,14 +755,17 @@ function AuditTab() {
 
     // Phase 14.3: Enhanced filter - decision/policyKey/capability
     const filtered = filter
-        ? logs.filter(l =>
-            l.action?.toLowerCase().includes(filter.toLowerCase()) ||
-            l.decision?.capability?.toLowerCase().includes(filter.toLowerCase()) ||
-            l.actor.displayName.toLowerCase().includes(filter.toLowerCase()) ||
-            l.traceId?.toLowerCase().includes(filter.toLowerCase()) || // Phase 14.2
-            l.decision?.decision?.toLowerCase().includes(filter.toLowerCase()) || // Phase 14.3
-            l.decision?.policyId?.toLowerCase().includes(filter.toLowerCase()) // Phase 14.3
-        )
+        ? logs.filter(l => {
+            const normalized = normalizeDecision(l);
+            return (
+                l.action?.toLowerCase().includes(filter.toLowerCase()) ||
+                normalized?.capability?.toLowerCase().includes(filter.toLowerCase()) ||
+                l.actor.displayName.toLowerCase().includes(filter.toLowerCase()) ||
+                l.traceId?.toLowerCase().includes(filter.toLowerCase()) ||
+                normalized?.decision?.toLowerCase().includes(filter.toLowerCase()) ||
+                normalized?.policyId?.toLowerCase().includes(filter.toLowerCase())
+            );
+        })
         : logs;
 
     return (
