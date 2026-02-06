@@ -1,0 +1,22 @@
+{
+    "appId": "os.calculator",
+    "name": "Calculator",
+    "version": "1.0.0",
+    "entry": "worker.js",
+    "runtime": "worker",
+    "requestedCapabilities": [
+        "ui.window",
+        "ui.notify",
+        "fs.temp"
+    ],
+    "defaultWindow": {
+        "title": "Calculator",
+        "icon": "🧮",
+        "width": 320,
+        "height": 480,
+        "resizable": false
+    },
+    "author": "APICOREDATA Platform",
+    "description": "Basic calculator app demonstrating Runtime Contract v1",
+    "license": "MIT"
+}
