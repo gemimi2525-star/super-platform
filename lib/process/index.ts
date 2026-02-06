@@ -35,3 +35,6 @@ export { ProcessManager, getProcessManager } from './ProcessManager';
 
 // Worker Template (For App developers)
 export { ProcessWorkerBase, TestProcessWorker } from './ProcessWorkerTemplate';
+
+// React Hook (For UI components)
+export { useProcessManager } from './useProcessManager';
