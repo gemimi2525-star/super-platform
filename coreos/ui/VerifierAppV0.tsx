@@ -395,34 +395,87 @@ export const VerifierAppV0 = () => {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Export Evidence
+    // Export Evidence (v1.0 with JSON + Markdown)
     // ═══════════════════════════════════════════════════════════════════════════
-    const exportEvidence = () => {
-        const gateRange = phase === '15A.1' ? 'G1-G2' : phase === '15A.2' ? 'G1-G8' : 'G1-G11';
+    const getGateRange = () => phase === '15A.1' ? 'G1-G2' : phase === '15A.2' ? 'G1-G8' : 'G1-G11';
+    const getPassCount = () => results.filter(r => r.status === 'PASS').length;
+    const getTotalCount = () => results.length;
+    const isAllPass = () => getPassCount() === getTotalCount() && getTotalCount() > 0;
+
+    const buildEvidenceData = () => ({
+        version: '1.0',
+        phase,
+        gateRange: getGateRange(),
+        date: new Date().toISOString(),
+        environment: 'production',
+        testTrace: testTraceRef.current,
+        summary: {
+            total: getTotalCount(),
+            passed: getPassCount(),
+            failed: getTotalCount() - getPassCount(),
+            allPass: isAllPass()
+        },
+        results: results.map(r => ({
+            gateId: r.gateId,
+            description: r.description,
+            status: r.status,
+            traceId: r.traceId,
+            latency: r.latency,
+            error: r.error || null
+        })),
+        verifier: 'VerifierApp v1.0 (OS Verifier — Filesystem)'
+    });
+
+    const exportMD = () => {
+        const data = buildEvidenceData();
         const md = `
-# Phase ${phase} Verification Evidence
-**Date**: ${new Date().toLocaleString()}
-**Environment**: Production
-**Test Trace**: ${testTraceRef.current}
+# Phase ${data.phase} Verification Evidence
+**Date**: ${new Date(data.date).toLocaleString()}
+**Environment**: ${data.environment}
+**Test Trace**: ${data.testTrace}
+
+## Summary
+- **Total Gates**: ${data.summary.total}
+- **Passed**: ${data.summary.passed} ✅
+- **Failed**: ${data.summary.failed} ${data.summary.failed > 0 ? '❌' : ''}
+- **Status**: ${data.summary.allPass ? '**ALL PASS** 🎉' : 'INCOMPLETE'}
 
 ## Gate Results
 | Gate | Status | Trace ID | Latency (ms) | Note |
 |------|--------|----------|--------------|------|
-${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : '❌'} | ${r.traceId} | ${r.latency} | ${r.error || '-'} |`).join('\n')}
+${data.results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : '❌'} | ${r.traceId} | ${r.latency} | ${r.error || '-'} |`).join('\n')}
 
-**Verified By**: VerifierAppV0.5 (Automated ${phase} Test — ${gateRange})
+**Verified By**: ${data.verifier}
 `;
         const blob = new Blob([md], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `evidence_${phase.replace('.', '')}_${Date.now()}.md`;
+        a.download = `evidence_${data.phase.replace('.', '')}_${Date.now()}.md`;
+        a.click();
+    };
+
+    const exportJSON = () => {
+        const data = buildEvidenceData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `evidence_${data.phase.replace('.', '')}_${Date.now()}.json`;
         a.click();
     };
 
     return (
         <div style={{ padding: 20, background: '#111', color: '#eee', borderRadius: 8, fontFamily: 'monospace', border: '1px solid #333' }}>
-            <h3 style={{ marginTop: 0 }}>🧪 VerifierApp v0.5 (Phase 15A.3)</h3>
+            <h3 style={{ marginTop: 0 }}>🧪 OS Verifier v1.0 — Filesystem (Phase 15A)</h3>
+
+            {/* Summary Status */}
+            {results.length > 0 && (
+                <div style={{ marginBottom: 16, padding: 12, background: isAllPass() ? '#064e3b' : '#7f1d1d', borderRadius: 6 }}>
+                    <strong>{isAllPass() ? '✅ ALL PASS' : `⚠️ ${getPassCount()}/${getTotalCount()} PASSED`}</strong>
+                    <span style={{ marginLeft: 12, opacity: 0.8 }}>{getGateRange()}</span>
+                </div>
+            )}
 
             {/* Phase Selector */}
             <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
@@ -459,11 +512,18 @@ ${results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '✅' : 
                     {isRunning ? '⏳ Running...' : '▶ Start Suite (Will Reload)'}
                 </button>
                 <button
-                    onClick={exportEvidence}
+                    onClick={exportMD}
                     disabled={results.length === 0}
                     style={{ padding: '8px 16px', background: '#10b981', border: 'none', color: 'white', cursor: 'pointer', borderRadius: 4, opacity: results.length === 0 ? 0.5 : 1 }}
                 >
-                    ⬇ Export Evidence
+                    ⬇ Export MD
+                </button>
+                <button
+                    onClick={exportJSON}
+                    disabled={results.length === 0}
+                    style={{ padding: '8px 16px', background: '#6366f1', border: 'none', color: 'white', cursor: 'pointer', borderRadius: 4, opacity: results.length === 0 ? 0.5 : 1 }}
+                >
+                    ⬇ Export JSON
                 </button>
             </div>
 
