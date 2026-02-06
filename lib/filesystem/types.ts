@@ -15,6 +15,9 @@ export enum FileSystemError {
     wipeFailed = 'FS_WIPE_FAILED'
 }
 
+// Phase 15A.3: Kernel State
+export type FsSystemState = 'ACTIVE' | 'LOCKED';
+
 export class FsError extends Error {
     constructor(public code: FileSystemError, message?: string) {
         super(message || code);
@@ -94,9 +97,15 @@ export interface IFileSystem {
     openHandle(path: string, mode: 'r' | 'w'): Promise<FileHandle>;
     closeHandle(handleId: string): Promise<void>;
 
+    // State Management (Phase 15A.3)
+    getSystemState(): FsSystemState;
+    getOpenHandleCount(): number;
+    lock(): number;
+    unlock(): void;
+
     // Internal OS Operations
     mount(scheme: string, adapter: FileSystemAdapter): void;
-    logoutPolicy(mode: 'CLEAR' | 'SOFT_LOCK'): Promise<void>;
+    logoutPolicy(mode: 'CLEAR' | 'SOFT_LOCK'): Promise<{ openHandlesBefore: number; openHandlesAfter: number; wipedSchemes: string[] }>;
 }
 
 // Audit Payload Structure for FS
