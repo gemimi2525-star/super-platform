@@ -457,6 +457,7 @@ function StatusBadge({ status }: { status: 'healthy' | 'degraded' | 'down' | str
 
 import { VerifierAppV0 } from './VerifierAppV0';
 import { TaskManagerApp } from './TaskManagerApp';
+import { TaskManagerV2 } from './TaskManagerV2';
 
 // ... (existing code)
 
@@ -466,6 +467,7 @@ function HealthTab() {
     const session = useSessionDebug();
     const [showVerifier, setShowVerifier] = useState(false);
     const [showTaskManager, setShowTaskManager] = useState(false);
+    const [showTaskManagerV2, setShowTaskManagerV2] = useState(false);
 
     if (health.loading || me.loading) return <LoadingState />;
 
@@ -525,6 +527,36 @@ function HealthTab() {
                 {showTaskManager && (
                     <div style={{ marginTop: 16 }}>
                         <TaskManagerApp />
+                    </div>
+                )}
+            </Card>
+
+            {/* Phase 15B.2 Task Manager V2 (Admin-only, Experimental) */}
+            <Card title="🧠 Task Manager V2 (Experimental)" accent="#06b6d4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ padding: '2px 8px', background: '#06b6d422', color: '#06b6d4', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>V2</span>
+                    <span style={{ padding: '2px 8px', background: '#a855f722', color: '#a855f7', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>15B.2</span>
+                </div>
+                <div style={{ color: '#fff', fontSize: 13, marginBottom: 12 }}>
+                    Extended Process Management with Suspend/Resume/Priority controls.
+                </div>
+                <button
+                    onClick={() => setShowTaskManagerV2(!showTaskManagerV2)}
+                    style={{
+                        background: showTaskManagerV2 ? '#ef4444' : '#06b6d4',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showTaskManagerV2 ? 'Close Task Manager V2' : 'Open Task Manager V2'}
+                </button>
+
+                {showTaskManagerV2 && (
+                    <div style={{ marginTop: 16 }}>
+                        <TaskManagerV2 />
                     </div>
                 )}
             </Card>
