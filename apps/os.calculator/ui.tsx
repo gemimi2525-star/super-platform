@@ -56,6 +56,37 @@ export function CalculatorUI({ worker, onClose }: CalculatorUIProps) {
         });
     };
 
+    // Format display with overflow protection
+    const formatDisplay = (value: string): string => {
+        const num = parseFloat(value);
+        if (isNaN(num)) return value;
+
+        // Scientific notation for extreme values
+        if (Math.abs(num) >= 1e12 || (Math.abs(num) <= 1e-6 && num !== 0)) {
+            return num.toExponential(6);
+        }
+
+        // Limit precision for floating point
+        if (value.includes('.') && value.length > 12) {
+            return num.toPrecision(10);
+        }
+
+        return value;
+    };
+
+    // Dynamic font size based on length
+    const getFontSize = (text: string): number => {
+        const len = text.length;
+        if (len <= 8) return 36;
+        if (len <= 10) return 32;
+        if (len <= 12) return 28;
+        if (len <= 14) return 24;
+        return 20;
+    };
+
+    const displayText = formatDisplay(state.display);
+    const fontSize = getFontSize(displayText);
+
     return (
         <div style={{
             width: '100%',
@@ -72,7 +103,7 @@ export function CalculatorUI({ worker, onClose }: CalculatorUIProps) {
                 borderRadius: 8,
                 padding: 16,
                 textAlign: 'right',
-                fontSize: 32,
+                fontSize,
                 fontWeight: 'bold',
                 color: 'white',
                 fontFamily: 'monospace',
@@ -80,9 +111,12 @@ export function CalculatorUI({ worker, onClose }: CalculatorUIProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-end',
-                wordBreak: 'break-all',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%',
             }}>
-                {state.display}
+                {displayText}
             </div>
 
             {/* Buttons */}

@@ -16,6 +16,7 @@ interface LaunchedApp {
     manifest: AppManifest;
     worker: Worker | null;
     windowOpen: boolean;
+    pid?: string; // Process ID for registry tracking
 }
 
 export function AppLauncher() {
@@ -35,13 +36,52 @@ export function AppLauncher() {
             }
             const manifest: AppManifest = await manifestResponse.json();
 
+            // Generate PID
+            const pid = `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
             // Create inline worker from blob URL
             const { calculatorWorkerCode } = await import('@/apps/os.calculator/worker-bundle');
             const blob = new Blob([calculatorWorkerCode], { type: 'application/javascript' });
             const workerUrl = URL.createObjectURL(blob);
             const worker = new Worker(workerUrl);
 
-            console.log('[AppLauncher] Worker created from blob URL');
+            console.log('[AppLauncher] Worker created from blob URL, PID:', pid);
+
+            // Register process in server-side registry
+            try {
+                const registerResponse = await fetch('/api/platform/process-registry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pid,
+                        name: manifest.name || manifest.appId,
+                        appId: manifest.appId,
+                        state: 'RUNNING',
+                        source: 'RUNTIME',
+                        startedAt: new Date().toISOString(),
+                        metadata: {
+                            runtime: manifest.runtime,
+                            capabilities: manifest.requestedCapabilities,
+                        }
+                    }),
+                });
+
+                if (registerResponse.ok) {
+                    console.log('[AppLauncher] Process registered:', pid);
+                } else {
+                    console.warn('[AppLauncher] Failed to register process:', await registerResponse.text());
+                }
+            } catch (regError) {
+                console.error('[AppLauncher] Registration error:', regError);
+                // Continue anyway - registration is not critical for app to work
+            }
+
+            // Hook worker lifecycle
+            worker.addEventListener('error', async (error) => {
+                console.error('[AppLauncher] Worker error:', error);
+                // Update state to CRASHED
+                await updateProcessState(pid, 'CRASHED');
+            });
 
             setLaunchedApps(prev => [
                 ...prev,
@@ -50,6 +90,7 @@ export function AppLauncher() {
                     manifest,
                     worker,
                     windowOpen: true,
+                    pid, // Store PID for cleanup
                 },
             ]);
         } catch (e: any) {
@@ -60,7 +101,21 @@ export function AppLauncher() {
         }
     };
 
-    const closeApp = (appId: string) => {
+    // Helper to update process state
+    const updateProcessState = async (pid: string, state: string) => {
+        try {
+            await fetch('/api/platform/process-registry', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pid, state }),
+            });
+            console.log(`[AppLauncher] Updated PID ${pid} to ${state}`);
+        } catch (e) {
+            console.error('[AppLauncher] Failed to update state:', e);
+        }
+    };
+
+    const closeApp = async (appId: string) => {
         setLaunchedApps(prev =>
             prev.map(app =>
                 app.appId === appId
@@ -69,12 +124,19 @@ export function AppLauncher() {
             )
         );
 
-        // Terminate worker after a delay
-        setTimeout(() => {
+        // Terminate worker and update registry
+        setTimeout(async () => {
             const app = launchedApps.find(a => a.appId === appId);
             if (app?.worker) {
                 app.worker.terminate();
+                console.log('[AppLauncher] Worker terminated:', app.pid);
             }
+
+            // Update process state to TERMINATED
+            if (app?.pid) {
+                await updateProcessState(app.pid, 'TERMINATED');
+            }
+
             setLaunchedApps(prev => prev.filter(a => a.appId !== appId));
         }, 300);
     };
