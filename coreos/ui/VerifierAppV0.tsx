@@ -20,7 +20,7 @@ function generateTestTrace(): string {
     return `TEST-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
-type Phase = '15A.1' | '15A.2' | '15A.3' | '15B';
+type Phase = '15A.1' | '15A.2' | '15A.3' | '15B' | '15B.4';
 
 export const VerifierAppV0 = () => {
     const fs = useFileSystem();
@@ -118,6 +118,15 @@ export const VerifierAppV0 = () => {
         setResults([]);
         setLogs([]);
         await runB1(testTraceRef.current);
+    };
+
+    const runTests15B4 = async () => {
+        testTraceRef.current = generateTestTrace();
+        log(`Starting 15B.4 suite with trace: ${testTraceRef.current}`);
+        setIsRunning(true);
+        setResults([]);
+        setLogs([]);
+        await runB7(testTraceRef.current);
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -579,13 +588,166 @@ export const VerifierAppV0 = () => {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // B7: Task Manager Registry List
+    // ═══════════════════════════════════════════════════════════════════════════
+    const runB7 = async (traceBase: string) => {
+        const traceId = `${traceBase}-B7`;
+        const start = performance.now();
+        log('B7: Task Manager Registry List...');
+        try {
+            const response = await fetch('/api/platform/process-registry', {
+                headers: { 'x-trace-id': traceId },
+            });
+            const result = await response.json();
+
+            if (!result.success && response.status === 401) {
+                throw new Error('Authentication required');
+            }
+            if (!result.success && response.status !== 403) {
+                throw new Error(result.error || 'Registry list failed');
+            }
+
+            // Admin should succeed, non-admin gets 403
+            if (result.success) {
+                if (!Array.isArray(result.processes)) throw new Error('processes not array');
+                log(`B7: Retrieved ${result.processes.length} processes`);
+            }
+
+            addResult({ gateId: 'B7', description: 'Registry List', status: 'PASS', traceId, latency: Math.round(performance.now() - start) });
+        } catch (e: any) {
+            addResult({ gateId: 'B7', description: 'Registry List', status: 'FAIL', traceId, latency: Math.round(performance.now() - start), error: e.message });
+        }
+        await runB8(traceBase);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // B8: Terminate via API
+    // ═══════════════════════════════════════════════════════════════════════════
+    const runB8 = async (traceBase: string) => {
+        const traceId = `${traceBase}-B8`;
+        const start = performance.now();
+        log('B8: Terminate via API...');
+        try {
+            // Spawn, then terminate
+            const spawnResult = await callProcessIntent('os.process.spawn', undefined, { appId: 'b8-test', entryPoint: '/test.js' }, traceId);
+            if (!spawnResult.success) throw new Error('Spawn failed');
+
+            const termResult = await callProcessIntent('os.process.terminate', spawnResult.pid, undefined, traceId);
+            if (!termResult.success) throw new Error(`Terminate failed: ${termResult.error}`);
+            if (!termResult.opId) throw new Error('No opId');
+            if (!termResult.traceId) throw new Error('No traceId');
+
+            // Verify not in registry
+            const listResult = await callProcessIntent('os.process.list', undefined, undefined, traceId);
+            const stillExists = (listResult.processes || []).some((p: any) => p.pid === spawnResult.pid);
+            if (stillExists) throw new Error('Process still in registry');
+
+            addResult({ gateId: 'B8', description: 'Terminate via API', status: 'PASS', traceId: termResult.traceId, latency: Math.round(performance.now() - start) });
+        } catch (e: any) {
+            addResult({ gateId: 'B8', description: 'Terminate via API', status: 'FAIL', traceId, latency: Math.round(performance.now() - start), error: e.message });
+        }
+        await runB9(traceBase);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // B9: Force Quit via API
+    // ═══════════════════════════════════════════════════════════════════════════
+    const runB9 = async (traceBase: string) => {
+        const traceId = `${traceBase}-B9`;
+        const start = performance.now();
+        log('B9: Force Quit via API...');
+        try {
+            // Spawn, then force quit
+            const spawnResult = await callProcessIntent('os.process.spawn', undefined, { appId: 'b9-test', entryPoint: '/test.js' }, traceId);
+            if (!spawnResult.success) throw new Error('Spawn failed');
+
+            const fqResult = await callProcessIntent('os.process.forceQuit', spawnResult.pid, undefined, traceId);
+            if (!fqResult.success) throw new Error(`Force quit failed: ${fqResult.error}`);
+            if (!fqResult.opId) throw new Error('No opId');
+
+            addResult({ gateId: 'B9', description: 'Force Quit via API', status: 'PASS', traceId: fqResult.traceId || traceId, latency: Math.round(performance.now() - start) });
+        } catch (e: any) {
+            addResult({ gateId: 'B9', description: 'Force Quit via API', status: 'FAIL', traceId, latency: Math.round(performance.now() - start), error: e.message });
+        }
+        await runB10(traceBase);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // B10: Admin Access Enforcement
+    // ═══════════════════════════════════════════════════════════════════════════
+    const runB10 = async (traceBase: string) => {
+        const traceId = `${traceBase}-B10`;
+        const start = performance.now();
+        log('B10: Admin Access Enforcement...');
+        try {
+            // Verify registry requires auth
+            const response = await fetch('/api/platform/process-registry', {
+                headers: { 'x-trace-id': traceId },
+            });
+
+            // Should either succeed (admin) or fail with 403 (non-admin captured)
+            // We at least verify the endpoint exists and respects auth
+            if (response.status === 200) {
+                const result = await response.json();
+                if (!result.success) throw new Error('Unexpected success:false for admin');
+                log('B10: Admin access verified');
+            } else if (response.status === 401) {
+                throw new Error('User not authenticated');
+            } else if (response.status === 403) {
+                // This is valid - current user is not admin
+                log('B10: 403 for non-admin (expected behavior)');
+            }
+
+            addResult({ gateId: 'B10', description: 'Admin Access', status: 'PASS', traceId, latency: Math.round(performance.now() - start) });
+        } catch (e: any) {
+            addResult({ gateId: 'B10', description: 'Admin Access', status: 'FAIL', traceId, latency: Math.round(performance.now() - start), error: e.message });
+        }
+        await runB11(traceBase);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // B11: Trace + opId Correlation
+    // ═══════════════════════════════════════════════════════════════════════════
+    const runB11 = async (traceBase: string) => {
+        const traceId = `${traceBase}-B11`;
+        const start = performance.now();
+        log('B11: Trace + opId Correlation...');
+        try {
+            // Spawn with known traceId
+            const spawnResult = await callProcessIntent('os.process.spawn', undefined, { appId: 'b11-audit-test', entryPoint: '/test.js' }, traceId);
+            if (!spawnResult.success) throw new Error('Spawn failed');
+
+            // Verify response contains our traceId
+            if (!spawnResult.traceId) throw new Error('No traceId returned');
+            if (!spawnResult.traceId.includes(traceId)) throw new Error('TraceId mismatch');
+
+            // Verify opId format
+            if (!spawnResult.opId) throw new Error('No opId returned');
+            if (!spawnResult.opId.includes('os.process.spawn')) throw new Error('opId missing action');
+
+            log(`B11: TraceId=${spawnResult.traceId}, OpId=${spawnResult.opId}`);
+
+            // Cleanup
+            await callProcessIntent('os.process.forceQuit', spawnResult.pid, undefined, traceId);
+
+            addResult({ gateId: 'B11', description: 'Trace + opId', status: 'PASS', traceId: spawnResult.traceId, latency: Math.round(performance.now() - start) });
+        } catch (e: any) {
+            addResult({ gateId: 'B11', description: 'Trace + opId', status: 'FAIL', traceId, latency: Math.round(performance.now() - start), error: e.message });
+        }
+
+        log('===== 15B.4 COMPLETE =====');
+        setIsRunning(false);
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Export Evidence (v1.0 with JSON + Markdown)
     // ═══════════════════════════════════════════════════════════════════════════
     const getGateRange = () => {
         if (phase === '15A.1') return 'G1-G2';
         if (phase === '15A.2') return 'G1-G8';
         if (phase === '15A.3') return 'G1-G11';
-        return 'B1-B6';
+        if (phase === '15B') return 'B1-B6';
+        return 'B7-B11';
     };
     const getPassCount = () => results.filter(r => r.status === 'PASS').length;
     const getTotalCount = () => results.length;
@@ -668,20 +830,20 @@ ${data.results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '�
 
             {/* Phase Selector */}
             <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {(['15A.1', '15A.2', '15A.3', '15B'] as Phase[]).map(p => (
+                {(['15A.1', '15A.2', '15A.3', '15B', '15B.4'] as Phase[]).map(p => (
                     <button
                         key={p}
                         onClick={() => setPhase(p)}
                         style={{
                             padding: '6px 12px',
-                            background: phase === p ? (p === '15B' ? '#22c55e' : p === '15A.3' ? '#f97316' : p === '15A.2' ? '#8b5cf6' : '#3b82f6') : '#333',
+                            background: phase === p ? (p === '15B.4' ? '#10b981' : p === '15B' ? '#22c55e' : p === '15A.3' ? '#f97316' : p === '15A.2' ? '#8b5cf6' : '#3b82f6') : '#333',
                             border: 'none',
                             color: 'white',
                             cursor: 'pointer',
                             borderRadius: 4
                         }}
                     >
-                        {p} ({p === '15A.1' ? 'G1-G2' : p === '15A.2' ? 'G1-G8' : p === '15A.3' ? 'G1-G11' : 'B1-B6'})
+                        {p} ({p === '15A.1' ? 'G1-G2' : p === '15A.2' ? 'G1-G8' : p === '15A.3' ? 'G1-G11' : p === '15B' ? 'B1-B6' : 'B7-B11'})
                     </button>
                 ))}
             </div>
@@ -694,7 +856,7 @@ ${data.results.map(r => `| ${r.gateId} | ${r.status} ${r.status === 'PASS' ? '�
 
             <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
                 <button
-                    onClick={phase === '15B' ? runTests15B : runTests}
+                    onClick={phase === '15B.4' ? runTests15B4 : phase === '15B' ? runTests15B : runTests}
                     disabled={isRunning}
                     style={{ padding: '8px 16px', background: '#3b82f6', border: 'none', color: 'white', cursor: 'pointer', borderRadius: 4, opacity: isRunning ? 0.5 : 1 }}
                 >

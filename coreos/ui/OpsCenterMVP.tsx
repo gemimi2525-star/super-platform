@@ -456,6 +456,7 @@ function StatusBadge({ status }: { status: 'healthy' | 'degraded' | 'down' | str
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { VerifierAppV0 } from './VerifierAppV0';
+import { TaskManagerApp } from './TaskManagerApp';
 
 // ... (existing code)
 
@@ -464,8 +465,10 @@ function HealthTab() {
     const me = useMeData();
     const session = useSessionDebug();
     const [showVerifier, setShowVerifier] = useState(false);
+    const [showTaskManager, setShowTaskManager] = useState(false);
 
     if (health.loading || me.loading) return <LoadingState />;
+
     if (health.error) return <ErrorState message={health.error} />;
     if (!health.data) return <ErrorState message="No health data" />;
 
@@ -496,6 +499,32 @@ function HealthTab() {
                 {showVerifier && (
                     <div style={{ marginTop: 16 }}>
                         <VerifierAppV0 />
+                    </div>
+                )}
+            </Card>
+
+            {/* Phase 15B.4 Task Manager (Admin-only) */}
+            <Card title="🧠 Task Manager (Admin)" accent="#22c55e">
+                <div style={{ color: '#fff', fontSize: 13, marginBottom: 12 }}>
+                    OS Process Management. Monitor and control running processes.
+                </div>
+                <button
+                    onClick={() => setShowTaskManager(!showTaskManager)}
+                    style={{
+                        background: showTaskManager ? '#ef4444' : '#22c55e',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showTaskManager ? 'Close Task Manager' : 'Open Task Manager'}
+                </button>
+
+                {showTaskManager && (
+                    <div style={{ marginTop: 16 }}>
+                        <TaskManagerApp />
                     </div>
                 )}
             </Card>
