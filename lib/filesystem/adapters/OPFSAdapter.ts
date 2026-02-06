@@ -1,8 +1,10 @@
 
-import { FileSystemAdapter, WriteOptions, DirEntry } from '../types';
+import { FileSystemAdapter, WriteOptions, DirEntry, FileSystemError, FsError } from '../types';
 
 /**
  * @internal This class should not be used directly. Use FileSystemService.
+ * 
+ * Phase 15A.3: Updated to throw proper FsError with deterministic codes
  */
 export class OPFSAdapter implements FileSystemAdapter {
     id = 'opfs';
@@ -21,7 +23,7 @@ export class OPFSAdapter implements FileSystemAdapter {
     // Helper to traverse path and get handle
     private async getHandle(path: string, create: boolean = false): Promise<FileSystemFileHandle | FileSystemDirectoryHandle | undefined> {
         if (!path.startsWith('user://')) {
-            throw new Error(`Invalid path for OPFSAdapter: ${path}`);
+            throw new FsError(FileSystemError.invalidPath, `Invalid path for OPFSAdapter: ${path}`);
         }
         const cleanPath = path.replace('user://', '');
         const parts = cleanPath.split('/').filter(p => p.length > 0);
@@ -73,7 +75,7 @@ export class OPFSAdapter implements FileSystemAdapter {
     async readFile(path: string): Promise<Blob> {
         const handle = await this.getHandle(path);
         if (!handle || handle.kind !== 'file') {
-            throw new Error(`File not found: ${path}`);
+            throw new FsError(FileSystemError.notFound, `File not found: ${path}`);
         }
         const file = await (handle as FileSystemFileHandle).getFile();
         return file;
@@ -84,12 +86,15 @@ export class OPFSAdapter implements FileSystemAdapter {
         const parts = cleanPath.split('/').filter(p => p.length > 0);
         const fileName = parts.pop()!;
 
-        let current = await this.getRoot();
-        for (const part of parts) {
-            current = await current.getDirectoryHandle(part);
+        try {
+            let current = await this.getRoot();
+            for (const part of parts) {
+                current = await current.getDirectoryHandle(part);
+            }
+            await current.removeEntry(fileName);
+        } catch (e) {
+            throw new FsError(FileSystemError.notFound, `File not found: ${path}`);
         }
-
-        await current.removeEntry(fileName);
     }
 
     async listDir(path: string): Promise<DirEntry[]> {
@@ -103,11 +108,12 @@ export class OPFSAdapter implements FileSystemAdapter {
                 if (path === 'user://' || path === 'user:/') {
                     current = await this.getRoot();
                 } else {
-                    throw new Error('Not a directory');
+                    throw new FsError(FileSystemError.notFound, `Directory not found: ${path}`);
                 }
             }
         } catch (e) {
-            throw new Error(`Path not found: ${path}`);
+            if (e instanceof FsError) throw e;
+            throw new FsError(FileSystemError.notFound, `Path not found: ${path}`);
         }
 
         const entries: DirEntry[] = [];
@@ -122,7 +128,6 @@ export class OPFSAdapter implements FileSystemAdapter {
         return entries;
     }
 
-
     async exists(path: string): Promise<boolean> {
         const handle = await this.getHandle(path);
         return !!handle;
@@ -134,5 +139,7 @@ export class OPFSAdapter implements FileSystemAdapter {
         for await (const entry of root.values()) {
             await root.removeEntry(entry.name, { recursive: true });
         }
+        // CRITICAL: Invalidate rootHandle cache to ensure fresh state after wipe
+        this.rootHandle = null;
     }
 }

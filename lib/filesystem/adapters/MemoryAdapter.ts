@@ -1,8 +1,10 @@
 
-import { FileSystemAdapter, WriteOptions, DirEntry } from '../types';
+import { FileSystemAdapter, WriteOptions, DirEntry, FileSystemError, FsError } from '../types';
 
 /**
  * @internal This class should not be used directly. Use FileSystemService.
+ * 
+ * Phase 15A.3: Updated to throw proper FsError with deterministic codes
  */
 export class MemoryFileSystemAdapter implements FileSystemAdapter {
     id = 'memory';
@@ -16,7 +18,7 @@ export class MemoryFileSystemAdapter implements FileSystemAdapter {
     async readFile(path: string): Promise<Blob> {
         const content = this.storage.get(path);
         if (content === undefined) {
-            throw new Error(`File not found: ${path}`);
+            throw new FsError(FileSystemError.notFound, `File not found: ${path}`);
         }
         if (content instanceof Blob) {
             return content;
@@ -25,6 +27,9 @@ export class MemoryFileSystemAdapter implements FileSystemAdapter {
     }
 
     async deleteFile(path: string): Promise<void> {
+        if (!this.storage.has(path)) {
+            throw new FsError(FileSystemError.notFound, `File not found: ${path}`);
+        }
         this.storage.delete(path);
     }
 
