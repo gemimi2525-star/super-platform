@@ -35,25 +35,20 @@ export function AppLauncher() {
             }
             const manifest: AppManifest = await manifestResponse.json();
 
-            // Spawn runtime via runtimeHost instance
-            const result = await runtimeHost.spawn(manifest, false);
+            // Create inline worker from blob URL
+            const { calculatorWorkerCode } = await import('@/apps/os.calculator/worker-bundle');
+            const blob = new Blob([calculatorWorkerCode], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(blob);
+            const worker = new Worker(workerUrl);
 
-            if (!result.success) {
-                throw new Error(result.reason || 'Failed to spawn runtime');
-            }
-
-            // Get worker from registry
-            const runtime = runtimeHost.getRuntime(manifest.appId);
-            if (!runtime) {
-                throw new Error('Runtime not found in registry');
-            }
+            console.log('[AppLauncher] Worker created from blob URL');
 
             setLaunchedApps(prev => [
                 ...prev,
                 {
                     appId: manifest.appId,
                     manifest,
-                    worker: runtime.worker || null,
+                    worker,
                     windowOpen: true,
                 },
             ]);
