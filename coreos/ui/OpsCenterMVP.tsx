@@ -458,6 +458,7 @@ function StatusBadge({ status }: { status: 'healthy' | 'degraded' | 'down' | str
 import { VerifierAppV0 } from './VerifierAppV0';
 import { TaskManagerApp } from './TaskManagerApp';
 import { TaskManagerV2 } from './TaskManagerV2';
+import { AppLauncher } from './AppLauncher';
 
 // ... (existing code)
 
@@ -468,6 +469,7 @@ function HealthTab() {
     const [showVerifier, setShowVerifier] = useState(false);
     const [showTaskManager, setShowTaskManager] = useState(false);
     const [showTaskManagerV2, setShowTaskManagerV2] = useState(false);
+    const [showAppLauncher, setShowAppLauncher] = useState(false);
 
     if (health.loading || me.loading) return <LoadingState />;
 
@@ -557,6 +559,36 @@ function HealthTab() {
                 {showTaskManagerV2 && (
                     <div style={{ marginTop: 16 }}>
                         <TaskManagerV2 />
+                    </div>
+                )}
+            </Card>
+
+            {/* Phase 16.2 App Launcher (Experimental) */}
+            <Card title="🚀 App Launcher (Experimental)" accent="#ec4899">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ padding: '2px 8px', background: '#ec489922', color: '#ec4899', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>16.2</span>
+                    <span style={{ padding: '2px 8px', background: '#10b98122', color: '#10b981', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>LIVE APP</span>
+                </div>
+                <div style={{ color: '#fff', fontSize: 13, marginBottom: 12 }}>
+                    Launch sandboxed apps via Runtime Contract v1. First app: os.calculator.
+                </div>
+                <button
+                    onClick={() => setShowAppLauncher(!showAppLauncher)}
+                    style={{
+                        background: showAppLauncher ? '#ef4444' : '#ec4899',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                    }}
+                >
+                    {showAppLauncher ? 'Close App Launcher' : 'Open App Launcher'}
+                </button>
+
+                {showAppLauncher && (
+                    <div style={{ marginTop: 16 }}>
+                        <AppLauncher />
                     </div>
                 )}
             </Card>
