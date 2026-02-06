@@ -50,14 +50,14 @@ export async function GET(request: NextRequest) {
         let query;
 
         if (opId) {
+            // opId is unique, no need to order
             query = db.collection(COLLECTION_AUDIT_LOGS)
                 .where('opId', '==', opId)
-                .orderBy('timestamp', 'desc')
                 .limit(1);
         } else {
+            // traceId may have multiple records, get most recent by limiting
             query = db.collection(COLLECTION_AUDIT_LOGS)
                 .where('traceId', '==', lookupTraceId)
-                .orderBy('timestamp', 'desc')
                 .limit(5);
         }
 
