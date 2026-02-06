@@ -5,15 +5,17 @@
  * Admin-only access, Intent-only operations.
  * 
  * Features:
- * - Process list with auto-refresh
+ * - Process list with auto-refresh (LOCAL + SERVER combined)
  * - Terminate/Force Quit (via dispatchProcessIntent)
  * - Confirm dialog for dangerous actions
  * - Audit correlation display
+ * 
+ * Phase 15B.3: Now uses useProcessManager for client-side Worker state
  */
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
@@ -28,6 +30,7 @@ interface ProcessDescriptor {
     cpuTime?: number;
     memoryMB?: number;
     lastHeartbeat?: number;
+    source?: 'local' | 'server'; // Phase 15B.3: Track data source
 }
 
 interface ProcessIntentResult {
@@ -56,6 +59,7 @@ const tokens = {
     success: '#22c55e',
     warning: '#eab308',
     error: '#ef4444',
+    cyan: '#06b6d4',
     radius: 8,
 };
 
@@ -63,10 +67,14 @@ const tokens = {
 // API Dispatcher
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function fetchProcesses(): Promise<{ success: boolean; processes: ProcessDescriptor[]; error?: string }> {
+async function fetchProcessesFromServer(): Promise<{ success: boolean; processes: ProcessDescriptor[]; error?: string }> {
     try {
         const res = await fetch('/api/platform/process-registry');
-        return res.json();
+        const data = await res.json();
+        if (data.success) {
+            return { success: true, processes: (data.processes || []).map((p: ProcessDescriptor) => ({ ...p, source: 'server' as const })) };
+        }
+        return { success: false, processes: [], error: data.error };
     } catch {
         return { success: false, processes: [], error: 'Network error' };
     }
@@ -91,6 +99,52 @@ async function dispatchProcessIntent(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ProcessManager Wrapper (Client-side only)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let processManagerInstance: any = null;
+
+function getLocalProcessManager(): any {
+    if (typeof window === 'undefined') return null;
+    if (!processManagerInstance) {
+        try {
+            const { ProcessManager } = require('@/lib/process/ProcessManager');
+            processManagerInstance = ProcessManager.getInstance();
+        } catch {
+            return null;
+        }
+    }
+    return processManagerInstance;
+}
+
+function getLocalProcesses(): ProcessDescriptor[] {
+    const pm = getLocalProcessManager();
+    if (!pm) return [];
+    return pm.list().map((p: ProcessDescriptor) => ({ ...p, source: 'local' as const }));
+}
+
+// Merge server and local processes (local takes priority for real-time state)
+function mergeProcesses(serverProcs: ProcessDescriptor[], localProcs: ProcessDescriptor[]): ProcessDescriptor[] {
+    const merged = new Map<string, ProcessDescriptor>();
+
+    for (const proc of serverProcs) {
+        merged.set(proc.pid, proc);
+    }
+
+    for (const proc of localProcs) {
+        const existing = merged.get(proc.pid);
+        if (existing) {
+            // Local has real-time state, merge and mark as LOCAL
+            merged.set(proc.pid, { ...existing, ...proc, source: 'local' });
+        } else {
+            merged.set(proc.pid, proc);
+        }
+    }
+
+    return Array.from(merged.values());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Components
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -102,6 +156,13 @@ const StateIcon: React.FC<{ state: string }> = ({ state }) => {
         case 'CRASHED': return <span style={{ color: tokens.error }}>●</span>;
         default: return <span>●</span>;
     }
+};
+
+const SourceBadge: React.FC<{ source?: 'local' | 'server' }> = ({ source }) => {
+    if (source === 'local') {
+        return <span style={{ fontSize: 9, background: tokens.cyan + '44', color: tokens.cyan, padding: '1px 4px', borderRadius: 3, marginLeft: 4 }}>LOCAL</span>;
+    }
+    return <span style={{ fontSize: 9, background: tokens.warning + '44', color: tokens.warning, padding: '1px 4px', borderRadius: 3, marginLeft: 4 }}>SERVER</span>;
 };
 
 interface ConfirmDialogProps {
@@ -142,7 +203,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, title, message, o
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Main Component
+// Main Component (WIRED to local ProcessManager + server fallback)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const TaskManagerApp: React.FC = () => {
@@ -150,18 +211,46 @@ export const TaskManagerApp: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [autoRefresh, setAutoRefresh] = useState(true);
-    const [refreshInterval, setRefreshIntervalState] = useState(5000);
+    const [refreshInterval, setRefreshIntervalState] = useState(2000);
     const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [selectedProcess, setSelectedProcess] = useState<ProcessDescriptor | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; pid: string; appId: string }>({ isOpen: false, pid: '', appId: '' });
+    const [hasLocalPM, setHasLocalPM] = useState(false);
+    const unsubscribeRef = useRef<(() => void) | null>(null);
+
+    // Check if local ProcessManager is available
+    useEffect(() => {
+        const pm = getLocalProcessManager();
+        setHasLocalPM(!!pm);
+
+        if (pm) {
+            // Subscribe to local ProcessManager updates for reactive UI
+            unsubscribeRef.current = pm.subscribe((updatedProcs: ProcessDescriptor[]) => {
+                const localProcs = updatedProcs.map(p => ({ ...p, source: 'local' as const }));
+                setProcesses(prev => mergeProcesses(prev.filter(p => p.source === 'server'), localProcs));
+            });
+        }
+
+        return () => {
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+            }
+        };
+    }, []);
 
     const refresh = useCallback(async () => {
-        const result = await fetchProcesses();
-        if (result.success) {
-            setProcesses(result.processes);
+        // Get local processes (real-time Worker state)
+        const localProcs = getLocalProcesses();
+
+        // Get server processes
+        const serverResult = await fetchProcessesFromServer();
+
+        if (serverResult.success || localProcs.length > 0) {
+            const merged = mergeProcesses(serverResult.processes, localProcs);
+            setProcesses(merged);
             setError(null);
         } else {
-            setError(result.error || 'Failed to fetch');
+            setError(serverResult.error || 'Failed to fetch');
         }
         setLoading(false);
     }, []);
@@ -276,7 +365,7 @@ export const TaskManagerApp: React.FC = () => {
                             <tr key={proc.pid} style={{ borderBottom: `1px solid ${tokens.border}`, cursor: 'pointer' }} onClick={() => setSelectedProcess(proc)}>
                                 <td style={{ padding: '10px 12px' }}><StateIcon state={proc.state} /> {proc.state}</td>
                                 <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: tokens.textSecondary }}>{proc.pid}</td>
-                                <td style={{ padding: '10px 12px', color: tokens.textPrimary }}>{proc.appId}</td>
+                                <td style={{ padding: '10px 12px', color: tokens.textPrimary }}>{proc.appId} <SourceBadge source={proc.source} /></td>
                                 <td style={{ padding: '10px 12px', color: tokens.textSecondary }}>{formatUptime(proc.startedAt)}</td>
                                 <td style={{ padding: '10px 12px', color: tokens.textSecondary, fontSize: 11 }}>{formatTime(proc.startedAt)}</td>
                                 <td style={{ padding: '10px 12px', textAlign: 'right' }}>
