@@ -2,9 +2,9 @@
 
 > **Phase**: 16  
 > **Topic**: App Runtime & Third-Party SDK  
-> **Status**: COMPLETE  
+> **Status**: COMPLETE & FROZEN  
 > **Date**: 2026-02-06  
-> **Commits**: 7ddcb9d → 6b2cf9a → 700437c → 666ac86
+> **Commits**: 7ddcb9d → 6b2cf9a → 700437c → 666ac86 → 2e3e794
 
 ---
 
@@ -23,6 +23,17 @@ Phase 16 successfully delivered the **Runtime Contract v1**, enabling third-part
 - Window configuration: `defaultWindow` properties
 - Metadata: author, description, license
 - **Location**: `public/apps/{appId}/manifest.json`
+
+> [!IMPORTANT]
+> **Manifest Static Serving Requirement**
+>
+> Manifest files **MUST** be placed in `public/apps/{appId}/` directory.
+> 
+> - ❌ `/apps/*` directory is NOT served by Next.js static handler
+> - ✅ `/public/apps/*` is served as static assets at `/apps/*`
+> - 🔒 Production verification REQUIRED for all runtime changes
+>
+> **Consequence**: Apps with manifests outside `public/` will fail with 404 and cannot launch.
 
 ### 2. Calculator App (os.calculator)
 - **Features**: +, −, ×, ÷, decimal, clear, copy
@@ -95,10 +106,17 @@ Phase 16 successfully delivered the **Runtime Contract v1**, enabling third-part
 
 ## 🔧 Technical Fixes
 
-### Fix 1: Manifest Loading (6b2cf9a)
-**Problem**: 404 on manifest URL  
-**Cause**: Next.js doesn't serve from `apps/` directory  
-**Solution**: Copy to `public/apps/os.calculator/`
+### Fix 1: Manifest Loading (2e3e794) — PRODUCTION VERIFIED ✅
+**Problem**: "Failed to load manifest" error on production  
+**Cause**: Next.js doesn't serve static files from `apps/` directory  
+**Solution**: Copy manifest.json to `public/apps/os.calculator/`
+
+**Evidence**:
+- Network: `GET /apps/os.calculator/manifest.json` → **200 OK**
+- Error: "Failed to load manifest" → **RESOLVED**
+- Test: Calculator launch + interaction (1+2=3) → **SUCCESS**
+- Commit: `2e3e794`
+- Resolution Time: 14 minutes (16:53-17:07)
 
 ### Fix 2: Worker Initialization (700437c)
 **Problem**: Buttons unresponsive  
@@ -119,6 +137,20 @@ Phase 16 successfully delivered the **Runtime Contract v1**, enabling third-part
 ---
 
 ## 🧪 Verification
+
+> [!WARNING]
+> **MANDATORY VERIFICATION POLICY (NO EXCEPTIONS)**
+>
+> All runtime / app / capability changes are considered INCOMPLETE until:
+>
+> 1. ✅ **Production browser test** — Live interaction evidence
+> 2. ✅ **Network evidence** — HTTP status codes (200/403/404/etc.)
+> 3. ✅ **Interaction evidence** — Button clicks, input, calculations
+> 4. ✅ **Commit hash reference** — Canonical source of truth
+>
+> **Logic-only or local-only testing = NOT ACCEPTED**
+>
+> This policy is FROZEN and applies to all future phases.
 
 ### Production Testing
 **URL**: https://apicoredata.com/os
@@ -268,7 +300,8 @@ All acceptance criteria met:
 
 **Commit History**:
 - `7ddcb9d` — Initial app + launcher + R7-R9
-- `6b2cf9a` — Manifest serving fix
+- `6b2cf9a` — (deprecated, see 2e3e794)
 - `700437c` — Button interaction fix (blob URL worker)
 - `666ac86` — Display overflow + TaskManager integration
-- `(current)` — Freeze declaration + final report
+- `2e3e794` — **Manifest 404 fix (PRODUCTION VERIFIED)** ✅
+- `(current)` — Phase 16.2 closure + verification policy enforcement

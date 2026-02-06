@@ -15,6 +15,9 @@ First sandboxed app demonstrating Runtime Contract v1.
 - `ui.notify` — Shows copy notification
 - `fs.temp` — Saves last result
 
+> **Important**: `manifest.json` **must** be in `public/apps/os.calculator/` for Next.js to serve it.  
+> See `docs/PHASE_16_FINAL_REPORT.md` for details.
+
 ## Architecture
 
 ```
