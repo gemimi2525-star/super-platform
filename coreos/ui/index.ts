@@ -57,3 +57,22 @@ export {
     isCapabilityPinned,
 } from './UserPreferences';
 
+// Window Manager (Phase 17.1)
+export {
+    type WindowState,
+    type WindowManagerState,
+    type WindowAction,
+    ZIndexManager,
+    PositionManager,
+    windowManagerReducer,
+    canLaunchNewWindow,
+    getActiveWindowCount,
+    getMinimizedWindows,
+    getVisibleWindows,
+    getFocusedWindow,
+    createInitialWindowManagerState,
+    WINDOW_CONSTANTS,
+} from './WindowManager';
+
+// App Launcher (Phase 17.1)
+export { AppLauncher } from './AppLauncher';
