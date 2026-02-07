@@ -1,5 +1,5 @@
 /**
- * App Launcher Component — Phase 17.1
+ * App Launcher Component — Phase 17.1 & 17.2
  * 
  * Multi-app window manager with:
  * - Z-order management (click to focus)
@@ -7,14 +7,15 @@
  * - Cascade positioning
  * - Max 10 concurrent windows
  * - Taskbar for running apps
+ * - Phase 17.2: Launch-time Permission Prompt
  * 
  * ADDITIVE to Phase 16 — Runtime Contract v1 remains FROZEN.
  */
 
 'use client';
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import type { AppManifest } from '@/lib/runtime/types';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import type { AppManifest, Capability } from '@/lib/runtime/types';
 import {
     WindowState,
     WindowManagerState,
@@ -27,6 +28,8 @@ import {
     WINDOW_CONSTANTS,
     createInitialWindowManagerState,
 } from './WindowManager';
+import { PermissionsPromptModal } from './PermissionsPromptModal';
+import { getCapabilityTier } from '@/lib/permissions/tiers';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Main App Launcher Component
@@ -39,13 +42,19 @@ export function AppLauncher() {
     const [error, setError] = useState<string | null>(null);
     const [maxWindowsModal, setMaxWindowsModal] = useState(false);
 
+    // Permission Prompt State
+    const [permissionPrompt, setPermissionPrompt] = useState<{
+        manifest: AppManifest;
+        capabilities: Capability[];
+        resolve: (granted: boolean) => void;
+    } | null>(null);
+
     // Managers (stable references)
     const zIndexManagerRef = useRef(new ZIndexManager());
     const positionManagerRef = useRef(new PositionManager());
 
     // Derived state
     const visibleWindows = useMemo(() => getVisibleWindows(wmState), [wmState]);
-    const minimizedWindows = useMemo(() => getMinimizedWindows(wmState), [wmState]);
     const runningCount = wmState.windows.length;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -114,8 +123,60 @@ export function AppLauncher() {
     }, []);
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Launch App
+    // Launch Logic (Split into Prepare -> Prompt -> Spawn)
     // ─────────────────────────────────────────────────────────────────────────
+
+    const spawnApp = useCallback(async (manifest: AppManifest) => {
+        try {
+            // Generate unique PID
+            const pid = `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+            // Create worker (currently only calculator supported)
+            let worker: Worker | null = null;
+            if (manifest.appId === 'os.calculator') {
+                const { calculatorWorkerCode } = await import('@/apps/os.calculator/worker-bundle');
+                const blob = new Blob([calculatorWorkerCode], { type: 'application/javascript' });
+                const workerUrl = URL.createObjectURL(blob);
+                worker = new Worker(workerUrl);
+                console.log('[AppLauncher] Worker created, PID:', pid);
+            }
+
+            // Register with process registry
+            await registerProcess(pid, manifest);
+
+            // Hook worker lifecycle
+            if (worker) {
+                worker.addEventListener('error', async (error) => {
+                    console.error('[AppLauncher] Worker error:', error);
+                    await updateProcessState(pid, 'CRASHED');
+                });
+            }
+
+            // Dispatch LAUNCH action
+            dispatch({
+                type: 'LAUNCH',
+                payload: {
+                    id: pid,
+                    appId: manifest.appId,
+                    pid,
+                    manifest,
+                    worker,
+                    size: {
+                        width: manifest.defaultWindow?.width || 400,
+                        height: manifest.defaultWindow?.height || 500,
+                    },
+                    launchedAt: Date.now(),
+                },
+            });
+
+            console.log(`[AppLauncher] Launched ${manifest.appId} (PID: ${pid})`);
+        } catch (e: any) {
+            setError(e.message || 'Failed to spawn app');
+            console.error('[AppLauncher] Spawn error:', e);
+        } finally {
+            setLoading(false);
+        }
+    }, [dispatch, registerProcess, updateProcessState]);
 
     const launchApp = useCallback(async (appId: string) => {
         // Check max windows limit FIRST
@@ -143,62 +204,77 @@ export function AppLauncher() {
         setError(null);
 
         try {
-            // Load manifest
+            // 1. Fetch Manifest
             const manifestResponse = await fetch(`/apps/${appId}/manifest.json`);
-            if (!manifestResponse.ok) {
-                throw new Error(`Failed to load manifest for ${appId}`);
-            }
+            if (!manifestResponse.ok) throw new Error(`Failed to load manifest for ${appId}`);
             const manifest: AppManifest = await manifestResponse.json();
 
-            // Generate unique PID
-            const pid = `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            // 2. Check Permissions (Phase 17.2)
+            const caps = manifest.requestedCapabilities || [];
+            const dangerousCaps = caps.filter(c => getCapabilityTier(c) !== 'SAFE');
 
-            // Create worker (currently only calculator supported)
-            let worker: Worker | null = null;
-            if (appId === 'os.calculator') {
-                const { calculatorWorkerCode } = await import('@/apps/os.calculator/worker-bundle');
-                const blob = new Blob([calculatorWorkerCode], { type: 'application/javascript' });
-                const workerUrl = URL.createObjectURL(blob);
-                worker = new Worker(workerUrl);
-                console.log('[AppLauncher] Worker created, PID:', pid);
+            if (dangerousCaps.length > 0) {
+                // Fetch existing grants
+                const grantsRes = await fetch(`/api/platform/permissions?appId=${appId}`);
+                const grantsData = await grantsRes.json();
+                const existingGrants = grantsData.success ? grantsData.grants : [];
+
+                // Identify undecided caps
+                const undecided = dangerousCaps.filter(cap =>
+                    !existingGrants.find((g: any) => g.capability === cap)
+                );
+
+                if (undecided.length > 0) {
+                    // Show Prompt
+                    return new Promise<void>((resolve) => {
+                        setPermissionPrompt({
+                            manifest,
+                            capabilities: caps,
+                            resolve: (granted) => {
+                                if (granted) {
+                                    spawnApp(manifest).then(() => resolve());
+                                } else {
+                                    setLoading(false);
+                                    resolve();
+                                }
+                            }
+                        });
+                    });
+                }
             }
 
-            // Register with process registry
-            await registerProcess(pid, manifest);
+            // 3. Spawn if safe or all decided
+            await spawnApp(manifest);
 
-            // Hook worker lifecycle
-            if (worker) {
-                worker.addEventListener('error', async (error) => {
-                    console.error('[AppLauncher] Worker error:', error);
-                    await updateProcessState(pid, 'CRASHED');
-                });
-            }
-
-            // Dispatch LAUNCH action
-            dispatch({
-                type: 'LAUNCH',
-                payload: {
-                    id: pid,
-                    appId,
-                    pid,
-                    manifest,
-                    worker,
-                    size: {
-                        width: manifest.defaultWindow?.width || 400,
-                        height: manifest.defaultWindow?.height || 500,
-                    },
-                    launchedAt: Date.now(),
-                },
-            });
-
-            console.log(`[AppLauncher] Launched ${appId} (PID: ${pid})`);
         } catch (e: any) {
             setError(e.message || 'Failed to launch app');
-            console.error('[AppLauncher] Launch error:', e);
-        } finally {
             setLoading(false);
         }
-    }, [wmState, dispatch, registerProcess, updateProcessState]);
+    }, [wmState, spawnApp]);
+
+    // Handle Permission Confirmation
+    const handlePermissionConfirm = async (decisions: Record<string, boolean>) => {
+        if (!permissionPrompt) return;
+
+        // Save decisions
+        const savePromises = Object.entries(decisions).map(([capability, granted]) =>
+            fetch('/api/platform/permissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appId: permissionPrompt.manifest.appId,
+                    capability,
+                    granted,
+                    traceId: `trace-${Date.now()}`,
+                })
+            })
+        );
+
+        await Promise.all(savePromises);
+
+        permissionPrompt.resolve(true);
+        setPermissionPrompt(null);
+    };
 
     // ─────────────────────────────────────────────────────────────────────────
     // Window Actions
@@ -236,7 +312,7 @@ export function AppLauncher() {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: '100%' }}>
             {/* Launch Controls */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <button
@@ -298,6 +374,19 @@ export function AppLauncher() {
             {/* Max Windows Modal */}
             {maxWindowsModal && (
                 <MaxWindowsModal onClose={() => setMaxWindowsModal(false)} />
+            )}
+
+            {/* Permission Prompt Modal */}
+            {permissionPrompt && (
+                <PermissionsPromptModal
+                    manifest={permissionPrompt.manifest}
+                    capabilities={permissionPrompt.capabilities}
+                    onConfirm={handlePermissionConfirm}
+                    onCancel={() => {
+                        permissionPrompt.resolve(false);
+                        setPermissionPrompt(null);
+                    }}
+                />
             )}
         </div>
     );

@@ -134,14 +134,27 @@ const tokens = {
 // TAB NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-type TabId = 'health' | 'audit' | 'incidents' | 'api' | 'alerts';
+type TabId = 'health'
+    | 'audit'
+    | 'incidents'
+    | 'monitor'
+    | 'alerts'
+    | 'permissions'
+    | 'dashboard'
+    | 'launcher'
+    | 'processes'
+    | 'verifier';
 
 const tabs: { id: TabId; label: string; icon: string }[] = [
-    { id: 'health', label: 'System Health', icon: '💚' },
-    { id: 'audit', label: 'Audit Trail', icon: '📋' },
-    { id: 'incidents', label: 'Incidents', icon: '⚠️' },
-    { id: 'api', label: 'API Monitor', icon: '📡' },
-    { id: 'alerts', label: 'Alerts & Intelligence', icon: '🚨' },
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'launcher', label: 'Launcher', icon: '🚀' },
+    { id: 'processes', label: 'Processes', icon: '🧠' },
+    { id: 'verifier', label: 'Verifier', icon: '🧪' },
+    { id: 'permissions', label: 'Permissions', icon: '🛡️' },
+    { id: 'health', label: 'Health', icon: '🏥' },
+    { id: 'audit', label: 'Audit', icon: '📜' },
+    { id: 'incidents', label: 'Incidents', icon: '🚨' },
+    { id: 'monitor', label: 'API Monitor', icon: '📡' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -459,6 +472,7 @@ import { VerifierAppV0 } from './VerifierAppV0';
 import { TaskManagerApp } from './TaskManagerApp';
 import { TaskManagerV2 } from './TaskManagerV2';
 import { AppLauncher } from './AppLauncher';
+import { AppPermissionsPanel } from './AppPermissionsPanel';
 
 // ... (existing code)
 
@@ -1388,6 +1402,22 @@ const MONITORED_ENDPOINTS = [
     { name: 'Users', path: '/api/platform/users', auth: true },
 ];
 
+function DashboardTab() {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <HealthTab />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Card title="Quick Launch">
+                    <AppLauncher />
+                </Card>
+                <Card title="System Status">
+                    <ApiMonitorTab />
+                </Card>
+            </div>
+        </div>
+    );
+}
+
 function ApiMonitorTab() {
     const [results, setResults] = useState<Record<string, { status: number; latency: number; error?: string }>>({});
     const [checking, setChecking] = useState(false);
@@ -1704,7 +1734,7 @@ function AlertsTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function OpsCenterMVP() {
-    const [activeTab, setActiveTab] = useState<TabId>('health');
+    const [activeTab, setActiveTab] = useState<TabId>('dashboard');
 
     // Phase 14.1: Emit intent event when switching tabs
     const handleTabSwitch = (tabId: TabId, tabLabel: string) => {
@@ -1766,13 +1796,19 @@ export function OpsCenterMVP() {
                 ))}
             </div>
 
-            {/* Tab Content */}
-            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-                {activeTab === 'health' && <HealthTab />}
-                {activeTab === 'audit' && <AuditTab />}
-                {activeTab === 'incidents' && <IncidentsTab />}
-                {activeTab === 'api' && <ApiMonitorTab />}
-                {activeTab === 'alerts' && <AlertsTab />}
+            {/* Main Content Area */}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+                    {activeTab === 'dashboard' && <DashboardTab />}
+                    {activeTab === 'permissions' && <AppPermissionsPanel />}
+                    {activeTab === 'launcher' && <AppLauncher />}
+                    {activeTab === 'processes' && <TaskManagerV2 />}
+                    {activeTab === 'verifier' && <VerifierAppV0 />}
+                    {activeTab === 'health' && <HealthTab />}
+                    {activeTab === 'audit' && <AuditTab />}
+                    {activeTab === 'incidents' && <IncidentsTab />}
+                    {activeTab === 'monitor' && <ApiMonitorTab />}
+                </div>
             </div>
 
             {/* Footer */}
@@ -1784,7 +1820,7 @@ export function OpsCenterMVP() {
                 textAlign: 'center',
                 background: tokens.bgPrimary,
             }}>
-                Ops Center • Phase 6.5.2 Operational Intelligence
+                Ops Center • Phase 17.1
             </div>
         </div>
     );

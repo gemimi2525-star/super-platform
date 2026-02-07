@@ -15,6 +15,8 @@ import type {
 } from '@/lib/runtime/types';
 import { RuntimeError } from '@/lib/runtime/types';
 import { RuntimeRegistry } from '@/lib/runtime';
+import { getPermissionGrant } from '@/lib/permissions/db';
+import { getCapabilityTier } from '@/lib/permissions/tiers';
 
 export const runtime = 'nodejs';
 
@@ -241,6 +243,39 @@ export async function POST(request: NextRequest) {
             },
         };
         return NextResponse.json(result, { status: 403 });
+    }
+
+    // Phase 17.2: Server-side Permission Enforcement (Additive)
+    const tier = getCapabilityTier(capability);
+    if (tier !== 'SAFE') {
+        const grant = await getPermissionGrant(appId, authContext.uid, capability);
+        // If no grant found or explicitly denied -> DENY
+        if (!grant || !grant.granted) {
+            await auditLogCreate({
+                event: 'runtime_intent',
+                appId,
+                traceId,
+                opId,
+                action,
+                capability,
+                decision: 'DENY',
+                reason: 'Permission not granted by user',
+            });
+
+            const result: RuntimeIntentResult = {
+                success: false,
+                action,
+                appId,
+                traceId,
+                opId: opId || '',
+                error: RuntimeError.CAPABILITY_DENIED,
+                decision: {
+                    outcome: 'DENY',
+                    reason: `Permission denied for ${capability} (Tier: ${tier})`,
+                },
+            };
+            return NextResponse.json(result, { status: 403 });
+        }
     }
 
     // Dispatch to handler
