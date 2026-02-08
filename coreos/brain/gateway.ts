@@ -19,12 +19,16 @@ import { OpenAIProvider } from './providers/openai';
 
 // Factory for Providers
 const getProvider = () => {
-    // In real system, check process.env.BRAIN_PROVIDER
-    // here we simulate via a global or just default to Mock if no key
     const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey && process.env.BRAIN_PROVIDER === 'openai') {
+
+    // Auto-detect OpenAI if key is present, OR if explicitly set to openai
+    // This allows "just works" behavior when key is added to Vercel
+    if (apiKey && (!process.env.BRAIN_PROVIDER || process.env.BRAIN_PROVIDER === 'openai')) {
+        console.log('[Brain] Factory: Instantiating OpenAIProvider');
         return new OpenAIProvider(apiKey);
     }
+
+    console.log('[Brain] Factory: Fallback to MockProvider (Missing Key or Provider mismatch)');
     return null; // Fallback to Mock
 };
 
