@@ -20,6 +20,7 @@ import type {
     CorrelationId,
     SpaceId,
 } from './types';
+import { WindowRole, getCapabilitiesForRole } from '../lib/runtime/window-types';
 import { DEFAULT_SPACE_ID } from './types';
 import { getStateStore, type StateAction } from './state';
 import { getEventBus } from './event-bus';
@@ -46,7 +47,8 @@ export class CoreOSWindowManager {
         capabilityId: CapabilityId,
         correlationId: CorrelationId,
         contextId?: string,
-        spaceId?: SpaceId  // Phase O: explicit space targeting
+        spaceId?: SpaceId,  // Phase O: explicit space targeting
+        role: WindowRole = 'APP' // Phase 18: Window Role (default: APP)
     ): string | null {
         const store = getStateStore();
         const eventBus = getEventBus();
@@ -117,14 +119,19 @@ export class CoreOSWindowManager {
         const MIN_WIDTH = 300;
         const MIN_HEIGHT = 200;
 
+        // Phase 18: Get capabilities for role
+        const capabilities = getCapabilitiesForRole(role);
+
         const newWindow: Window = {
             id: windowId,
             capabilityId,
             state: 'active',
             zIndex: this.getNextZIndex(state),
             title: manifest.title, // From Manifest (Window Identity Contract)
-            contextId: contextId ?? null,
+            contextId: contextId ?? undefined,
             spaceId: targetSpaceId,  // Phase O: Use explicit target space
+            role,   // Phase 18
+            capabilities, // Phase 18: Enforceable capabilities
             createdAt: Date.now(),
             // Phase 7.1: Position & Size
             x: Math.min(INITIAL_X, 500),  // Clamp to reasonable max
@@ -182,6 +189,14 @@ export class CoreOSWindowManager {
      */
     focusWindow(windowId: string, correlationId: CorrelationId): void {
         const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        // If window doesn't exist, we might be clearing focus (empty string), which is allowed.
+        // But if windowId is provided and window exists, enforce focusable.
+        if (window && !window.capabilities.focusable) {
+            console.warn(`[WindowManager] Denied focusWindow for role '${window.role}' (id: ${windowId})`);
+            return;
+        }
+
         const eventBus = getEventBus();
 
         store.dispatch({ type: 'WINDOW_FOCUS', windowId, correlationId });
@@ -198,6 +213,15 @@ export class CoreOSWindowManager {
      */
     minimizeWindow(windowId: string, correlationId: CorrelationId): void {
         const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        if (!window) return;
+
+        // Phase 18: Enforce minimizable capability
+        if (!window.capabilities.minimizable) {
+            console.warn(`[WindowManager] Denied minimizeWindow for role '${window.role}' (id: ${windowId})`);
+            return;
+        }
+
         const eventBus = getEventBus();
 
         store.dispatch({ type: 'WINDOW_MINIMIZE', windowId, correlationId });
@@ -253,6 +277,12 @@ export class CoreOSWindowManager {
         const window = store.getState().windows[windowId];
         if (!window) return;
 
+        // Phase 18: Enforce movable capability
+        if (!window.capabilities.movable) {
+            console.warn(`[WindowManager] Denied moveWindow for role '${window.role}' (id: ${windowId})`);
+            return;
+        }
+
         // Clamp to keep window visible (at least 100px on screen)
         const clampedX = Math.max(-window.width + 100, Math.min(x, window.width + 500));
         const clampedY = Math.max(28, Math.min(y, 600));  // 28 = menu bar height
@@ -275,6 +305,12 @@ export class CoreOSWindowManager {
         const window = store.getState().windows[windowId];
         if (!window) return;
 
+        // Phase 18: Enforce resizable capability
+        if (!window.capabilities.resizable) {
+            console.warn(`[WindowManager] Denied resizeWindow for role '${window.role}' (id: ${windowId})`);
+            return;
+        }
+
         store.dispatch({
             type: 'WINDOW_RESIZE',
             windowId,
@@ -289,6 +325,15 @@ export class CoreOSWindowManager {
      */
     maximizeWindow(windowId: string, correlationId: CorrelationId): void {
         const store = getStateStore();
+        const window = store.getState().windows[windowId];
+        if (!window) return;
+
+        // Phase 18: Enforce maximizable capability
+        if (!window.capabilities.maximizable) {
+            console.warn(`[WindowManager] Denied maximizeWindow for role '${window.role}' (id: ${windowId})`);
+            return;
+        }
+
         store.dispatch({
             type: 'WINDOW_MAXIMIZE',
             windowId,

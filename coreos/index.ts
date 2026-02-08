@@ -21,6 +21,11 @@ export type {
     WindowMode,
     ContextType,
 
+    // Phase 19: Permission System
+    PermissionStatus,
+    PermissionScope,
+    PermissionRequest,
+
     // Window System
     WindowState,
     Window,

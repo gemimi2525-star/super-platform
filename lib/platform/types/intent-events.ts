@@ -38,7 +38,12 @@ export type IntentAction =
     | 'os.fs.copy'
     | 'os.fs.openHandle'
     | 'os.fs.closeHandle'
-    | 'os.fs.shareHandle';
+    | 'os.fs.shareHandle'
+    // Phase 24A.1: App Lifecycle
+    | 'os.app.install'
+    | 'os.app.update'
+    | 'os.app.remove'
+    | 'os.app.rollback';
 
 /**
  * Target information for intent events
@@ -54,7 +59,7 @@ export interface IntentTarget {
  */
 export interface FsIntentMeta {
     path: string;                           // Full path (scheme://...)
-    scheme: 'user' | 'temp' | 'system';     // Extracted scheme
+    scheme: 'user' | 'temp' | 'system' | 'app';     // Extracted scheme
     fileSize?: number;                      // For write operations
     destPath?: string;                      // For move/copy/rename
     mimeType?: string;                      // For write operations

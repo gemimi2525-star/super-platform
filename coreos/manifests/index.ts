@@ -16,11 +16,17 @@
 
 // Import individual manifests
 import { CORE_FINDER_MANIFEST } from './core.finder';
+import { CORE_FILES_MANIFEST } from './core.files'; // Phase 26.1.x
 import { CORE_SETTINGS_MANIFEST } from './core.settings';
 import { USER_MANAGE_MANIFEST } from './user.manage';
 import { ORG_MANAGE_MANIFEST } from './org.manage';
 import { AUDIT_VIEW_MANIFEST } from './audit.view';
 import { SYSTEM_CONFIGURE_MANIFEST } from './system.configure';
+// Phase 18: Utility Tools
+// Phase 18: Utility Tools
+import { CORE_TOOLS_MANIFEST } from './core.tools';
+// Phase 19: Permission System
+import { CORE_PERMISSIONS_MANIFEST } from './core.permissions';
 
 // Phase 5: Operational Visibility
 import { OPS_CENTER_MANIFEST } from './ops.center';
@@ -45,9 +51,29 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     'core.finder': CORE_FINDER_MANIFEST,
     'core.settings': CORE_SETTINGS_MANIFEST,
     'user.manage': USER_MANAGE_MANIFEST,
+    // Phase 24B: App Store
+    'core.store': {
+        id: 'core.store',
+        title: 'App Store',
+        icon: '🛍️',
+        hasUI: true,
+        windowMode: 'single',
+        windowDisplay: 'window',
+        contextsSupported: ['global'],
+        requiredPolicies: [],
+        requiresStepUp: false,
+        dependencies: [],
+        showInDock: true,
+        certificationTier: 'core'
+    },
     'org.manage': ORG_MANAGE_MANIFEST,
     'audit.view': AUDIT_VIEW_MANIFEST,
     'system.configure': SYSTEM_CONFIGURE_MANIFEST,
+    // Phase 18: Utility Tools
+    // Phase 18: Utility Tools
+    'core.tools': CORE_TOOLS_MANIFEST,
+    // Phase 19: Permission System
+    'core.permissions': CORE_PERMISSIONS_MANIFEST,
 
     // Phase 5: Operational Visibility
     'ops.center': OPS_CENTER_MANIFEST,
@@ -59,11 +85,15 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
 // Re-export individual manifests
 export {
     CORE_FINDER_MANIFEST,
+    CORE_FILES_MANIFEST,
     CORE_SETTINGS_MANIFEST,
     USER_MANAGE_MANIFEST,
     ORG_MANAGE_MANIFEST,
     AUDIT_VIEW_MANIFEST,
     SYSTEM_CONFIGURE_MANIFEST,
+    CORE_PERMISSIONS_MANIFEST, // Already present, ensuring it's correctly handled
+    // Phase 18: Utility Tools
+    CORE_TOOLS_MANIFEST,
     // Phase 5: Operational Visibility
     OPS_CENTER_MANIFEST,
     // Phase F: EXPERIMENTAL

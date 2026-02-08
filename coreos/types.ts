@@ -39,15 +39,22 @@ export function createCorrelationId(): CorrelationId {
  */
 export type CapabilityId =
     | 'core.finder'
+    | 'core.files' // Phase 26.1.x (File Explorer)
     | 'core.settings'
     | 'user.manage'
     | 'org.manage'
     | 'audit.view'
+    | 'audit.view'
     | 'system.configure'
+    | 'core.store' // Phase 24B
     // Phase 5: Operational Visibility
     | 'ops.center'
     // Phase F: EXPERIMENTAL
-    | 'plugin.analytics';
+    | 'plugin.analytics'
+    // Phase 18: Utility Tools
+    | 'core.tools'
+    // Phase 19: Permission System
+    | 'core.permissions';
 
 /**
  * Window mode - defines window BEHAVIOR (how many windows allowed)
@@ -126,6 +133,24 @@ export type WindowState = 'active' | 'minimized' | 'hidden';
 // PHASE L: Virtual Spaces / Contexts
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 19: PERMISSION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type PermissionStatus = 'granted' | 'denied' | 'prompt';
+
+export type PermissionScope =
+    | 'session'          // Granted for this session only
+    | 'persistent_app'   // Granted for this app persistently
+    | 'persistent_org';  // Granted for this organization (future)
+
+export interface PermissionRequest {
+    readonly capabilityId: CapabilityId;
+    readonly appName?: string;
+    readonly scope: PermissionScope;
+    readonly correlationId: CorrelationId;
+}
+
 /**
  * Space ID - virtual context identifier
  * Format: space:{name} e.g. 'space:default', 'space:org-abc'
@@ -137,9 +162,13 @@ export type SpaceId = `space:${string}`;
  */
 export const DEFAULT_SPACE_ID: SpaceId = 'space:default';
 
+import type { WindowRole, WindowCapability } from '../lib/runtime/window-types';
+import type { AppPackage } from './manifests/spec'; // Phase 24A.1
+
 /**
  * Window instance in the system
  * Phase 7.1: Extended with position, size, and constraints
+ * Phase 18: Extended with Role & Capability Model
  */
 export interface Window {
     readonly id: string;
@@ -147,8 +176,14 @@ export interface Window {
     readonly state: WindowState;
     readonly zIndex: number;
     readonly title: string;
-    readonly contextId: string | null;  // For multiByContext mode
-    readonly spaceId: SpaceId;          // Phase L: Virtual context
+    readonly contextId?: string; // Optional context identifier
+    readonly spaceId: SpaceId;   // Phase L: Virtual Space ownership
+
+    // Phase 19: Extended Window Properties
+    readonly metadata?: Record<string, any>; // Flexible metadata for modal contexts
+    readonly correlationId?: CorrelationId;  // Trace ID for window lifecycle/intent
+    readonly role: WindowRole;          // Phase 18: Window Role (APP, UTILITY, etc.)
+    readonly capabilities: WindowCapability; // Phase 18: Enforceable capabilities
     readonly createdAt: number;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -482,6 +517,94 @@ export type Intent =
     | {
         readonly type: 'UNLOCK_SCREEN';
         readonly correlationId: CorrelationId;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHASE 19: Permission Intents
+    // ─────────────────────────────────────────────────────────────────────────
+    | {
+        readonly type: 'REQUEST_PERMISSION';
+        readonly correlationId: CorrelationId;
+        readonly payload: PermissionRequest;
+    }
+    | {
+        readonly type: 'GRANT_PERMISSION';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly requestId: string;
+            readonly scope: PermissionScope;
+            readonly capabilityId: CapabilityId; // Phase 20: Required for persistence
+            readonly appName?: string;
+        };
+    }
+    | {
+        readonly type: 'DENY_PERMISSION';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly requestId: string;
+        };
+    }
+    | {
+        readonly type: 'REVOKE_PERMISSION';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly appName: string;
+            readonly capabilityId: CapabilityId;
+        };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHASE 24A.1: App Lifecycle Intents
+    // ─────────────────────────────────────────────────────────────────────────
+    | {
+        readonly type: 'INSTALL_APP';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly package: AppPackage; // AppPackage (lazy typed for now to avoid circular deps if needed, or import)
+        };
+    }
+    | {
+        readonly type: 'UNINSTALL_APP';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly appId: string;
+        };
+    }
+    | {
+        readonly type: 'UPDATE_APP';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly package: AppPackage;
+        };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHASE 26.2A: AI Assist Intents (Propose & Approval)
+    // ─────────────────────────────────────────────────────────────────────────
+    | {
+        readonly type: 'PROPOSE_FILE_ACTION';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly action: 'move' | 'rename' | 'delete';
+            readonly sourcePath: string;
+            readonly destinationPath?: string; // For move/rename
+            readonly reason: string;
+        };
+    }
+    | {
+        readonly type: 'PROPOSE_SETTING_CHANGE';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly settingKey: string;
+            readonly oldValue: any;
+            readonly newValue: any;
+            readonly reason: string;
+        };
+    }
+    | {
+        readonly type: 'RESOLVE_PROPOSAL';
+        readonly correlationId: CorrelationId;
+        readonly payload: {
+            readonly proposalId: string; // Refers to the correlationId of the PROPOSE_ intent
+            readonly decision: 'approved' | 'rejected';
+        };
     };
 
 /**
@@ -575,6 +698,27 @@ export type SystemEvent =
             readonly capabilityId?: CapabilityId;
             readonly intentType?: string;
         }
+    }
+    // Phase 19: Permission Events
+    | BaseEvent & {
+        readonly type: 'PERMISSION_REQUESTED';
+        readonly payload: PermissionRequest;
+    }
+    | BaseEvent & {
+        readonly type: 'PERMISSION_DECIDED';
+        readonly payload: {
+            readonly capabilityId: CapabilityId;
+            readonly status: PermissionStatus;
+            readonly scope?: PermissionScope;
+            readonly requestId: string;
+        };
+    }
+    | BaseEvent & {
+        readonly type: 'PERMISSION_REVOKED';
+        readonly payload: {
+            readonly appName: string;
+            readonly capabilityId: CapabilityId;
+        };
     }
     // Phase R: Decision Explanation Events (Auditability)
     | BaseEvent & {

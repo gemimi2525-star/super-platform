@@ -13,10 +13,10 @@ export const CAPABILITY_TIER_MAP: Record<Capability, CapabilityTier> = {
 
     // DANGEROUS: Persistent Data / Network
     'fs.read': 'DANGEROUS',
+    'fs.write': 'DANGEROUS',
     'net.fetch': 'DANGEROUS',
 
     // CRITICAL: System / Admin
-    'fs.write': 'CRITICAL',
     'process.spawn': 'CRITICAL',
     'audit.read': 'CRITICAL',
 };

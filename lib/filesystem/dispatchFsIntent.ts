@@ -107,6 +107,68 @@ function getOrCreateClientTraceId(): string {
 export async function dispatchFsIntent(intent: FsIntent): Promise<FsResult> {
     const traceId = getOrCreateClientTraceId();
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 19: Permission Check (Client-side Interceptor)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (intent.action === 'os.fs.write' || intent.action === 'os.fs.delete') {
+        const { checkPermission } = require('@/coreos/permissions/client-check'); // Dynamic import to avoid cycles
+        const allowed = await checkPermission('fs.write', traceId);
+
+        if (!allowed) {
+            return {
+                success: false,
+                errorCode: 'PERMISSION_DENIED',
+                decision: { outcome: 'DENY', reason: 'User denied permission' },
+                traceId,
+            };
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 21: VFS Routing (OS-Grade)
+    // ─────────────────────────────────────────────────────────────────────────
+    // Check if the operation targets a VFS scheme
+    const targetPath = intent.meta?.path || '';
+    const isVfsScheme = targetPath.startsWith('user://') || targetPath.startsWith('app://') || targetPath.startsWith('tmp://');
+
+    if (isVfsScheme) {
+        try {
+            const { VFS } = require('@/coreos/vfs'); // Dynamic import
+            const context = {
+                userId: 'user-1', // Mock for MVP - Phase 22 connect to auth
+                appId: 'current-app' // Mock - Needs App Context injection
+            };
+
+            if (intent.action === 'os.fs.write') {
+                await VFS.write(targetPath, intent.content || '', context);
+            } else if (intent.action === 'os.fs.read') {
+                const content = await VFS.read(targetPath, context);
+                return {
+                    success: true,
+                    data: content,
+                    traceId,
+                };
+            } else if (intent.action === 'os.fs.delete') {
+                await VFS.delete(targetPath, context);
+            }
+
+            return {
+                success: true,
+                traceId,
+            };
+        } catch (e: any) {
+            console.error('[VFS] Error:', e);
+            return {
+                success: false,
+                errorCode: 'VFS_ERROR',
+                decision: { outcome: 'DENY', reason: e.message },
+                traceId,
+            };
+        }
+    }
+
+    // Fallback to Server for http/https or other schemes
     try {
         const response = await fetch('/api/platform/fs-intents', {
             method: 'POST',

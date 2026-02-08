@@ -203,6 +203,25 @@ export class CoreOSKernel {
             case 'UNLOCK_SCREEN':
                 this.handleUnlockScreen(correlationId);
                 break;
+
+            // ─────────────────────────────────────────────────────────────────
+            // PHASE 19: PERMISSION INTENTS
+            // ─────────────────────────────────────────────────────────────────
+            case 'REQUEST_PERMISSION':
+                this.handleRequestPermission(intent.payload, correlationId);
+                break;
+
+            case 'GRANT_PERMISSION':
+                this.handleGrantPermission(intent.payload, correlationId);
+                break;
+
+            case 'DENY_PERMISSION':
+                this.handleDenyPermission(intent.payload, correlationId);
+                break;
+
+            case 'REVOKE_PERMISSION':
+                this.handleRevokePermission(intent.payload, correlationId);
+                break;
         }
     }
 
@@ -513,6 +532,111 @@ export class CoreOSKernel {
             correlationId,
             timestamp: Date.now(),
         });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHASE 19 & 20: PERMISSION HANDLERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private handleRequestPermission(payload: any, correlationId: CorrelationId): void {
+        const windowManager = getWindowManager();
+        const eventBus = getEventBus();
+        const { permissionStore } = require('@/coreos/permissions/store'); // Dynamic import
+
+        // Phase 20: Check Persistent Store First
+        // For MVP, we use 'Application' as default app name if not provided
+        const appName = payload.appName || 'Application';
+        const existing = permissionStore.check(appName, payload.capabilityId);
+
+        if (existing) {
+            // Auto-grant (Audit Log)
+            eventBus.emit({
+                type: 'PERMISSION_DECIDED',
+                correlationId,
+                timestamp: Date.now(),
+                payload: {
+                    requestId: payload.correlationId,
+                    status: 'granted',
+                    scope: existing.scope,
+                    capabilityId: payload.capabilityId,
+                    autoGranted: true // Trace flag
+                },
+            } as any);
+            return;
+        }
+
+        // 1. Emit Requested Event (for Audit)
+        eventBus.emit({
+            type: 'PERMISSION_REQUESTED',
+            correlationId,
+            timestamp: Date.now(),
+            payload,
+        } as any);
+
+        // 2. Open Permission Window (Modal)
+        windowManager.openWindow('core.permissions', correlationId, payload.capabilityId);
+    }
+
+    private handleGrantPermission(payload: any, correlationId: CorrelationId): void {
+        const eventBus = getEventBus();
+        const { permissionStore } = require('@/coreos/permissions/store');
+
+        // Phase 20: Save to Store
+        // We need to know the appName and capabilityId here. 
+        // Ideally passed in payload or retrieved from request state.
+        // For MVP, we rely on the payload having context or defaulting.
+        const appName = payload.appName || 'Application';
+        const capabilityId = payload.capabilityId || 'unknown'; // Needs to act on *something*
+
+        if (capabilityId !== 'unknown') {
+            permissionStore.grant(appName, capabilityId, payload.scope);
+        }
+
+        // 1. Emit Decided Event (Granted)
+        eventBus.emit({
+            type: 'PERMISSION_DECIDED',
+            correlationId,
+            timestamp: Date.now(),
+            payload: {
+                requestId: payload.requestId,
+                status: 'granted',
+                scope: payload.scope,
+                capabilityId,
+            },
+        } as any);
+    }
+
+    private handleDenyPermission(payload: any, correlationId: CorrelationId): void {
+        const eventBus = getEventBus();
+
+        // 1. Emit Decided Event (Denied)
+        eventBus.emit({
+            type: 'PERMISSION_DECIDED',
+            correlationId,
+            timestamp: Date.now(),
+            payload: {
+                requestId: payload.requestId,
+                status: 'denied',
+                capabilityId: 'unknown',
+            },
+        } as any);
+    }
+
+    private handleRevokePermission(payload: any, correlationId: CorrelationId): void {
+        const eventBus = getEventBus();
+        const { permissionStore } = require('@/coreos/permissions/store');
+
+        permissionStore.revoke(payload.appName, payload.capabilityId);
+
+        eventBus.emit({
+            type: 'PERMISSION_REVOKED',
+            correlationId,
+            timestamp: Date.now(),
+            payload: {
+                appName: payload.appName,
+                capabilityId: payload.capabilityId,
+            },
+        } as any);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

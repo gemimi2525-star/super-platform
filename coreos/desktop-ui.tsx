@@ -40,7 +40,7 @@ import {
 import { getCapabilityGraph } from './capability-graph';
 import { getWindowManager } from './window-manager';
 import type { Window, CapabilityId } from './types';
-import { createCorrelationId } from './types';
+import { createCorrelationId, IntentFactory } from './types';
 
 // Naming Constants
 import {
@@ -53,6 +53,18 @@ import {
 
 // Phase 5: Ops Center UI
 import { OpsCenterMVP } from './ui/OpsCenterMVP';
+// Phase 18: Utility Tools Window
+import { UtilityToolsWindow } from '@/components/UtilityToolsWindow';
+// Phase 19: Permission Window
+import { PermissionWindow } from '@/components/PermissionWindow';
+// Phase 20: Settings Permission Panel
+import { SettingsPermissionPanel } from '@/components/SettingsPermissionPanel';
+// Phase 23A: System Status Tray
+import { SystemStatusTray } from '@/components/SystemStatusTray';
+// Phase 23B: Conflict Resolution Window
+import { ConflictResolutionWindow } from '@/components/ConflictResolutionWindow';
+import { AppStoreWindow } from '@/components/AppStoreWindow'; // Phase 24B
+import { FileExplorerWindow } from '@/components/FileExplorerWindow'; // Phase 26.1.x (Finder)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -187,73 +199,6 @@ function SettingsAboutContent({ window }: { window: Window }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PHASE 7.2: CONNECTIVITY INDICATOR
-// ═══════════════════════════════════════════════════════════════════════════
-
-function ConnectivityIndicator() {
-    const { status, isOnline, isDegraded, isOffline, forceCheck } = useConnectivity();
-
-    // Online: show nothing (clean UI)
-    if (isOnline) {
-        return null;
-    }
-
-    const getStatusConfig = () => {
-        if (isOffline) {
-            return {
-                icon: '🔴',
-                label: 'Offline',
-                bg: 'rgba(239, 68, 68, 0.15)',
-                color: '#dc2626',
-            };
-        }
-        if (isDegraded) {
-            return {
-                icon: '🟡',
-                label: 'Degraded',
-                bg: 'rgba(234, 179, 8, 0.15)',
-                color: '#ca8a04',
-            };
-        }
-        return { icon: '✅', label: 'Online', bg: 'transparent', color: '#16a34a' };
-    };
-
-    const config = getStatusConfig();
-
-    return (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '2px 8px',
-                background: config.bg,
-                borderRadius: 4,
-                fontSize: 11,
-            }}
-        >
-            <span>{config.icon}</span>
-            <span style={{ color: config.color, fontWeight: 500 }}>{config.label}</span>
-            <button
-                onClick={() => forceCheck()}
-                style={{
-                    background: 'rgba(0,0,0,0.1)',
-                    border: 'none',
-                    borderRadius: 3,
-                    padding: '1px 6px',
-                    fontSize: 10,
-                    color: config.color,
-                    cursor: 'pointer',
-                    marginLeft: 4,
-                }}
-            >
-                Retry
-            </button>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // B3: MENU BAR (OS-GRADE)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -348,8 +293,8 @@ function MenuBar() {
 
             {/* Right: System Status */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                {/* Phase 7.2: Connectivity Indicator */}
-                <ConnectivityIndicator />
+                {/* Phase 23A: User Status Tray (Offline/Sync) */}
+                <SystemStatusTray />
 
                 {/* System Stack Label (NEXUS/ORBIT/SYNAPSE) */}
                 <span style={{
@@ -683,8 +628,26 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                 {window.capabilityId === 'ops.center' ? (
                     <OpsCenterMVP />
                 ) : window.capabilityId === 'core.settings' ? (
-                    /* Settings → About: Show System Stack */
-                    <SettingsAboutContent window={window} />
+                    /* Settings → About + Permissions */
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <SettingsAboutContent window={window} />
+                        <div style={{ padding: '0 24px 24px' }}>
+                            {/* Phase 20: Permission Panel appended for MVP */}
+                            <SettingsPermissionPanel />
+                        </div>
+                    </div>
+                ) : window.capabilityId === 'core.tools' ? (
+                    /* Utility Tools: Render Program Switcher */
+                    <UtilityToolsWindow window={window} />
+                ) : window.capabilityId === 'core.permissions' ? (
+                    <>
+                        {/* Phase 20: Permission Request Window */}
+                        <PermissionWindow window={window} />
+                    </>
+                ) : window.capabilityId === 'core.store' ? ( // Phase 24B
+                    <AppStoreWindow window={window} />
+                ) : window.capabilityId === 'core.files' ? ( // Phase 26.1.x
+                    <FileExplorerWindow window={window} />
                 ) : (
                     <>
                         <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
@@ -1018,6 +981,25 @@ export function CoreOSDesktop() {
     const state = useSystemState();
     const focusedWindowId = state.focusedWindowId;
 
+    const [activeConflict, setActiveConflict] = React.useState<any | undefined>(undefined); // Phase 23B: SyncConflict
+
+    // Phase 22 & 23A: Initialize Background Worker & Bridge
+    React.useEffect(() => {
+        // Dynamic import to avoid SSR/Initial load issues
+        const { workerBridge } = require('@/coreos/workers/bridge');
+        workerBridge.init(); // Idempotent
+
+        // Phase 23A & 23B: State Subscription
+        const unsubscribe = workerBridge.subscribe((state: any) => {
+            setActiveConflict(state.activeConflict);
+        });
+
+        return () => {
+            unsubscribe();
+            // workerBridge.terminate();
+        };
+    }, []);
+
     // Bootstrap on mount if not authenticated
     React.useEffect(() => {
         if (!state.security.authenticated) {
@@ -1052,6 +1034,7 @@ export function CoreOSDesktop() {
                 paddingTop: tokens.menubarHeight,
                 paddingBottom: tokens.dockHeight + 20,
             }}>
+                {/* Phase 6.3.8 / 7.1: Window Renderer */}
                 {windows.map(window => (
                     <WindowChrome
                         key={window.id}
@@ -1066,6 +1049,11 @@ export function CoreOSDesktop() {
 
             {/* Step-up Modal */}
             <StepUpModal />
+
+            {/* Phase 23B: Conflict Resolution Window (Global Modal) */}
+            {activeConflict && (
+                <ConflictResolutionWindow conflict={activeConflict} />
+            )}
         </div>
     );
 }
