@@ -49,6 +49,7 @@ import type { CapabilityId, CapabilityManifest } from '../types';
  */
 export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     'core.finder': CORE_FINDER_MANIFEST,
+    'core.files': CORE_FILES_MANIFEST, // Phase 26.1.x
     'core.settings': CORE_SETTINGS_MANIFEST,
     'user.manage': USER_MANAGE_MANIFEST,
     // Phase 24B: App Store
@@ -80,6 +81,38 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
 
     // Phase F: EXPERIMENTAL
     'plugin.analytics': PLUGIN_ANALYTICS_MANIFEST,
+
+    // Phase 39: AI Governance Brain
+    'core.admin': {
+        id: 'core.admin',
+        title: 'Administration',
+        icon: '🔐',
+        hasUI: false,
+        windowMode: 'backgroundOnly',
+        contextsSupported: ['global'],
+        requiredPolicies: ['admin.access'],
+        requiresStepUp: true,
+        stepUpMessage: 'Administrative access requires verification',
+        dependencies: [],
+        showInDock: false,
+        certificationTier: 'core',
+        requiredRole: 'admin',
+    },
+    'core.finance': {
+        id: 'core.finance',
+        title: 'Finance',
+        icon: '💰',
+        hasUI: false,
+        windowMode: 'backgroundOnly',
+        contextsSupported: ['organization'],
+        requiredPolicies: ['finance.access'],
+        requiresStepUp: true,
+        stepUpMessage: 'Financial operations require verification',
+        dependencies: [],
+        showInDock: false,
+        certificationTier: 'core',
+        requiredRole: 'admin',
+    },
 };
 
 // Re-export individual manifests

@@ -44,7 +44,6 @@ export type CapabilityId =
     | 'user.manage'
     | 'org.manage'
     | 'audit.view'
-    | 'audit.view'
     | 'system.configure'
     | 'core.store' // Phase 24B
     // Phase 5: Operational Visibility
@@ -54,7 +53,10 @@ export type CapabilityId =
     // Phase 18: Utility Tools
     | 'core.tools'
     // Phase 19: Permission System
-    | 'core.permissions';
+    | 'core.permissions'
+    // Phase 39: AI Governance Brain
+    | 'core.admin'
+    | 'core.finance';
 
 /**
  * Window mode - defines window BEHAVIOR (how many windows allowed)

@@ -18,7 +18,7 @@ export const CORE_FILES_MANIFEST: CapabilityManifest = {
     title: 'Files',
     icon: '📁',
     hasUI: true,
-    windowMode: 'windowed',
+    windowMode: 'multi',
     requiredPolicies: [],
     requiresStepUp: false,
     dependencies: [],
