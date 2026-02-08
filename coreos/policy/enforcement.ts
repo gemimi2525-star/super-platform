@@ -40,6 +40,7 @@ const CAPABILITY_TIERS: Record<CapabilityId, TrustLevel> = {
     // Phase 39: AI Governance Brain
     'core.admin': TrustLevel.SYSTEM,
     'core.finance': TrustLevel.ENTERPRISE,
+    'brain.assist': TrustLevel.SYSTEM,
 };
 
 /**

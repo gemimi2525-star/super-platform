@@ -31,6 +31,9 @@ import { CORE_PERMISSIONS_MANIFEST } from './core.permissions';
 // Phase 5: Operational Visibility
 import { OPS_CENTER_MANIFEST } from './ops.center';
 
+// Phase 39: AI Brain Assistant
+import { BRAIN_ASSIST_MANIFEST } from './brain.assist';
+
 // Phase F: EXPERIMENTAL capabilities
 import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 
@@ -82,6 +85,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     // Phase F: EXPERIMENTAL
     'plugin.analytics': PLUGIN_ANALYTICS_MANIFEST,
 
+    // Phase 39: AI Brain Assistant
+    'brain.assist': BRAIN_ASSIST_MANIFEST,
+
     // Phase 39: AI Governance Brain
     'core.admin': {
         id: 'core.admin',
@@ -131,6 +137,8 @@ export {
     OPS_CENTER_MANIFEST,
     // Phase F: EXPERIMENTAL
     PLUGIN_ANALYTICS_MANIFEST,
+    // Phase 39: Best Practices
+    BRAIN_ASSIST_MANIFEST,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

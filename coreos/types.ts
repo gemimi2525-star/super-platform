@@ -56,7 +56,8 @@ export type CapabilityId =
     | 'core.permissions'
     // Phase 39: AI Governance Brain
     | 'core.admin'
-    | 'core.finance';
+    | 'core.finance'
+    | 'brain.assist';
 
 /**
  * Window mode - defines window BEHAVIOR (how many windows allowed)
