@@ -78,6 +78,11 @@ const AppUnavailableLazy = lazy(() =>
     import('./AppUnavailable').then(m => ({ default: m.AppUnavailable }))
 );
 
+// Phase 39: Brain Assistant
+const BrainAppLazy = lazy(() =>
+    import('./brain/BrainApp').then(m => ({ default: m.BrainApp }))
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOADING PLACEHOLDER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -127,6 +132,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
 
     'core.settings': createLazyApp(SettingsAppLazy),
     'system.explorer': createLazyApp(ExplorerAppLazy),
+    'brain.assist': createLazyApp(BrainAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────
     // ADMIN APPS

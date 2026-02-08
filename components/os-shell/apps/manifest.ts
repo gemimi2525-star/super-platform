@@ -164,6 +164,19 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         showInFinder: true,
     },
 
+    'brain.assist': {
+        appId: 'brain.assist',
+        name: 'Brain',
+        icon: '🧠',
+        version: '1.0.0',
+        category: 'core',
+        requiredRole: 'user',
+        capabilities: ['brain.assist'],
+        singleInstance: true,
+        showInDock: true,
+        showInFinder: true,
+    },
+
     // ─────────────────────────────────────────────────────────────────────────
     // ADMIN APPS (Require admin or owner role)
     // ─────────────────────────────────────────────────────────────────────────

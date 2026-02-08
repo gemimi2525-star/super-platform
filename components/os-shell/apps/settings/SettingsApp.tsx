@@ -14,13 +14,14 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import '@/styles/nexus-tokens.css';
 import type { AppProps } from '../registry';
 import { addDecisionLog } from '../../system-log';
 import { useStepUpAuth } from '@/governance/synapse/stepup';
 import { useSecurityContext } from '@/governance/synapse';
 import { roleHasAccess, type UserRole } from '../manifest';
+import { useTranslations } from '@/lib/i18n/context';
 
 // Naming Constants (from coreos/naming.ts)
 import {
@@ -109,8 +110,17 @@ function SettingRow({ label, description, children }: SettingRowProps) {
 
 export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
     const [activeSection, setActiveSection] = useState<SettingsSection>('general');
-    const [language, setLanguage] = useState('en');
+    const t = useTranslations('os');
     const { session, isVerified, remainingTime, clear } = useStepUpAuth();
+
+    // Read current locale from cookie on mount
+    const [language, setLanguage] = useState(() => {
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
+            return match?.[1] || 'en';
+        }
+        return 'en';
+    });
 
     // Log settings view
     React.useEffect(() => {
@@ -124,7 +134,10 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
     }, []);
 
     const handleLanguageChange = useCallback((newLang: string) => {
-        setLanguage(newLang);
+        if (newLang === language) return;
+
+        // Persist cookie (same pattern as LanguageDropdown.tsx)
+        document.cookie = `NEXT_LOCALE=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
 
         addDecisionLog({
             timestamp: Date.now(),
@@ -133,7 +146,10 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
             decision: 'ALLOW',
             reasonChain: [`Language changed to ${newLang}`],
         });
-    }, []);
+
+        // Full reload to re-render server-side layout with new locale
+        window.location.reload();
+    }, [language]);
 
     const handleClearStepUp = useCallback(() => {
         clear();
@@ -159,12 +175,12 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
 
     // Define sections with persona gating
     const allSections = useMemo(() => [
-        { id: 'general' as const, label: 'General', icon: '⚙️', minRole: 'user' as UserRole },
-        { id: 'security' as const, label: 'Security', icon: '🔒', minRole: 'user' as UserRole },
-        { id: 'admin' as const, label: 'Admin', icon: '🛡️', minRole: 'admin' as UserRole },
-        { id: 'system' as const, label: 'System', icon: '🔧', minRole: 'owner' as UserRole },
-        { id: 'about' as const, label: 'About', icon: 'ℹ️', minRole: 'user' as UserRole },
-    ], []);
+        { id: 'general' as const, label: t('settings.general'), icon: '⚙️', minRole: 'user' as UserRole },
+        { id: 'security' as const, label: t('settings.security'), icon: '🔒', minRole: 'user' as UserRole },
+        { id: 'admin' as const, label: t('settings.admin'), icon: '🛡️', minRole: 'admin' as UserRole },
+        { id: 'system' as const, label: t('settings.system'), icon: '🔧', minRole: 'owner' as UserRole },
+        { id: 'about' as const, label: t('settings.about'), icon: 'ℹ️', minRole: 'user' as UserRole },
+    ], [t]);
 
     const visibleSections = useMemo(() =>
         allSections.filter(s => roleHasAccess(userRole, s.minRole)),
@@ -192,7 +208,7 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
                         fontWeight: 'var(--nx-weight-semibold)',
                         color: 'var(--nx-text-primary)',
                     }}>
-                        ⚙️ Settings
+                        ⚙️ {t('settings.title')}
                     </h2>
                 </div>
 
@@ -226,21 +242,21 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
             }}>
                 {activeSection === 'general' && (
                     <>
-                        <SettingsPanel title="Appearance" icon="🎨">
+                        <SettingsPanel title={t('settings.appearance')} icon="🎨">
                             <SettingRow
-                                label="Theme"
-                                description="Choose light or dark theme"
+                                label={t('settings.theme')}
+                                description={t('settings.themeDesc')}
                             >
                                 <div style={{ fontSize: 13, color: '#888' }}>
-                                    Auto (System)
+                                    {t('settings.themeAuto')}
                                 </div>
                             </SettingRow>
                         </SettingsPanel>
 
-                        <SettingsPanel title="Language" icon="🌐">
+                        <SettingsPanel title={t('settings.language')} icon="🌐">
                             <SettingRow
-                                label="Display Language"
-                                description="Choose your preferred language"
+                                label={t('settings.displayLanguage')}
+                                description={t('settings.displayLanguageDesc')}
                             >
                                 <select
                                     value={language}
@@ -263,10 +279,10 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
 
                 {activeSection === 'security' && (
                     <>
-                        <SettingsPanel title="Step-up Authentication" icon="🔐">
+                        <SettingsPanel title={t('settings.stepUpAuth')} icon="🔐">
                             <SettingRow
-                                label="Status"
-                                description="Enhanced security for sensitive actions"
+                                label={t('settings.status')}
+                                description={t('settings.statusDesc')}
                             >
                                 {isVerified ? (
                                     <div style={{
@@ -330,6 +346,21 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
 
 function AboutSection() {
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [buildInfo, setBuildInfo] = useState<{
+        commit?: string;
+        branch?: string;
+        buildTime?: string;
+        environment?: string;
+        version?: string;
+    } | null>(null);
+
+    // Fetch build info on mount
+    useEffect(() => {
+        fetch('/api/build-info')
+            .then(r => r.json())
+            .then(setBuildInfo)
+            .catch(() => setBuildInfo({ commit: 'unavailable', version: 'unknown' }));
+    }, []);
 
     const systemFont = '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
     const monoFont = 'SF Mono, Monaco, Consolas, monospace';
@@ -357,8 +388,18 @@ function AboutSection() {
                     color: '#888',
                     fontWeight: 400,
                 }}>
-                    Phase 7.1 — Window System
+                    {buildInfo?.version ? `v${buildInfo.version}` : 'Phase 7.1'} — Window System
                 </div>
+                {buildInfo?.commit && buildInfo.commit !== 'local' && buildInfo.commit !== 'unavailable' && (
+                    <div style={{
+                        fontSize: 11,
+                        color: '#aaa',
+                        fontFamily: monoFont,
+                        marginTop: 4,
+                    }}>
+                        {buildInfo.commit.slice(0, 7)}
+                    </div>
+                )}
             </div>
 
             {/* Architecture Stack (Compact Table) */}
@@ -504,8 +545,11 @@ function AboutSection() {
                     <div>Window System: {SYSTEM_WINDOW_SYSTEM_NAME}</div>
                     <div>Shell: {SYSTEM_SHELL_NAME}</div>
                     <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                        Build: 2026.02.03
+                        Commit: {buildInfo?.commit?.slice(0, 7) || 'loading...'}
                     </div>
+                    <div>Branch: {buildInfo?.branch || '—'}</div>
+                    <div>Build: {buildInfo?.buildTime ? new Date(buildInfo.buildTime).toLocaleString() : '—'}</div>
+                    <div>Environment: {buildInfo?.environment || '—'}</div>
                 </div>
             )}
         </div>

@@ -22,6 +22,7 @@ import {
     useSystemState,
 } from '@/governance/synapse';
 import { useMounted } from '@/coreos/useMounted';
+import { useTranslations, useLocale } from '@/lib/i18n/context';
 
 interface TopBarProps {
     onToggleLogs?: () => void;
@@ -32,6 +33,8 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
     const focusedWindow = useFocusedWindow();
     const minimizeAll = useMinimizeAll();
     const state = useSystemState();
+    const t = useTranslations('os');
+    const locale = useLocale();
 
     // Phase 9.2: Hydration-safe clock
     const mounted = useMounted();
@@ -46,7 +49,7 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
 
     const formatTime = (date: Date | null) => {
         if (!date) return '—:—';
-        return date.toLocaleTimeString('en-US', {
+        return date.toLocaleTimeString(locale === 'th' ? 'th-TH' : 'en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
@@ -55,7 +58,7 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
 
     const formatDate = (date: Date | null) => {
         if (!date) return '—';
-        return date.toLocaleDateString('en-US', {
+        return date.toLocaleDateString(locale === 'th' ? 'th-TH' : 'en-US', {
             weekday: 'short',
             month: 'short',
             day: 'numeric'
@@ -101,24 +104,24 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                         padding: '0 var(--nx-space-1)',
                         opacity: 0.9,
                     }}
-                    title="Show Desktop"
+                    title={t('topbar.showDesktop')}
                 >
                     ◈
                 </button>
 
                 {/* App Context Layer */}
                 <span style={{ fontWeight: 'var(--nx-weight-semibold)' }}>
-                    {focusedWindow ? focusedWindow.title : 'Finder'}
+                    {focusedWindow ? focusedWindow.title : t('topbar.finder')}
                 </span>
 
                 {/* Menu Items (when window is focused) */}
                 {focusedWindow && (
                     <div style={{ display: 'flex', gap: 'var(--nx-space-4)', opacity: 0.85 }}>
-                        <span style={{ cursor: 'default' }}>File</span>
-                        <span style={{ cursor: 'default' }}>Edit</span>
-                        <span style={{ cursor: 'default' }}>View</span>
-                        <span style={{ cursor: 'default' }}>Window</span>
-                        <span style={{ cursor: 'default' }}>Help</span>
+                        <span style={{ cursor: 'default' }}>{t('menu.file')}</span>
+                        <span style={{ cursor: 'default' }}>{t('menu.edit')}</span>
+                        <span style={{ cursor: 'default' }}>{t('menu.view')}</span>
+                        <span style={{ cursor: 'default' }}>{t('menu.window')}</span>
+                        <span style={{ cursor: 'default' }}>{t('menu.help')}</span>
                     </div>
                 )}
             </div>
@@ -141,14 +144,14 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                         }}
                         title="Toggle System Log"
                     >
-                        🔍 Logs
+                        🔍 {t('topbar.logs')}
                     </button>
                 )}
 
                 {/* Window count indicator */}
                 {activeWindowCount > 0 && (
                     <span style={{ opacity: 0.7, fontSize: 'var(--nx-text-micro)' }}>
-                        {activeWindowCount} window{activeWindowCount !== 1 ? 's' : ''}
+                        {activeWindowCount === 1 ? t('topbar.windowCount', { count: activeWindowCount }) : t('topbar.windowsCount', { count: activeWindowCount })}
                     </span>
                 )}
 

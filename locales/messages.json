@@ -3654,5 +3654,145 @@
   "auth.loginScreen.invalidCredentials": {
     "en": "Invalid email or password",
     "th": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
+  },
+  "os.menu.file": {
+    "en": "File",
+    "th": "ไฟล์"
+  },
+  "os.menu.edit": {
+    "en": "Edit",
+    "th": "แก้ไข"
+  },
+  "os.menu.view": {
+    "en": "View",
+    "th": "มุมมอง"
+  },
+  "os.menu.window": {
+    "en": "Window",
+    "th": "หน้าต่าง"
+  },
+  "os.menu.help": {
+    "en": "Help",
+    "th": "ช่วยเหลือ"
+  },
+  "os.topbar.logs": {
+    "en": "Logs",
+    "th": "บันทึก"
+  },
+  "os.topbar.showDesktop": {
+    "en": "Show Desktop",
+    "th": "แสดงเดสก์ท็อป"
+  },
+  "os.topbar.finder": {
+    "en": "Finder",
+    "th": "Finder"
+  },
+  "os.topbar.windowCount": {
+    "en": "{count} window",
+    "th": "{count} หน้าต่าง"
+  },
+  "os.topbar.windowsCount": {
+    "en": "{count} windows",
+    "th": "{count} หน้าต่าง"
+  },
+  "os.settings.title": {
+    "en": "Settings",
+    "th": "การตั้งค่า"
+  },
+  "os.settings.general": {
+    "en": "General",
+    "th": "ทั่วไป"
+  },
+  "os.settings.security": {
+    "en": "Security",
+    "th": "ความปลอดภัย"
+  },
+  "os.settings.admin": {
+    "en": "Admin",
+    "th": "ผู้ดูแล"
+  },
+  "os.settings.system": {
+    "en": "System",
+    "th": "ระบบ"
+  },
+  "os.settings.about": {
+    "en": "About",
+    "th": "เกี่ยวกับ"
+  },
+  "os.settings.appearance": {
+    "en": "Appearance",
+    "th": "รูปลักษณ์"
+  },
+  "os.settings.theme": {
+    "en": "Theme",
+    "th": "ธีม"
+  },
+  "os.settings.themeDesc": {
+    "en": "Choose light or dark theme",
+    "th": "เลือกธีมสว่างหรือมืด"
+  },
+  "os.settings.themeAuto": {
+    "en": "Auto (System)",
+    "th": "อัตโนมัติ (ระบบ)"
+  },
+  "os.settings.language": {
+    "en": "Language",
+    "th": "ภาษา"
+  },
+  "os.settings.displayLanguage": {
+    "en": "Display Language",
+    "th": "ภาษาที่แสดง"
+  },
+  "os.settings.displayLanguageDesc": {
+    "en": "Choose your preferred language",
+    "th": "เลือกภาษาที่ต้องการ"
+  },
+  "os.settings.stepUpAuth": {
+    "en": "Step-up Authentication",
+    "th": "การยืนยันตัวตนเพิ่มเติม"
+  },
+  "os.settings.status": {
+    "en": "Status",
+    "th": "สถานะ"
+  },
+  "os.settings.statusDesc": {
+    "en": "Enhanced security for sensitive actions",
+    "th": "ความปลอดภัยขั้นสูงสำหรับการดำเนินการที่สำคัญ"
+  },
+  "os.settings.verified": {
+    "en": "Verified",
+    "th": "ยืนยันแล้ว"
+  },
+  "os.settings.notVerified": {
+    "en": "Not verified",
+    "th": "ยังไม่ได้ยืนยัน"
+  },
+  "os.settings.clearSession": {
+    "en": "Clear Session",
+    "th": "ล้างเซสชัน"
+  },
+  "os.brain.title": {
+    "en": "Brain Assistant",
+    "th": "ผู้ช่วย Brain"
+  },
+  "os.brain.placeholder": {
+    "en": "Ask anything...",
+    "th": "ถามอะไรก็ได้..."
+  },
+  "os.brain.send": {
+    "en": "Send",
+    "th": "ส่ง"
+  },
+  "os.brain.thinking": {
+    "en": "Thinking...",
+    "th": "กำลังคิด..."
+  },
+  "os.brain.safeMode": {
+    "en": "Safe Mode",
+    "th": "โหมดปลอดภัย"
+  },
+  "os.brain.error": {
+    "en": "An error occurred. Please try again.",
+    "th": "เกิดข้อผิดพลาด กรุณาลองใหม่"
   }
 }
