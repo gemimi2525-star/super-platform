@@ -24,7 +24,7 @@ export const CAPABILITY_TIER_MAP: Record<Capability, CapabilityTier> = {
 // Default checked state in UI prompt
 export const DEFAULT_TIER_STATE: Record<CapabilityTier, boolean> = {
     'SAFE': true,       // Locked (Allow)
-    'STANDARD': true,   // Checked by default
+    'STANDARD': false,  // Requires explicit consent (Phase 17.2)
     'DANGEROUS': false, // Unchecked by default
     'CRITICAL': false,  // Disabled (Admin only)
 };
