@@ -34,7 +34,7 @@ const CAPABILITY_TIERS: Record<CapabilityId, TrustLevel> = {
 
     // BASIC (Unverified Allowed)
     'core.finder': TrustLevel.UNVERIFIED, // Finder access (scoped) is basic
-    'core.files': TrustLevel.UNVERIFIED, // File Explorer (scoped) is basic
+    'core.files': TrustLevel.VERIFIED, // File Explorer (scoped) requires Verification
     'plugin.analytics': TrustLevel.UNVERIFIED, // Analytics is generally safe (outbound only)
 
     // Phase 39: AI Governance Brain

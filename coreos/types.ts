@@ -57,7 +57,9 @@ export type CapabilityId =
     // Phase 39: AI Governance Brain
     | 'core.admin'
     | 'core.finance'
-    | 'brain.assist';
+    | 'brain.assist'
+    // Phase 15A
+    | 'core.files';
 
 /**
  * Window mode - defines window BEHAVIOR (how many windows allowed)
@@ -608,6 +610,49 @@ export type Intent =
             readonly proposalId: string; // Refers to the correlationId of the PROPOSE_ intent
             readonly decision: 'approved' | 'rejected';
         };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHASE 15A: VFS Intents (Governance-Bound)
+    // ─────────────────────────────────────────────────────────────────────────
+    | {
+        readonly type: 'fs.read';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
+    }
+    | {
+        readonly type: 'fs.write';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string; readonly size?: number };
+    }
+    | {
+        readonly type: 'fs.list';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
+    }
+    | {
+        readonly type: 'fs.delete';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
+    }
+    | {
+        readonly type: 'fs.move';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly source: string; readonly destination: string };
+    }
+    | {
+        readonly type: 'fs.mkdir';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
+    }
+    | {
+        readonly type: 'fs.trash';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
+    }
+    | {
+        readonly type: 'fs.restore';
+        readonly correlationId: CorrelationId;
+        readonly payload: { readonly path: string };
     };
 
 /**
