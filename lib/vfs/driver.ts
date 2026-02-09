@@ -9,9 +9,10 @@
  * @module lib/vfs/driver
  */
 
-import { VFSDriver, VFSMetadata, VFSError } from './types';
+import { IVFSDriver, VFSMetadata, VFSError } from './types';
+import { OPFSDriver } from './drivers/opfs';
 
-export abstract class BaseVFSDriver implements VFSDriver {
+export abstract class BaseVFSDriver implements IVFSDriver {
     abstract name: string;
 
     abstract isAvailable(): Promise<boolean>;
@@ -20,7 +21,7 @@ export abstract class BaseVFSDriver implements VFSDriver {
         throw new Error('Method not implemented.');
     }
 
-    async stat(path: string): Promise<VFSMetadata | null> {
+    async stat(path: string): Promise<VFSMetadata> {
         throw new Error('Method not implemented.');
     }
 
@@ -40,7 +41,7 @@ export abstract class BaseVFSDriver implements VFSDriver {
         throw new Error('Method not implemented.');
     }
 
-    async rename(path: string, newName: string): Promise<VFSMetadata> {
+    async rename(oldPath: string, newPath: string): Promise<VFSMetadata> {
         throw new Error('Method not implemented.');
     }
 
@@ -63,12 +64,36 @@ export class MockVFSDriver extends BaseVFSDriver {
         // Return empty list for root
         return [];
     }
+
+    // Stub other methods for M1 completeness
+    async stat(path: string): Promise<VFSMetadata> { throw new VFSError('NOT_FOUND', 'File not found'); }
+    async read(path: string): Promise<ArrayBuffer> { return new ArrayBuffer(0); }
+    async write(path: string, data: ArrayBuffer | string): Promise<VFSMetadata> { throw new VFSError('STORAGE_ERROR', 'Mock write'); }
+    async mkdir(path: string): Promise<VFSMetadata> { throw new VFSError('STORAGE_ERROR', 'Mock mkdir'); }
+    async delete(path: string): Promise<void> { }
+    async rename(oldPath: string, newPath: string): Promise<VFSMetadata> { throw new VFSError('STORAGE_ERROR', 'Mock rename'); }
+    async move(srcPath: string, dstPath: string): Promise<VFSMetadata> { throw new VFSError('STORAGE_ERROR', 'Mock move'); }
 }
+
+let instance: IVFSDriver | null = null;
 
 /**
  * Driver Factory
  */
-export const getDriver = (): VFSDriver => {
-    // In M2, we will detect OPFS and return OPFSDriver
-    return new MockVFSDriver();
+export const getDriver = (): IVFSDriver => {
+    if (instance) return instance;
+
+    // Phase 15A M2: Logic to select driver
+    // Priority: OPFS > IndexedDB (Future) > Mock
+    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.getDirectory) {
+        // We use a simplified check here, or instantiate and check isAvailable()
+        // For M2, we default to OPFS if in browser
+        console.log('[VFS] Initializing OPFS Driver');
+        instance = new OPFSDriver();
+    } else {
+        console.log('[VFS] Fallback to Mock Driver (SSR or Unsupported)');
+        instance = new MockVFSDriver();
+    }
+
+    return instance!;
 };

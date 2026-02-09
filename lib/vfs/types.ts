@@ -11,7 +11,7 @@
 
 export type VFSScheme = 'system' | 'user' | 'workspace';
 
-export type VFSNodeType = 'file' | 'folder';
+export type VFSNodeType = 'file' | 'folder' | 'directory'; // directory alias for folder
 
 export interface VFSMetadata {
     id: string;             // Stable UUID
@@ -32,13 +32,20 @@ export interface VFSMetadata {
     };
     workspaceId?: string;   // For workspace:// scheme
     tags?: string[];        // For governance/organization
+    permissions?: {         // Optional permissions for UI
+        read: boolean;
+        write: boolean;
+        execute: boolean;
+        owner: string;
+        group: string;
+    };
 }
 
 export interface VFSStats extends VFSMetadata {
     // Extended stats if needed in future
 }
 
-export interface VFSDriver {
+export interface IVFSDriver {
     name: string;
     isAvailable(): Promise<boolean>;
 
@@ -55,7 +62,7 @@ export interface VFSDriver {
 
 export class VFSError extends Error {
     constructor(
-        public code: 'NOT_FOUND' | 'ALREADY_EXISTS' | 'PERMISSION_DENIED' | 'INVALID_PATH' | 'STORAGE_ERROR' | 'GOVERNANCE_BLOCK',
+        public code: 'NOT_FOUND' | 'ALREADY_EXISTS' | 'PERMISSION_DENIED' | 'INVALID_PATH' | 'STORAGE_ERROR' | 'GOVERNANCE_BLOCK' | 'INVALID_OP' | 'NOT_SUPPORTED',
         message: string
     ) {
         super(message);
