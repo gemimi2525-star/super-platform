@@ -132,6 +132,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
 
     'core.settings': createLazyApp(SettingsAppLazy),
     'system.explorer': createLazyApp(ExplorerAppLazy),
+    'core.files': createLazyApp(ExplorerAppLazy), // Phase 15A M3: VFS Finder alias
     'brain.assist': createLazyApp(BrainAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────

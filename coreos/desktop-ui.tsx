@@ -64,7 +64,7 @@ import { SystemStatusTray } from '@/components/SystemStatusTray';
 // Phase 23B: Conflict Resolution Window
 import { ConflictResolutionWindow } from '@/components/ConflictResolutionWindow';
 import { AppStoreWindow } from '@/components/AppStoreWindow'; // Phase 24B
-import { FileExplorerWindow } from '@/components/FileExplorerWindow'; // Phase 26.1.x (Finder)
+import { ExplorerApp } from '@/components/os-shell/apps/explorer/ExplorerApp'; // Phase 15A M3: VFS Finder
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -646,8 +646,8 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     </>
                 ) : window.capabilityId === 'core.store' ? ( // Phase 24B
                     <AppStoreWindow window={window} />
-                ) : window.capabilityId === 'core.files' ? ( // Phase 26.1.x
-                    <FileExplorerWindow window={window} />
+                ) : window.capabilityId === 'core.files' ? ( // Phase 15A M3: VFS Finder
+                    <ExplorerApp />
                 ) : (
                     <>
                         <h3 style={{ margin: '0 0 16px', fontWeight: 500, fontSize: 18 }}>
