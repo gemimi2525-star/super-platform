@@ -1,62 +1,146 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OS SHELL — Explorer Main List (Applications Section)
+ * OS SHELL — Explorer Main List (Phase 15A M3)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Phase 9.1: Added manifest-based Applications section.
- * Uses getFinderApps() as SSOT for app visibility.
+ * Dual-mode file list:
+ * - VFS mode: when path starts with user://, system://, workspace://
+ * - OMS mode: legacy path-based navigation
+ * - Applications mode: manifest-based app grid
  * 
  * @module components/os-shell/apps/explorer/MainList
- * @version 2.0.0 (Phase 9.1)
+ * @version 3.0.0 (Phase 15A M3)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+'use client';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import '@/styles/nexus-tokens.css';
 import { oms, CoreObject } from '@/coreos/oms';
 import { getFinderApps, type ShellAppManifest } from '../manifest';
 import { useSecurityContext } from '@/governance/synapse';
 import { type UserRole } from '../manifest';
 import { CoreEmptyState } from '@/core-ui';
+import { vfsService } from '@/lib/vfs/service';
+import type { VFSMetadata } from '@/lib/vfs/types';
 
 interface MainListProps {
     currentPath: string;
     onNavigate: (path: string) => void;
     onLaunchApp: (appId: string) => void;
+    onError?: (msg: string) => void;
+    onReadFile?: (meta: VFSMetadata, content: string) => void;
 }
 
-export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps) {
-    const [items, setItems] = useState<CoreObject[]>([]);
+// Helper: check if path is a VFS path
+function isVFSPath(path: string): boolean {
+    return /^(user|system|workspace):\/\//.test(path);
+}
+
+// Helper: get VFS context for governance
+function getVFSContext() {
+    return { userId: 'current-user', appId: 'system.explorer' };
+}
+
+// Helper: format file size
+function formatSize(bytes: number): string {
+    if (bytes === 0) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Helper: format timestamp
+function formatDate(ts: number): string {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+export function MainList({ currentPath, onNavigate, onLaunchApp, onError, onReadFile }: MainListProps) {
+    // OMS state
+    const [omsItems, setOmsItems] = useState<CoreObject[]>([]);
+    // VFS state
+    const [vfsItems, setVfsItems] = useState<VFSMetadata[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Phase 9.1: Get apps from manifest SSOT
+    // Manifest apps
     const { role } = useSecurityContext();
     const userRole = (role || 'user') as UserRole;
     const finderApps = useMemo(() => getFinderApps(userRole), [userRole]);
 
+    const vfsMode = isVFSPath(currentPath);
+
+    // Load data when path changes
     useEffect(() => {
-        // Special handling for Applications path - use manifest SSOT
+        // Applications path — use manifest SSOT
         if (currentPath === '/Applications' || currentPath === '/apps') {
-            setItems([]);
+            setOmsItems([]);
+            setVfsItems([]);
             setLoading(false);
+            setError('');
             return;
         }
 
         setLoading(true);
         setError('');
-        oms.list(currentPath)
-            .then(children => {
-                setItems(children);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setError('Failed to load items');
-                setLoading(false);
-            });
-    }, [currentPath]);
 
-    const handleDoubleClick = (item: CoreObject) => {
+        if (vfsMode) {
+            // VFS Mode
+            vfsService.list(currentPath, getVFSContext())
+                .then(items => {
+                    // Sort: folders first, then by name
+                    const sorted = items.sort((a, b) => {
+                        if (a.type !== b.type) {
+                            return (a.type === 'folder' || a.type === 'directory') ? -1 : 1;
+                        }
+                        return a.name.localeCompare(b.name);
+                    });
+                    setVfsItems(sorted);
+                    setOmsItems([]);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    const msg = err?.message || 'Failed to list files';
+                    setError(msg);
+                    setVfsItems([]);
+                    setLoading(false);
+                    onError?.(msg);
+                });
+        } else {
+            // OMS Mode (legacy)
+            oms.list(currentPath)
+                .then(children => {
+                    setOmsItems(children);
+                    setVfsItems([]);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    setError('Failed to load items');
+                    setOmsItems([]);
+                    setLoading(false);
+                });
+        }
+    }, [currentPath, vfsMode]);
+
+    // VFS: double-click handler
+    const handleVFSDoubleClick = useCallback(async (item: VFSMetadata) => {
+        if (item.type === 'folder' || item.type === 'directory') {
+            onNavigate(item.path);
+        } else if (item.type === 'file') {
+            // Read the file
+            try {
+                const data = await vfsService.read(item.path, getVFSContext());
+                const text = new TextDecoder().decode(data);
+                onReadFile?.(item, text);
+            } catch (err: any) {
+                onError?.(err?.message || 'Failed to read file');
+            }
+        }
+    }, [onNavigate, onReadFile, onError]);
+
+    // OMS: double-click handler
+    const handleOmsDoubleClick = (item: CoreObject) => {
         if (item.type === 'collection') {
             onNavigate(item.path);
         } else if (item.type === 'app') {
@@ -70,7 +154,7 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
         onLaunchApp(app.appId);
     };
 
-    // Render Applications from manifest SSOT
+    // ─── Applications View ──────────────────────────────────────────────────
     if (currentPath === '/Applications' || currentPath === '/apps') {
         return (
             <div style={{
@@ -102,8 +186,7 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                         <div style={{
-                            width: 48,
-                            height: 48,
+                            width: 48, height: 48,
                             background: 'var(--nx-surface-panel)',
                             borderRadius: 'var(--nx-radius-lg)',
                             display: 'flex',
@@ -124,10 +207,7 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
                             {app.name}
                         </span>
                         {app.disabled && (
-                            <span style={{
-                                fontSize: 'var(--nx-text-micro)',
-                                color: 'var(--nx-warning)'
-                            }}>
+                            <span style={{ fontSize: 'var(--nx-text-micro)', color: 'var(--nx-warning)' }}>
                                 {app.disabledReason || 'Unavailable'}
                             </span>
                         )}
@@ -148,30 +228,130 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
         );
     }
 
+    // ─── Loading ─────────────────────────────────────────────────────────────
     if (loading) {
         return (
             <div style={{
+                flex: 1,
                 padding: 'var(--nx-space-5)',
                 color: 'var(--nx-text-secondary)',
                 fontFamily: 'var(--nx-font-system)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
             }}>
-                Loading...
+                <span style={{ opacity: 0.6 }}>Loading...</span>
             </div>
         );
     }
 
+    // ─── Error ───────────────────────────────────────────────────────────────
     if (error) {
         return (
             <div style={{
+                flex: 1,
                 padding: 'var(--nx-space-5)',
-                color: 'var(--nx-danger)',
-                fontFamily: 'var(--nx-font-system)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--nx-space-3)',
             }}>
-                {error}
+                <span style={{ fontSize: 32 }}>⚠️</span>
+                <span style={{
+                    color: 'var(--nx-danger, #FF3B30)',
+                    fontFamily: 'var(--nx-font-system)',
+                    fontSize: 'var(--nx-text-body)',
+                    textAlign: 'center',
+                    maxWidth: 400,
+                }}>
+                    {error}
+                </span>
             </div>
         );
     }
 
+    // ─── VFS List View ──────────────────────────────────────────────────────
+    if (vfsMode) {
+        return (
+            <div style={{
+                flex: 1,
+                background: 'var(--nx-surface-window)',
+                overflow: 'auto',
+            }}>
+                {/* Column Headers */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 80px 140px',
+                    padding: '6px 16px',
+                    borderBottom: '1px solid var(--nx-border-divider, rgba(0,0,0,0.08))',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--nx-text-tertiary, #888)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
+                    userSelect: 'none',
+                }}>
+                    <span>Name</span>
+                    <span style={{ textAlign: 'right' }}>Size</span>
+                    <span style={{ textAlign: 'right' }}>Modified</span>
+                </div>
+
+                {/* File/Folder Rows */}
+                {vfsItems.map(item => (
+                    <div
+                        key={item.id}
+                        onDoubleClick={() => handleVFSDoubleClick(item)}
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 80px 140px',
+                            padding: '7px 16px',
+                            borderBottom: '1px solid var(--nx-border-subtle, rgba(0,0,0,0.04))',
+                            cursor: 'default',
+                            fontSize: 13,
+                            transition: 'background 0.1s ease',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--nx-accent-muted, rgba(0,122,255,0.08))'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                            <span style={{ fontSize: 16, flexShrink: 0 }}>
+                                {(item.type === 'folder' || item.type === 'directory') ? '📁' : '📄'}
+                            </span>
+                            <span style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                color: 'var(--nx-text-primary)',
+                            }}>
+                                {item.name}
+                            </span>
+                        </span>
+                        <span style={{ textAlign: 'right', color: 'var(--nx-text-secondary)', fontSize: 12 }}>
+                            {(item.type === 'folder' || item.type === 'directory') ? '—' : formatSize(item.size)}
+                        </span>
+                        <span style={{ textAlign: 'right', color: 'var(--nx-text-secondary)', fontSize: 12 }}>
+                            {formatDate(item.updatedAt)}
+                        </span>
+                    </div>
+                ))}
+
+                {/* Empty State */}
+                {vfsItems.length === 0 && (
+                    <div style={{ padding: 'var(--nx-space-10)', textAlign: 'center' }}>
+                        <CoreEmptyState
+                            icon="📂"
+                            title="Empty Folder"
+                            subtitle="Use the toolbar to create files and folders"
+                            size="md"
+                        />
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ─── OMS Grid View (Legacy) ─────────────────────────────────────────────
     return (
         <div style={{
             flex: 1,
@@ -183,10 +363,10 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
             alignContent: 'start',
             background: 'var(--nx-surface-window)',
         }}>
-            {items.map(item => (
+            {omsItems.map(item => (
                 <div
                     key={item.id}
-                    onDoubleClick={() => handleDoubleClick(item)}
+                    onDoubleClick={() => handleOmsDoubleClick(item)}
                     style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -223,17 +403,14 @@ export function MainList({ currentPath, onNavigate, onLaunchApp }: MainListProps
                         {item.name}
                     </span>
                     {item.meta?.degraded && (
-                        <span style={{
-                            fontSize: 'var(--nx-text-micro)',
-                            color: 'var(--nx-warning)'
-                        }}>
+                        <span style={{ fontSize: 'var(--nx-text-micro)', color: 'var(--nx-warning)' }}>
                             ⚠️ Offline
                         </span>
                     )}
                 </div>
             ))}
 
-            {items.length === 0 && (
+            {omsItems.length === 0 && (
                 <div style={{ gridColumn: '1 / -1', marginTop: 'var(--nx-space-10)' }}>
                     <CoreEmptyState
                         icon="📂"

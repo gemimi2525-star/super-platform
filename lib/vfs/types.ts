@@ -60,6 +60,21 @@ export interface IVFSDriver {
     move(srcPath: string, dstPath: string): Promise<VFSMetadata>;
 }
 
+/**
+ * Audit Event — structured log for governance decisions
+ */
+export interface VFSAuditEvent {
+    requestId: string;
+    correlationId: string;
+    intent: string;          // e.g. 'fs.list', 'fs.write'
+    path: string;
+    userId: string;
+    appId: string;
+    decision: 'ALLOW' | 'DENY';
+    reason?: string;         // Why denied
+    timestamp: number;
+}
+
 export class VFSError extends Error {
     constructor(
         public code: 'NOT_FOUND' | 'ALREADY_EXISTS' | 'PERMISSION_DENIED' | 'INVALID_PATH' | 'STORAGE_ERROR' | 'GOVERNANCE_BLOCK' | 'INVALID_OP' | 'NOT_SUPPORTED',

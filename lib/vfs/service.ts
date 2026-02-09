@@ -1,64 +1,113 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * VFS SERVICE (Phase 15A)
+ * VFS SERVICE (Phase 15A — Milestone 3)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Central Service for Virtual Filesystem Operations.
  * Responsibilities:
  * 1. Path Normalization & Safety (via VFSPath)
  * 2. Driver Selection (via getDriver)
- * 3. Governance Enforcement (Policy Check before Action)
- * 4. Audit Logging
+ * 3. Governance Enforcement (Feature Flag + Audit)
+ * 4. Structured Audit Logging
  * 
  * @module lib/vfs/service
  */
 
-import { VFSMetadata, VFSError } from './types';
+import { VFSMetadata, VFSError, VFSAuditEvent } from './types';
 import { VFSPath } from './path';
 import { getDriver } from './driver';
-import { IntentFactory, CorrelationId } from '@/coreos/types';
 
+// ═══════════════════════════════════════════════════════════════════════════
 // PRODUCTION SAFEGUARD
 // Phase 15A: VFS is strictly opt-in via Feature Flag until Phase 16
+// ═══════════════════════════════════════════════════════════════════════════
 const VFS_ENABLED = process.env.NEXT_PUBLIC_FEATURE_VFS === 'true';
 
-// In a real implementation, we would import policyEngine from coreos/policy/engine
-// For M1 Skeleton types, we define the structure but key logic is the GATE
-const governanceCheck = async (intent: any, context: { userId: string, appId: string }) => {
-    // 1. Feature Flag Check (Hard Gate)
+// ═══════════════════════════════════════════════════════════════════════════
+// GOVERNANCE + AUDIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+let requestCounter = 0;
+
+function emitAudit(event: VFSAuditEvent): void {
+    console.info('[VFS:Audit]', JSON.stringify(event));
+}
+
+/**
+ * Governance Gate — enforces feature flag + audit logging.
+ * NOT an allow-all: blocks when VFS is disabled.
+ */
+async function governanceCheck(
+    intentType: string,
+    path: string,
+    context: { userId: string; appId: string }
+): Promise<{ correlationId: string; requestId: string }> {
+    const requestId = `req-${++requestCounter}-${Date.now()}`;
+    const correlationId = `cid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // 1. Feature Flag Hard Gate
     if (!VFS_ENABLED) {
-        console.warn(`[VFS] BLOCKED: Feature not enabled. Intent: ${intent.type}`);
+        const audit: VFSAuditEvent = {
+            requestId,
+            correlationId,
+            intent: intentType,
+            path,
+            userId: context.userId,
+            appId: context.appId,
+            decision: 'DENY',
+            reason: 'VFS subsystem disabled (Feature Flag OFF)',
+            timestamp: Date.now(),
+        };
+        emitAudit(audit);
         throw new VFSError('GOVERNANCE_BLOCK', 'VFS subsystem is currently disabled (Phase 15A Lock)');
     }
 
-    console.log(`[Governance] Checking Intent: ${intent.type} on ${intent.payload.path}`);
+    // 2. system:// write protection (soft-block)
+    const { scheme } = VFSPath.parse(path);
+    if (scheme === 'system' && ['fs.write', 'fs.mkdir', 'fs.delete'].includes(intentType)) {
+        const audit: VFSAuditEvent = {
+            requestId,
+            correlationId,
+            intent: intentType,
+            path,
+            userId: context.userId,
+            appId: context.appId,
+            decision: 'DENY',
+            reason: 'Write operations to system:// are forbidden',
+            timestamp: Date.now(),
+        };
+        emitAudit(audit);
+        throw new VFSError('PERMISSION_DENIED', 'Cannot write to system:// (read-only)');
+    }
 
-    // 2. Real Policy Engine Wiring (Placeholder for Phase 16)
-    // In M1, we BLOCK by default unless explicitly allowed by simulation mode or specific flag
-    // to prevent accidental bypassing of frozen kernel.
+    // 3. ALLOW — audit the successful check
+    const audit: VFSAuditEvent = {
+        requestId,
+        correlationId,
+        intent: intentType,
+        path,
+        userId: context.userId,
+        appId: context.appId,
+        decision: 'ALLOW',
+        timestamp: Date.now(),
+    };
+    emitAudit(audit);
 
-    // For M1 verification purposes, we allow specific safe paths if explicitly enabled
-    // This ensures no "Mock Allow All" exists in production code.
-    return true;
-};
+    return { correlationId, requestId };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VFS SERVICE CLASS
+// ═══════════════════════════════════════════════════════════════════════════
 
 export class VFSService {
 
     /**
      * List files in a directory
-     * @param rawPath - e.g. "user://Docs"
-     * @param context - Governance context (userId, appId)
      */
-    async list(rawPath: string, context: { userId: string, appId: string }): Promise<VFSMetadata[]> {
+    async list(rawPath: string, context: { userId: string; appId: string }): Promise<VFSMetadata[]> {
         const path = VFSPath.normalize(rawPath);
-
-        const intent = {
-            type: 'fs.list',
-            correlationId: `cid-${Date.now()}` as CorrelationId,
-            payload: { path }
-        };
-
-        await governanceCheck(intent, context);
+        await governanceCheck('fs.list', path, context);
 
         const driver = getDriver();
         if (!await driver.isAvailable()) {
@@ -69,18 +118,22 @@ export class VFSService {
     }
 
     /**
+     * Stat a path (get metadata)
+     */
+    async stat(rawPath: string, context: { userId: string; appId: string }): Promise<VFSMetadata | null> {
+        const path = VFSPath.normalize(rawPath);
+        await governanceCheck('fs.stat', path, context);
+
+        const driver = getDriver();
+        return await driver.stat(path);
+    }
+
+    /**
      * Read file content
      */
-    async read(rawPath: string, context: { userId: string, appId: string }): Promise<ArrayBuffer> {
+    async read(rawPath: string, context: { userId: string; appId: string }): Promise<ArrayBuffer> {
         const path = VFSPath.normalize(rawPath);
-
-        const intent = {
-            type: 'fs.read',
-            correlationId: `cid-${Date.now()}` as CorrelationId,
-            payload: { path }
-        };
-
-        await governanceCheck(intent, context);
+        await governanceCheck('fs.read', path, context);
 
         const driver = getDriver();
         return await driver.read(path);
@@ -89,19 +142,34 @@ export class VFSService {
     /**
      * Write file content
      */
-    async write(rawPath: string, data: ArrayBuffer | string, context: { userId: string, appId: string }): Promise<VFSMetadata> {
+    async write(rawPath: string, data: ArrayBuffer | string, context: { userId: string; appId: string }): Promise<VFSMetadata> {
         const path = VFSPath.normalize(rawPath);
-
-        const intent = {
-            type: 'fs.write',
-            correlationId: `cid-${Date.now()}` as CorrelationId,
-            payload: { path, size: data instanceof ArrayBuffer ? data.byteLength : data.length }
-        };
-
-        await governanceCheck(intent, context);
+        await governanceCheck('fs.write', path, context);
 
         const driver = getDriver();
         return await driver.write(path, data);
+    }
+
+    /**
+     * Create a directory
+     */
+    async mkdir(rawPath: string, context: { userId: string; appId: string }): Promise<VFSMetadata> {
+        const path = VFSPath.normalize(rawPath);
+        await governanceCheck('fs.mkdir', path, context);
+
+        const driver = getDriver();
+        return await driver.mkdir(path);
+    }
+
+    /**
+     * Delete a file or directory
+     */
+    async delete(rawPath: string, context: { userId: string; appId: string }): Promise<void> {
+        const path = VFSPath.normalize(rawPath);
+        await governanceCheck('fs.delete', path, context);
+
+        const driver = getDriver();
+        return await driver.delete(path);
     }
 }
 

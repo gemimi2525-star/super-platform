@@ -1,35 +1,217 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OS SHELL — Files / Data Explorer App
+ * OS SHELL — Files / Data Explorer App (Phase 15A M3)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * macOS-style Finder for browsing data and launching apps.
- * Intent-based navigation, single-instance window.
- * 
- * Phase 9: Updated with NEXUS Design Tokens
+ * macOS-style Finder with VFS integration:
+ * - Sidebar: VFS scheme navigation + OMS tree
+ * - Main: VFS file list / OMS grid / Applications
+ * - Toolbar: New Folder, New File, Refresh
+ * - Dialogs: mkdir, write text, file viewer
+ * - Toast: error/success notifications
  * 
  * @module components/os-shell/apps/explorer/ExplorerApp
- * @version 2.0.0 (Phase 9)
+ * @version 3.0.0 (Phase 15A M3)
  */
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import '@/styles/nexus-tokens.css';
 import { Sidebar } from './Sidebar';
 import { MainList } from './MainList';
 import { useOpenCapability } from '@/governance/synapse';
+import { vfsService } from '@/lib/vfs/service';
+import type { VFSMetadata } from '@/lib/vfs/types';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function isVFSPath(path: string): boolean {
+    return /^(user|system|workspace):\/\//.test(path);
+}
+
+function getVFSContext() {
+    return { userId: 'current-user', appId: 'system.explorer' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+type ToastType = 'success' | 'error';
+
+interface ToastState {
+    show: boolean;
+    type: ToastType;
+    message: string;
+}
+
+function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
+    if (!toast.show) return null;
+
+    return (
+        <div
+            onClick={onDismiss}
+            style={{
+                position: 'absolute',
+                bottom: 12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                padding: '8px 16px',
+                borderRadius: 8,
+                background: toast.type === 'error'
+                    ? 'var(--nx-danger, #FF3B30)'
+                    : 'var(--nx-success, #34C759)',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 500,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                zIndex: 100,
+                maxWidth: '80%',
+                textAlign: 'center',
+                animation: 'fadeIn 0.2s ease',
+            }}
+        >
+            {toast.type === 'error' ? '⚠️' : '✅'} {toast.message}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DIALOG OVERLAY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DialogOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+    return (
+        <div
+            onClick={onClose}
+            style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+                backdropFilter: 'blur(4px)',
+            }}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    background: 'var(--nx-surface-panel, #fff)',
+                    borderRadius: 12,
+                    padding: 20,
+                    minWidth: 320,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                }}
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN EXPLORER APP
+// ═══════════════════════════════════════════════════════════════════════════
+
+type DialogMode = 'none' | 'newFolder' | 'newFile' | 'viewFile';
 
 export function ExplorerApp() {
-    // Current Path State
-    const [currentPath, setCurrentPath] = useState('/');
+    const [currentPath, setCurrentPath] = useState('user://');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [dialog, setDialog] = useState<DialogMode>('none');
+    const [dialogInput, setDialogInput] = useState('');
+    const [dialogContent, setDialogContent] = useState('');
+    const [viewingFile, setViewingFile] = useState<{ meta: VFSMetadata; content: string } | null>(null);
+    const [toast, setToast] = useState<ToastState>({ show: false, type: 'success', message: '' });
 
-    // Launch App Hook
     const openCapability = useOpenCapability();
+    const toastTimer = useRef<NodeJS.Timeout | null>(null);
 
-    // Wrapper to cast string to CapabilityId (as OMS returns strings)
-    const handleLaunch = (appId: string) => {
-        openCapability(appId as any);
+    const vfsMode = isVFSPath(currentPath);
+
+    // ─── Toast ──────────────────────────────────────────────────────────────
+    const showToast = useCallback((type: ToastType, message: string) => {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        setToast({ show: true, type, message });
+        toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 3500);
+    }, []);
+
+    const dismissToast = useCallback(() => setToast(t => ({ ...t, show: false })), []);
+
+    // ─── Refresh ────────────────────────────────────────────────────────────
+    const handleRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+
+    // ─── New Folder ─────────────────────────────────────────────────────────
+    const handleNewFolder = useCallback(() => {
+        setDialogInput('');
+        setDialog('newFolder');
+    }, []);
+
+    const submitNewFolder = useCallback(async () => {
+        const name = dialogInput.trim();
+        if (!name) return;
+        setDialog('none');
+        try {
+            const folderPath = currentPath.endsWith('/') ? `${currentPath}${name}` : `${currentPath}/${name}`;
+            await vfsService.mkdir(folderPath, getVFSContext());
+            showToast('success', `Created folder "${name}"`);
+            handleRefresh();
+        } catch (err: any) {
+            showToast('error', err?.message || 'Failed to create folder');
+        }
+    }, [dialogInput, currentPath, showToast, handleRefresh]);
+
+    // ─── New File ───────────────────────────────────────────────────────────
+    const handleNewFile = useCallback(() => {
+        setDialogInput('');
+        setDialogContent('');
+        setDialog('newFile');
+    }, []);
+
+    const submitNewFile = useCallback(async () => {
+        const name = dialogInput.trim();
+        if (!name) return;
+        setDialog('none');
+        try {
+            const filePath = currentPath.endsWith('/') ? `${currentPath}${name}` : `${currentPath}/${name}`;
+            await vfsService.write(filePath, dialogContent || '', getVFSContext());
+            showToast('success', `Created file "${name}"`);
+            handleRefresh();
+        } catch (err: any) {
+            showToast('error', err?.message || 'Failed to create file');
+        }
+    }, [dialogInput, dialogContent, currentPath, showToast, handleRefresh]);
+
+    // ─── File Viewer ────────────────────────────────────────────────────────
+    const handleReadFile = useCallback((meta: VFSMetadata, content: string) => {
+        setViewingFile({ meta, content });
+        setDialog('viewFile');
+    }, []);
+
+    // ─── Error Handler ──────────────────────────────────────────────────────
+    const handleError = useCallback((msg: string) => {
+        showToast('error', msg);
+    }, [showToast]);
+
+    // ─── Launch App ─────────────────────────────────────────────────────────
+    const handleLaunch = (appId: string) => openCapability(appId as any);
+
+    // ─── Toolbar Button Style ───────────────────────────────────────────────
+    const toolbarBtnStyle: React.CSSProperties = {
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        fontSize: 15,
+        padding: '4px 8px',
+        borderRadius: 6,
+        color: 'var(--nx-text-secondary)',
+        transition: 'background 0.15s ease',
     };
 
     return (
@@ -41,55 +223,170 @@ export function ExplorerApp() {
             background: 'var(--nx-surface-panel)',
             color: 'var(--nx-text-primary)',
             fontFamily: 'var(--nx-font-system)',
+            position: 'relative',
         }}>
-            {/* Header / Path Bar */}
+            {/* ─── Toolbar ────────────────────────────────────────────── */}
             <div style={{
                 height: 40,
                 borderBottom: '1px solid var(--nx-border-divider)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 var(--nx-space-4)',
-                gap: 'var(--nx-space-3)',
+                gap: 'var(--nx-space-2)',
                 background: 'var(--nx-surface-toolbar)',
                 backdropFilter: 'blur(10px)',
             }}>
-                <button
-                    onClick={() => setCurrentPath('/')}
-                    style={{
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: 'var(--nx-text-section)',
-                        color: 'var(--nx-text-secondary)',
-                    }}
-                    title="Home"
-                >
+                {/* Home */}
+                <button onClick={() => setCurrentPath('user://')} style={toolbarBtnStyle} title="Home">
                     🏠
                 </button>
+
+                {/* Path Display */}
                 <div style={{
-                    fontSize: 'var(--nx-text-body)',
+                    fontSize: 13,
                     color: 'var(--nx-text-secondary)',
                     background: 'var(--nx-surface-input)',
                     padding: 'var(--nx-space-1) var(--nx-space-3)',
                     borderRadius: 'var(--nx-radius-sm)',
                     flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                 }}>
                     {currentPath}
                 </div>
+
+                {/* VFS Actions (only in VFS mode) */}
+                {vfsMode && (
+                    <>
+                        <button onClick={handleNewFolder} style={toolbarBtnStyle} title="New Folder">
+                            📁+
+                        </button>
+                        <button onClick={handleNewFile} style={toolbarBtnStyle} title="New File">
+                            📄+
+                        </button>
+                    </>
+                )}
+
+                {/* Refresh */}
+                <button onClick={handleRefresh} style={toolbarBtnStyle} title="Refresh">
+                    🔄
+                </button>
             </div>
 
-            {/* Split View */}
+            {/* ─── Body (Sidebar + MainList) ──────────────────────────── */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <Sidebar
-                    currentPath={currentPath}
-                    onNavigate={setCurrentPath}
-                />
+                <Sidebar currentPath={currentPath} onNavigate={setCurrentPath} />
                 <MainList
+                    key={refreshKey}
                     currentPath={currentPath}
                     onNavigate={setCurrentPath}
                     onLaunchApp={handleLaunch}
+                    onError={handleError}
+                    onReadFile={handleReadFile}
                 />
             </div>
+
+            {/* ─── Toast ──────────────────────────────────────────────── */}
+            <Toast toast={toast} onDismiss={dismissToast} />
+
+            {/* ─── Dialogs ────────────────────────────────────────────── */}
+            {dialog === 'newFolder' && (
+                <DialogOverlay onClose={() => setDialog('none')}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>📁 New Folder</h3>
+                    <input
+                        autoFocus
+                        value={dialogInput}
+                        onChange={e => setDialogInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && submitNewFolder()}
+                        placeholder="Folder name..."
+                        style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: '1px solid var(--nx-border-divider)',
+                            borderRadius: 8,
+                            fontSize: 14,
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                        <button onClick={() => setDialog('none')} style={{ ...toolbarBtnStyle, background: 'var(--nx-surface-input)' }}>Cancel</button>
+                        <button onClick={submitNewFolder} style={{ ...toolbarBtnStyle, background: 'var(--nx-accent, #007AFF)', color: '#fff', fontWeight: 600 }}>Create</button>
+                    </div>
+                </DialogOverlay>
+            )}
+
+            {dialog === 'newFile' && (
+                <DialogOverlay onClose={() => setDialog('none')}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>📄 New File</h3>
+                    <input
+                        autoFocus
+                        value={dialogInput}
+                        onChange={e => setDialogInput(e.target.value)}
+                        placeholder="File name (e.g. notes.txt)..."
+                        style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: '1px solid var(--nx-border-divider)',
+                            borderRadius: 8,
+                            fontSize: 14,
+                            outline: 'none',
+                            marginBottom: 8,
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                    <textarea
+                        value={dialogContent}
+                        onChange={e => setDialogContent(e.target.value)}
+                        placeholder="File content (optional)..."
+                        rows={5}
+                        style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: '1px solid var(--nx-border-divider)',
+                            borderRadius: 8,
+                            fontSize: 13,
+                            outline: 'none',
+                            resize: 'vertical',
+                            fontFamily: 'var(--nx-font-mono, monospace)',
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                        <button onClick={() => setDialog('none')} style={{ ...toolbarBtnStyle, background: 'var(--nx-surface-input)' }}>Cancel</button>
+                        <button onClick={submitNewFile} style={{ ...toolbarBtnStyle, background: 'var(--nx-accent, #007AFF)', color: '#fff', fontWeight: 600 }}>Create</button>
+                    </div>
+                </DialogOverlay>
+            )}
+
+            {dialog === 'viewFile' && viewingFile && (
+                <DialogOverlay onClose={() => setDialog('none')}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>
+                        📄 {viewingFile.meta.name}
+                    </h3>
+                    <div style={{ fontSize: 11, color: 'var(--nx-text-tertiary)', marginBottom: 8 }}>
+                        {viewingFile.meta.path} · {viewingFile.meta.size} bytes
+                    </div>
+                    <pre style={{
+                        background: 'var(--nx-surface-input, #f5f5f5)',
+                        padding: 12,
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontFamily: 'var(--nx-font-mono, monospace)',
+                        maxHeight: 300,
+                        overflow: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        margin: 0,
+                    }}>
+                        {viewingFile.content || '(empty file)'}
+                    </pre>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                        <button onClick={() => setDialog('none')} style={{ ...toolbarBtnStyle, background: 'var(--nx-surface-input)' }}>Close</button>
+                    </div>
+                </DialogOverlay>
+            )}
         </div>
     );
 }
