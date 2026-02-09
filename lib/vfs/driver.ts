@@ -85,7 +85,7 @@ export const getDriver = (): IVFSDriver => {
 
     // Phase 15A M2: Logic to select driver
     // Priority: OPFS > IndexedDB (Future) > Mock
-    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.getDirectory) {
+    if (typeof navigator !== 'undefined' && navigator.storage && typeof navigator.storage.getDirectory === 'function') {
         // We use a simplified check here, or instantiate and check isAvailable()
         // For M2, we default to OPFS if in browser
         console.log('[VFS] Initializing OPFS Driver');
