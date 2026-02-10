@@ -66,6 +66,12 @@ export const PERMISSION_MATRIX: readonly AppPermissionRule[] = [
         readOnly: false,
     },
     {
+        appId: 'system.explorer',
+        allowedIntents: ['fs.list', 'fs.read', 'fs.write', 'fs.mkdir', 'fs.delete', 'fs.stat'],
+        allowedSchemes: ['user', 'system', 'workspace'],
+        readOnly: false,
+    },
+    {
         appId: 'core.notes',
         allowedIntents: ['fs.list', 'fs.read', 'fs.write', 'fs.mkdir', 'fs.stat'],
         allowedSchemes: ['user'],

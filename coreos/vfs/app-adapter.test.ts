@@ -88,6 +88,48 @@ describe('VFS Permission Matrix', () => {
         });
     });
 
+    // Phase 16B: system.explorer tests
+    describe('system.explorer (full access — same as core.finder)', () => {
+        test('allows fs.list on user://', () => {
+            const result = checkAppPermission('system.explorer', 'fs.list', 'user');
+            expect(result.allowed).toBe(true);
+        });
+
+        test('allows fs.write on user://', () => {
+            const result = checkAppPermission('system.explorer', 'fs.write', 'user');
+            expect(result.allowed).toBe(true);
+        });
+
+        test('allows fs.list on system://', () => {
+            const result = checkAppPermission('system.explorer', 'fs.list', 'system');
+            expect(result.allowed).toBe(true);
+        });
+
+        test('allows fs.delete on workspace://', () => {
+            const result = checkAppPermission('system.explorer', 'fs.delete', 'workspace');
+            expect(result.allowed).toBe(true);
+        });
+    });
+
+    // Phase 16B: core.files tests
+    describe('core.files (user + workspace, full access)', () => {
+        test('allows fs.write on user://', () => {
+            const result = checkAppPermission('core.files', 'fs.write', 'user');
+            expect(result.allowed).toBe(true);
+        });
+
+        test('allows fs.list on workspace://', () => {
+            const result = checkAppPermission('core.files', 'fs.list', 'workspace');
+            expect(result.allowed).toBe(true);
+        });
+
+        test('DENIES access to system://', () => {
+            const result = checkAppPermission('core.files', 'fs.read', 'system');
+            expect(result.allowed).toBe(false);
+            expect(result.reason).toContain('not allowed to access scheme');
+        });
+    });
+
     describe('core.settings (system:// read-only)', () => {
         test('allows fs.list on system://', () => {
             const result = checkAppPermission('core.settings', 'fs.list', 'system');

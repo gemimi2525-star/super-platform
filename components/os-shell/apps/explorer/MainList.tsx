@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OS SHELL — Explorer Main List (Phase 15A M3)
+ * OS SHELL — Explorer Main List (Phase 15A M3 → Phase 16B)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Dual-mode file list:
@@ -8,8 +8,10 @@
  * - OMS mode: legacy path-based navigation
  * - Applications mode: manifest-based app grid
  * 
+ * Phase 16B: Migrated to AppVFSAdapter via props.
+ * 
  * @module components/os-shell/apps/explorer/MainList
- * @version 3.0.0 (Phase 15A M3)
+ * @version 3.1.0 (Phase 16B)
  */
 
 'use client';
@@ -21,7 +23,7 @@ import { getFinderApps, type ShellAppManifest } from '../manifest';
 import { useSecurityContext } from '@/governance/synapse';
 import { type UserRole } from '../manifest';
 import { CoreEmptyState } from '@/core-ui';
-import { vfsService } from '@/lib/vfs/service';
+import type { AppVFSAdapter } from '@/coreos/vfs/app-adapter';
 import type { VFSMetadata } from '@/lib/vfs/types';
 
 interface MainListProps {
@@ -30,16 +32,13 @@ interface MainListProps {
     onLaunchApp: (appId: string) => void;
     onError?: (msg: string) => void;
     onReadFile?: (meta: VFSMetadata, content: string) => void;
+    /** Phase 16B: VFS adapter for permission-enforced access */
+    vfsAdapter: AppVFSAdapter;
 }
 
 // Helper: check if path is a VFS path
 function isVFSPath(path: string): boolean {
     return /^(user|system|workspace):\/\//.test(path);
-}
-
-// Helper: get VFS context for governance
-function getVFSContext() {
-    return { userId: 'current-user', appId: 'system.explorer' };
 }
 
 // Helper: format file size
@@ -56,7 +55,7 @@ function formatDate(ts: number): string {
     return new Date(ts).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-export function MainList({ currentPath, onNavigate, onLaunchApp, onError, onReadFile }: MainListProps) {
+export function MainList({ currentPath, onNavigate, onLaunchApp, onError, onReadFile, vfsAdapter }: MainListProps) {
     // OMS state
     const [omsItems, setOmsItems] = useState<CoreObject[]>([]);
     // VFS state
@@ -87,7 +86,7 @@ export function MainList({ currentPath, onNavigate, onLaunchApp, onError, onRead
 
         if (vfsMode) {
             // VFS Mode
-            vfsService.list(currentPath, getVFSContext())
+            vfsAdapter.list(currentPath)
                 .then(items => {
                     // Sort: folders first, then by name
                     const sorted = items.sort((a, b) => {
@@ -130,7 +129,7 @@ export function MainList({ currentPath, onNavigate, onLaunchApp, onError, onRead
         } else if (item.type === 'file') {
             // Read the file
             try {
-                const data = await vfsService.read(item.path, getVFSContext());
+                const data = await vfsAdapter.read(item.path);
                 const text = new TextDecoder().decode(data);
                 onReadFile?.(item, text);
             } catch (err: any) {

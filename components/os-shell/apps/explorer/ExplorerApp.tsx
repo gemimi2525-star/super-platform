@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OS SHELL — Files / Data Explorer App (Phase 15A M3)
+ * OS SHELL — Files / Data Explorer App (Phase 15A M3 → Phase 16B)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * macOS-style Finder with VFS integration:
@@ -10,8 +10,12 @@
  * - Dialogs: mkdir, write text, file viewer
  * - Toast: error/success notifications
  * 
+ * Phase 16B: Migrated to AppVFSAdapter (Standard VFS Consumer Contract).
+ * All VFS calls now go through the adapter for permission enforcement
+ * and consistent audit logging.
+ * 
  * @module components/os-shell/apps/explorer/ExplorerApp
- * @version 3.0.0 (Phase 15A M3)
+ * @version 3.1.0 (Phase 16B)
  */
 
 'use client';
@@ -21,8 +25,9 @@ import '@/styles/nexus-tokens.css';
 import { Sidebar } from './Sidebar';
 import { MainList } from './MainList';
 import { useOpenCapability } from '@/governance/synapse';
-import { vfsService } from '@/lib/vfs/service';
+import { useVFSAdapter } from '@/coreos/vfs/useVFSAdapter';
 import type { VFSMetadata } from '@/lib/vfs/types';
+import type { AppProps } from '../registry';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -30,10 +35,6 @@ import type { VFSMetadata } from '@/lib/vfs/types';
 
 function isVFSPath(path: string): boolean {
     return /^(user|system|workspace):\/\//.test(path);
-}
-
-function getVFSContext() {
-    return { userId: 'current-user', appId: 'system.explorer' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -121,7 +122,9 @@ function DialogOverlay({ children, onClose }: { children: React.ReactNode; onClo
 
 type DialogMode = 'none' | 'newFolder' | 'newFile' | 'viewFile';
 
-export function ExplorerApp() {
+export function ExplorerApp({ capabilityId }: Partial<AppProps>) {
+    // Phase 16B: Use AppVFSAdapter instead of direct vfsService
+    const adapter = useVFSAdapter(capabilityId ?? 'core.finder');
     const [currentPath, setCurrentPath] = useState('user://');
     const [refreshKey, setRefreshKey] = useState(0);
     const [dialog, setDialog] = useState<DialogMode>('none');
@@ -159,13 +162,13 @@ export function ExplorerApp() {
         setDialog('none');
         try {
             const folderPath = currentPath.endsWith('/') ? `${currentPath}${name}` : `${currentPath}/${name}`;
-            await vfsService.mkdir(folderPath, getVFSContext());
+            await adapter.mkdir(folderPath);
             showToast('success', `Created folder "${name}"`);
             handleRefresh();
         } catch (err: any) {
             showToast('error', err?.message || 'Failed to create folder');
         }
-    }, [dialogInput, currentPath, showToast, handleRefresh]);
+    }, [adapter, dialogInput, currentPath, showToast, handleRefresh]);
 
     // ─── New File ───────────────────────────────────────────────────────────
     const handleNewFile = useCallback(() => {
@@ -180,13 +183,13 @@ export function ExplorerApp() {
         setDialog('none');
         try {
             const filePath = currentPath.endsWith('/') ? `${currentPath}${name}` : `${currentPath}/${name}`;
-            await vfsService.write(filePath, dialogContent || '', getVFSContext());
+            await adapter.write(filePath, dialogContent || '');
             showToast('success', `Created file "${name}"`);
             handleRefresh();
         } catch (err: any) {
             showToast('error', err?.message || 'Failed to create file');
         }
-    }, [dialogInput, dialogContent, currentPath, showToast, handleRefresh]);
+    }, [adapter, dialogInput, dialogContent, currentPath, showToast, handleRefresh]);
 
     // ─── File Viewer ────────────────────────────────────────────────────────
     const handleReadFile = useCallback((meta: VFSMetadata, content: string) => {
@@ -284,6 +287,7 @@ export function ExplorerApp() {
                     onLaunchApp={handleLaunch}
                     onError={handleError}
                     onReadFile={handleReadFile}
+                    vfsAdapter={adapter}
                 />
             </div>
 
