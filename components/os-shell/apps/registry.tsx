@@ -83,6 +83,11 @@ const BrainAppLazy = lazy(() =>
     import('./brain/BrainApp').then(m => ({ default: m.BrainApp }))
 );
 
+// Phase 16A: Notes (VFS Consumer)
+const NotesAppLazy = lazy(() =>
+    import('./notes/NotesApp').then(m => ({ default: m.NotesApp }))
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOADING PLACEHOLDER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -134,6 +139,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     'system.explorer': createLazyApp(ExplorerAppLazy),
     'core.files': createLazyApp(ExplorerAppLazy), // Phase 15A M3: VFS Finder
     'core.finder': createLazyApp(ExplorerAppLazy), // Phase 15A M3: VFS Finder (Fixed in 15A.1)
+    'core.notes': createLazyApp(NotesAppLazy), // Phase 16A: Notes (VFS Consumer)
     'brain.assist': createLazyApp(BrainAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────
