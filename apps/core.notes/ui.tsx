@@ -40,6 +40,7 @@ export function NotesUI({ userId = 'default-user', onClose }: NotesUIProps) {
     const [selectedFile, setSelectedFile] = useState<NoteFile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [currentPath, setCurrentPath] = useState('user://');
 
     // ─── Initialize ─────────────────────────────────────────────────────
@@ -86,6 +87,38 @@ export function NotesUI({ userId = 'default-user', onClose }: NotesUIProps) {
             setIsLoading(false);
         }
     }, [adapter, loadFiles]);
+
+    const createNote = useCallback(async () => {
+        setError(null);
+        setSuccessMsg(null);
+        const filename = `p16a1-notes-write.txt`;
+        const content = 'Phase 16A.1 runtime write verification';
+        const path = `user://${filename}`;
+        try {
+            console.info('[Notes] Creating note:', path);
+            await adapter.write(path, content);
+            setSuccessMsg(`✅ Created: ${filename}`);
+            // Reload file list to show new file
+            await loadFiles(currentPath);
+        } catch (err: any) {
+            console.error('[Notes] Failed to create note:', err);
+            setError(err.message || 'Failed to create note');
+        }
+    }, [adapter, currentPath, loadFiles]);
+
+    const testSystemAccess = useCallback(async () => {
+        setError(null);
+        setSuccessMsg(null);
+        try {
+            console.info('[Notes] Testing system:// access (expect DENY)...');
+            await adapter.list('system://');
+            // Should NOT reach here
+            setError('⚠️ UNEXPECTED: system:// access was ALLOWED (should be DENIED)');
+        } catch (err: any) {
+            console.info('[Notes] system:// access correctly DENIED:', err.message);
+            setSuccessMsg(`🛡️ system:// DENIED correctly: ${err.message}`);
+        }
+    }, [adapter]);
 
     const goUp = useCallback(() => {
         const parts = currentPath.replace(/\/$/, '').split('/');
@@ -195,7 +228,51 @@ export function NotesUI({ userId = 'default-user', onClose }: NotesUIProps) {
                 >
                     🔄 Refresh
                 </button>
+                <button
+                    onClick={createNote}
+                    title="Create p16a1-notes-write.txt in user://"
+                    style={{
+                        background: 'rgba(76,175,80,0.2)',
+                        border: '1px solid rgba(76,175,80,0.3)',
+                        borderRadius: 4,
+                        color: '#4caf50',
+                        cursor: 'pointer',
+                        padding: '2px 8px',
+                        fontSize: 12,
+                    }}
+                >
+                    ✏️ New Note
+                </button>
+                <button
+                    onClick={testSystemAccess}
+                    title="Test system:// access (expect DENY)"
+                    style={{
+                        background: 'rgba(244,67,54,0.2)',
+                        border: '1px solid rgba(244,67,54,0.3)',
+                        borderRadius: 4,
+                        color: '#ef5350',
+                        cursor: 'pointer',
+                        padding: '2px 8px',
+                        fontSize: 12,
+                    }}
+                >
+                    🧪 Test system://
+                </button>
             </div>
+
+            {/* Success Message */}
+            {successMsg && (
+                <div style={{
+                    padding: '8px 16px',
+                    background: 'rgba(76,175,80,0.15)',
+                    border: '1px solid rgba(76,175,80,0.3)',
+                    color: '#66bb6a',
+                    fontSize: 13,
+                    flexShrink: 0,
+                }}>
+                    {successMsg}
+                </div>
+            )}
 
             {/* Content Area */}
             <div style={{
