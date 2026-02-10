@@ -39,8 +39,11 @@ import {
 import { restoreFromSnapshotSync } from './restore-flow';
 import { addDecisionLog } from './system-log';
 import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
-import { activateKeyboardHandler, deactivateKeyboardHandler } from '@/coreos/keyboard-handler';
+import { activateKeyboardHandler, deactivateKeyboardHandler, getKeyboardHandler } from '@/coreos/keyboard-handler';
 import { runStartupValidation } from './apps/manifest-validation';
+import { BrainChatOverlay } from './BrainChatOverlay'; // Phase 18
+import { ContextMenu, type ContextMenuEntry } from './ContextMenu'; // Phase 13
+import { useContextMenu } from './hooks/useContextMenu'; // Phase 13
 
 export function OSShell() {
     const windows = useWindows();
@@ -55,6 +58,12 @@ export function OSShell() {
     // Log panel visibility
     const [isLogPanelOpen, setIsLogPanelOpen] = React.useState(false);
 
+    // Phase 18: Brain Chat ⌘+K overlay state
+    const [isBrainOverlayOpen, setIsBrainOverlayOpen] = React.useState(false);
+
+    // Phase 13: Desktop context menu
+    const { menuState, showMenu, hideMenu } = useContextMenu();
+
     // Track if we've restored already
     const [hasRestored, setHasRestored] = React.useState(false);
 
@@ -67,9 +76,16 @@ export function OSShell() {
     }, []);
 
     // Phase 7.3: Activate keyboard handler on mount
+    // Phase 18: Register ⌘+K brain toggle callback
     React.useEffect(() => {
         activateKeyboardHandler();
-        return () => deactivateKeyboardHandler();
+        getKeyboardHandler().setBrainToggleCallback(() => {
+            setIsBrainOverlayOpen(prev => !prev);
+        });
+        return () => {
+            getKeyboardHandler().setBrainToggleCallback(null);
+            deactivateKeyboardHandler();
+        };
     }, []);
 
     // Bootstrap on mount if not authenticated
@@ -144,12 +160,24 @@ export function OSShell() {
             />
 
             {/* Windows Layer */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                paddingTop: 'var(--nx-menubar-height)',
-                paddingBottom: 'calc(var(--nx-dock-height) + 20px)',
-            }}>
+            <div
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    paddingTop: 'var(--nx-menubar-height)',
+                    paddingBottom: 'calc(var(--nx-dock-height) + 20px)',
+                }}
+                onContextMenu={(e) => {
+                    // Only show desktop context menu if clicking on the desktop area (not on a window)
+                    if ((e.target as HTMLElement).closest('[data-window-chrome]')) return;
+                    const desktopItems: ContextMenuEntry[] = [
+                        { id: 'show-all', label: 'Show All Windows', icon: '🪟', onClick: () => { } },
+                        { id: 'div-1', type: 'divider' },
+                        { id: 'about', label: 'About This OS', icon: 'ℹ️', onClick: () => { } },
+                    ];
+                    showMenu(e, desktopItems);
+                }}
+            >
                 {windows.map(window => (
                     <WindowChrome
                         key={window.id}
@@ -170,6 +198,22 @@ export function OSShell() {
                 isOpen={isLogPanelOpen}
                 onClose={() => setIsLogPanelOpen(false)}
             />
+
+            {/* Phase 18: Brain Chat Overlay (⌘+K) */}
+            <BrainChatOverlay
+                isOpen={isBrainOverlayOpen}
+                onClose={() => setIsBrainOverlayOpen(false)}
+            />
+
+            {/* Phase 13: Context Menu */}
+            {menuState.isOpen && (
+                <ContextMenu
+                    x={menuState.x}
+                    y={menuState.y}
+                    items={menuState.items}
+                    onClose={hideMenu}
+                />
+            )}
         </div>
     );
 }

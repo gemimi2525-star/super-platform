@@ -64,6 +64,101 @@ class ToolRegistry {
     }
 
     private registerDefaultTools() {
+        // ═══════════════════════════════════════════════════════════════════════
+        // PHASE 18: READ-ONLY OBSERVER TOOLS
+        // These tools pass the Shield prefix check (read_, explain_)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        this.registerTool({
+            name: 'read_system_state',
+            description: 'Read current system state summary (windows, connectivity, events). Observer-only.',
+            parameters: {
+                type: 'object',
+                properties: {},
+            },
+            requiredCapabilities: ['audit.view'],
+            handler: async (args, ctx) => {
+                const { getBrainObserver } = await import('./observer');
+                const observer = getBrainObserver();
+                return observer.getSystemSummary();
+            }
+        });
+
+        this.registerTool({
+            name: 'read_recent_events',
+            description: 'Read recent system events from the Observer buffer. Observer-only.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    count: { type: 'number', description: 'Number of events to return (max 50)' },
+                    category: { type: 'string', enum: ['intent', 'decision', 'error', 'lifecycle', 'vfs', 'unknown'] },
+                },
+            },
+            requiredCapabilities: ['audit.view'],
+            handler: async (args, ctx) => {
+                const { getBrainObserver } = await import('./observer');
+                const observer = getBrainObserver();
+                const count = Math.min(args.count || 20, 50);
+                if (args.category) {
+                    return observer.getEventsByCategory(args.category, count);
+                }
+                return observer.getRecentEvents(count);
+            }
+        });
+
+        this.registerTool({
+            name: 'read_path_visibility',
+            description: 'Check data visibility classification for a VFS path (WORK/SENSITIVE/SECRET).',
+            parameters: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'VFS path to classify' },
+                },
+                required: ['path'],
+            },
+            requiredCapabilities: ['audit.view'],
+            handler: async (args, ctx) => {
+                const { classifyPath } = await import('./data-visibility');
+                return classifyPath(args.path);
+            }
+        });
+
+        this.registerTool({
+            name: 'explain_deny',
+            description: 'Explain why an action was denied by the system.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    reason: { type: 'string', description: 'The deny reason text' },
+                    context: { type: 'object', description: 'Additional context' },
+                },
+                required: ['reason'],
+            },
+            requiredCapabilities: ['audit.view'],
+            handler: async (args, ctx) => {
+                const { explainDeny } = await import('./explain');
+                return explainDeny(args.reason, args.context);
+            }
+        });
+
+        this.registerTool({
+            name: 'explain_system_state',
+            description: 'Get a human-readable explanation of current system state.',
+            parameters: {
+                type: 'object',
+                properties: {},
+            },
+            requiredCapabilities: ['audit.view'],
+            handler: async (args, ctx) => {
+                const { summarizeSystemState } = await import('./explain');
+                return { summary: summarizeSystemState() };
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // EXISTING TOOLS (Pre-Phase 18)
+        // ═══════════════════════════════════════════════════════════════════════
+
         // 1. Compliance Validator (Mock)
         this.registerTool({
             name: 'validate_document_compliance',

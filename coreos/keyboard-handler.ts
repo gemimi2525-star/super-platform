@@ -30,12 +30,14 @@ interface KeyboardConfig {
     enableEsc: boolean;
     enableCmdW: boolean;
     enableCmdM: boolean;
+    enableCmdK: boolean; // Phase 18: Brain AI overlay
 }
 
 const DEFAULT_CONFIG: KeyboardConfig = {
     enableEsc: true,
     enableCmdW: true,
     enableCmdM: true,
+    enableCmdK: true, // Phase 18: Enabled by default
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -88,8 +90,18 @@ class ShellKeyboardHandler {
     private isActive: boolean = false;
     private boundHandler: ((e: KeyboardEvent) => void) | null = null;
 
+    // Phase 18: Callback for ⌘+K Brain overlay toggle
+    private onBrainToggle: (() => void) | null = null;
+
     constructor(config: Partial<KeyboardConfig> = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };
+    }
+
+    /**
+     * Phase 18: Register callback for ⌘+K toggle
+     */
+    setBrainToggleCallback(callback: (() => void) | null): void {
+        this.onBrainToggle = callback;
     }
 
     /**
@@ -128,7 +140,19 @@ class ShellKeyboardHandler {
      * Main keyboard event handler
      */
     private handleKeyDown(event: KeyboardEvent): void {
-        // Skip if typing in input field
+        // ─────────────────────────────────────────────────────────────────────
+        // Phase 18: Cmd/Ctrl+K → Brain AI Overlay (works even in editable)
+        // ─────────────────────────────────────────────────────────────────────
+        if (event.key === 'k' && isModifierKey(event) && this.config.enableCmdK) {
+            event.preventDefault();
+            if (this.onBrainToggle) {
+                this.onBrainToggle();
+                console.log('[NEXUS Keyboard] Cmd+K → Brain overlay toggle');
+            }
+            return;
+        }
+
+        // Skip if typing in input field (for other shortcuts)
         if (isEditableElement(event.target)) {
             return;
         }
@@ -202,3 +226,4 @@ export function activateKeyboardHandler(): void {
 export function deactivateKeyboardHandler(): void {
     getKeyboardHandler().deactivate();
 }
+

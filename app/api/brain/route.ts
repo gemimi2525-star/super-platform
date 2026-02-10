@@ -65,6 +65,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Construct BrainRequest
+        // ═══════════════════════════════════════════════════════════════
+        // PHASE 18 ENFORCEMENT: shadow = true (FORCED)
+        // AI Brain is Observer-only. Client cannot override this.
+        // This will be relaxed in Phase 19+ when DRAFTER tier unlocks.
+        // ═══════════════════════════════════════════════════════════════
         const brainRequest: BrainRequest = {
             appId: body.appId || 'brain.assist',
             correlationId: body.correlationId || crypto.randomUUID(),
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
             locale: body.locale,
             userId: body.userId,
             context: body.context,
-            shadow: body.shadow ?? false,
+            shadow: true, // Phase 18: FORCED — Observer Only
         };
 
         // Process through BrainGateway (server-side only)

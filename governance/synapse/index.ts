@@ -45,6 +45,7 @@ export {
     useMinimizedWindows,
     useFocusedWindow,
     useWindowControls,
+    useWindowInteraction,
     useMinimizeAll,
     useStepUp,
     useKernelBootstrap,

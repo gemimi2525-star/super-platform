@@ -287,6 +287,24 @@
     --nx-z-modal: 600;
     --nx-z-dock: 9999;
     --nx-z-toast: 10000;
+
+    /* Phase 13: Context Menu */
+    --nx-z-context-menu: 350;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTEXT MENU ANIMATION (Phase 13)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes nx-context-menu-open {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -1,69 +1,192 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OS SHELL — Window Chrome
+ * OS SHELL — Window Chrome (Phase 13: Interactive)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * macOS-style window with title bar and traffic light buttons.
- * Renders app content via AppRenderer.
+ * macOS-style window with:
+ * - Title bar drag to move
+ * - Edge/corner resize handles (8 directions)
+ * - Double-click title bar to toggle maximize
+ * - Traffic light buttons (close, minimize, maximize)
+ * - Open/Close/Minimize/Restore animations
+ * - NEXUS Design Token consistency
  * 
- * Phase 8: Updated to use NEXUS Design Tokens (CSS variables)
+ * Phase 8: NEXUS Tokens
+ * Phase 13: Drag, Resize, Maximize, Animations
  * 
  * @module components/os-shell/WindowChrome
- * @version 3.0.0 (Phase 8)
+ * @version 4.0.0 (Phase 13)
  */
 
 'use client';
 
-import React from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import '@/styles/nexus-tokens.css';
 import {
     useWindowControls,
+    useWindowInteraction,
     useCapabilityInfo,
     type Window,
 } from '@/governance/synapse';
 import { AppRenderer } from './apps';
+import { useWindowDrag } from './hooks/useWindowDrag';
+import { useWindowResize, type ResizeDirection } from './hooks/useWindowResize';
 
 interface WindowChromeProps {
     window: Window;
     isFocused: boolean;
 }
 
-export function WindowChrome({ window, isFocused }: WindowChromeProps) {
-    const { focus, minimize, close } = useWindowControls(window.id);
-    const { icon } = useCapabilityInfo(window.capabilityId);
+// ═══════════════════════════════════════════════════════════════════════════
+// RESIZE HANDLE CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
 
-    if (window.state === 'minimized') {
+const HANDLE_SIZE = 6; // px — invisible hit area at edges
+
+const RESIZE_HANDLES: {
+    direction: ResizeDirection;
+    style: React.CSSProperties;
+}[] = [
+        // Edges
+        { direction: 'n', style: { top: -HANDLE_SIZE / 2, left: HANDLE_SIZE, right: HANDLE_SIZE, height: HANDLE_SIZE, cursor: 'ns-resize' } },
+        { direction: 'e', style: { top: HANDLE_SIZE, right: -HANDLE_SIZE / 2, bottom: HANDLE_SIZE, width: HANDLE_SIZE, cursor: 'ew-resize' } },
+        { direction: 's', style: { bottom: -HANDLE_SIZE / 2, left: HANDLE_SIZE, right: HANDLE_SIZE, height: HANDLE_SIZE, cursor: 'ns-resize' } },
+        { direction: 'w', style: { top: HANDLE_SIZE, left: -HANDLE_SIZE / 2, bottom: HANDLE_SIZE, width: HANDLE_SIZE, cursor: 'ew-resize' } },
+        // Corners
+        { direction: 'nw', style: { top: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, width: HANDLE_SIZE * 2, height: HANDLE_SIZE * 2, cursor: 'nwse-resize' } },
+        { direction: 'ne', style: { top: -HANDLE_SIZE / 2, right: -HANDLE_SIZE / 2, width: HANDLE_SIZE * 2, height: HANDLE_SIZE * 2, cursor: 'nesw-resize' } },
+        { direction: 'se', style: { bottom: -HANDLE_SIZE / 2, right: -HANDLE_SIZE / 2, width: HANDLE_SIZE * 2, height: HANDLE_SIZE * 2, cursor: 'nwse-resize' } },
+        { direction: 'sw', style: { bottom: -HANDLE_SIZE / 2, left: -HANDLE_SIZE / 2, width: HANDLE_SIZE * 2, height: HANDLE_SIZE * 2, cursor: 'nesw-resize' } },
+    ];
+
+export function WindowChrome({ window: win, isFocused }: WindowChromeProps) {
+    const { focus, minimize, close } = useWindowControls(win.id);
+    const { toggleMaximize } = useWindowInteraction(win.id);
+    const { icon } = useCapabilityInfo(win.capabilityId);
+
+    // Animation states
+    const [animClass, setAnimClass] = useState('nx-animate-open');
+    const [isClosing, setIsClosing] = useState(false);
+    const [isMinimizing, setIsMinimizing] = useState(false);
+
+    // Drag hook
+    const { onTitleBarMouseDown } = useWindowDrag(
+        win.id, win.x, win.y, win.isMaximized,
+    );
+
+    // Resize hook
+    const { onResizeStart } = useWindowResize(
+        win.id, win.x, win.y, win.width, win.height,
+        win.minWidth, win.minHeight, win.isMaximized,
+    );
+
+    // Clear open animation after it plays
+    useEffect(() => {
+        const t = setTimeout(() => setAnimClass(''), 200);
+        return () => clearTimeout(t);
+    }, []);
+
+    // Don't render minimized windows
+    if (win.state === 'minimized' && !isMinimizing) {
         return null;
     }
 
-    // Position windows nicely
-    const baseTop = 80 + (window.zIndex * 30);
-    const baseLeft = 120 + (window.zIndex * 30);
+    // ─────────────────────────────────────────────────────────────────────
+    // Close with animation
+    // ─────────────────────────────────────────────────────────────────────
+    const handleClose = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsClosing(true);
+        setAnimClass('nx-animate-close');
+        setTimeout(() => {
+            close();
+        }, 120); // matches --nx-duration-fast
+    }, [close]);
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Minimize with animation
+    // ─────────────────────────────────────────────────────────────────────
+    const handleMinimize = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMinimizing(true);
+        setAnimClass('nx-animate-minimize');
+        setTimeout(() => {
+            minimize();
+            setIsMinimizing(false);
+        }, 180); // matches --nx-duration-normal
+    }, [minimize]);
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Double-click title bar → toggle maximize
+    // ─────────────────────────────────────────────────────────────────────
+    const handleTitleBarDoubleClick = useCallback((e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+        toggleMaximize();
+    }, [toggleMaximize]);
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Position & Size from state (not hardcoded!)
+    // ─────────────────────────────────────────────────────────────────────
+    const windowStyle: React.CSSProperties = win.isMaximized
+        ? {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100%',
+            height: '100%',
+            background: 'var(--nx-surface-window)',
+            borderRadius: 0,
+            boxShadow: 'none',
+            zIndex: win.zIndex,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+        }
+        : {
+            position: 'absolute',
+            top: win.y,
+            left: win.x,
+            width: win.width,
+            height: win.height,
+            background: 'var(--nx-surface-window)',
+            borderRadius: 'var(--nx-window-radius)',
+            boxShadow: isFocused
+                ? 'var(--nx-shadow-window)'
+                : 'var(--nx-shadow-window-unfocused)',
+            zIndex: win.zIndex,
+            overflow: 'hidden',
+            transition: isClosing || isMinimizing
+                ? 'none'
+                : 'box-shadow var(--nx-duration-fast) var(--nx-ease-out)',
+            display: 'flex',
+            flexDirection: 'column',
+        };
 
     return (
         <div
-            className="nx-animate-open"
-            style={{
-                position: 'absolute',
-                top: Math.min(baseTop, 300),
-                left: Math.min(baseLeft, 500),
-                width: 600,
-                height: 480,
-                background: 'var(--nx-surface-window)',
-                borderRadius: 'var(--nx-window-radius)',
-                boxShadow: isFocused
-                    ? 'var(--nx-shadow-window)'
-                    : 'var(--nx-shadow-window-unfocused)',
-                zIndex: window.zIndex,
-                overflow: 'hidden',
-                transition: 'box-shadow var(--nx-duration-fast) var(--nx-ease-out)',
-                display: 'flex',
-                flexDirection: 'column',
-            }}
+            className={animClass}
+            style={windowStyle}
             onMouseDown={!isFocused ? focus : undefined}
         >
-            {/* Title Bar */}
+            {/* Resize Handles (not shown when maximized) */}
+            {!win.isMaximized && RESIZE_HANDLES.map(({ direction, style }) => (
+                <div
+                    key={direction}
+                    style={{
+                        position: 'absolute',
+                        zIndex: 1,
+                        ...style,
+                    }}
+                    onMouseDown={(e) => onResizeStart(direction, e)}
+                />
+            ))}
+
+            {/* Title Bar (Drag Zone) */}
             <div
+                onMouseDown={onTitleBarMouseDown}
+                onDoubleClick={handleTitleBarDoubleClick}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -75,12 +198,14 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                     padding: '0 var(--nx-titlebar-padding-x)',
                     gap: 'var(--nx-traffic-gap)',
                     flexShrink: 0,
+                    cursor: win.isMaximized ? 'default' : 'grab',
+                    userSelect: 'none',
                 }}
             >
                 {/* Traffic Light Buttons */}
                 <div style={{ display: 'flex', gap: 'var(--nx-traffic-gap)' }}>
                     <button
-                        onClick={(e) => { e.stopPropagation(); close(); }}
+                        onClick={handleClose}
                         style={{
                             width: 'var(--nx-traffic-size)',
                             height: 'var(--nx-traffic-size)',
@@ -97,7 +222,7 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                         title="Close"
                     />
                     <button
-                        onClick={(e) => { e.stopPropagation(); minimize(); }}
+                        onClick={handleMinimize}
                         style={{
                             width: 'var(--nx-traffic-size)',
                             height: 'var(--nx-traffic-size)',
@@ -114,6 +239,7 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                         title="Minimize"
                     />
                     <button
+                        onClick={(e) => { e.stopPropagation(); toggleMaximize(); }}
                         style={{
                             width: 'var(--nx-traffic-size)',
                             height: 'var(--nx-traffic-size)',
@@ -124,10 +250,10 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                             border: `1px solid ${isFocused
                                 ? 'var(--nx-traffic-maximize-border)'
                                 : 'var(--nx-traffic-inactive-border)'}`,
-                            cursor: 'default',
+                            cursor: 'pointer',
                             padding: 0,
                         }}
-                        title="Maximize"
+                        title={win.isMaximized ? "Restore" : "Maximize"}
                     />
                 </div>
 
@@ -142,10 +268,11 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                             ? 'var(--nx-text-titlebar)'
                             : 'var(--nx-text-titlebar-unfocused)',
                         fontFamily: 'var(--nx-font-system)',
+                        pointerEvents: 'none', // Let drag pass through
                     }}
                 >
                     <span style={{ marginRight: 'var(--nx-space-2)' }}>{icon}</span>
-                    {window.title}
+                    {win.title}
                 </div>
 
                 {/* Spacer for symmetry */}
@@ -159,8 +286,8 @@ export function WindowChrome({ window, isFocused }: WindowChromeProps) {
                 background: 'var(--nx-surface-window)',
             }}>
                 <AppRenderer
-                    windowId={window.id}
-                    capabilityId={window.capabilityId}
+                    windowId={win.id}
+                    capabilityId={win.capabilityId}
                     isFocused={isFocused}
                 />
             </div>

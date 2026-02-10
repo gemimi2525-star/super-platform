@@ -37,9 +37,25 @@ class BrainGateway {
 
     /**
      * Process a request from an App Integration
+     * 
+     * Phase 18: OBSERVER ONLY — shadow mode is mandatory.
+     * All requests MUST have shadow = true.
      */
     async processRequest(request: BrainRequest): Promise<BrainResponse> {
         console.log(`[Brain] Processing request from ${request.appId} (${request.correlationId})`);
+
+        // ═══════════════════════════════════════════════════════════════
+        // PHASE 18 GATE: Reject non-shadow requests
+        // Defense-in-depth — route.ts also forces shadow=true
+        // ═══════════════════════════════════════════════════════════════
+        if (!request.shadow) {
+            console.error(`[Brain] 🛑 Phase 18 BLOCK: shadow=false rejected for ${request.appId}`);
+            this.auditLog(request.correlationId, 'brain.phase18_blocked', {
+                appId: request.appId,
+                reason: 'Phase 18: shadow mode is mandatory'
+            });
+            throw new Error('Phase 18: AI Brain is in Observer-only mode. shadow=true is required.');
+        }
 
         // 1. Audit Log (Request)
         this.auditLog(request.correlationId, 'brain.requested', { appId: request.appId, input_length: request.messages.length });
@@ -97,7 +113,16 @@ class BrainGateway {
                 for (const toolCall of response.tool_calls) {
                     const toolName = toolCall.function.name;
 
-                    // 🛑 SAFETY GATE: Block Destructive Tools in Safe Mode
+                    // 🛑 PHASE 18 SAFETY GATE: Block via Shield prefix check
+                    const toolCheck = safetyGate.checkToolAllowed(toolName);
+                    if (!toolCheck.safe) {
+                        console.warn(`[Brain] 🛑 Phase 18 Shield Blocked: ${toolName} — ${toolCheck.reason}`);
+                        this.auditLog(request.correlationId, 'brain.phase18_tool_blocked', { tool: toolName, reason: toolCheck.reason });
+                        response.content = (response.content || '') + `\n[System]: Tool '${toolName}' blocked by Phase 18 Observer Mode.`;
+                        continue;
+                    }
+
+                    // 🛑 SAFE MODE GATE: Block Destructive Tools (legacy check)
                     // Allowed: explain_*, search_*, propose_*
                     // Blocked: execute_*, delete_*, install_*, update_*
                     const isDestructive = toolName.startsWith('execute_') ||

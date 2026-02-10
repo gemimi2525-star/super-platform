@@ -20,7 +20,9 @@ import {
     getKernel,
     getStateStore,
     getCapabilityGraph,
+    getWindowManager,
     IntentFactory,
+    createCorrelationId,
     type Intent,
     type CapabilityId,
 } from './synapse-adapter';
@@ -42,6 +44,15 @@ export interface Window {
     state: 'active' | 'minimized' | 'hidden';
     zIndex: number;
     spaceId?: string;
+
+    // Phase 13: Position & Size (for drag/resize)
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    minWidth: number;
+    minHeight: number;
+    isMaximized: boolean;
 }
 
 export interface SystemState {
@@ -101,7 +112,23 @@ export function useWindows(): Window[] {
     const state = useSystemState();
     return Object.values(state.windows)
         .filter(w => w.state === 'active')
-        .sort((a, b) => b.zIndex - a.zIndex);
+        .sort((a, b) => b.zIndex - a.zIndex)
+        .map(w => ({
+            id: w.id,
+            capabilityId: w.capabilityId,
+            title: w.title,
+            state: w.state,
+            zIndex: w.zIndex,
+            spaceId: w.spaceId,
+            // Phase 13: Position & Size
+            x: (w as any).x ?? 120,
+            y: (w as any).y ?? 80,
+            width: (w as any).width ?? 600,
+            height: (w as any).height ?? 480,
+            minWidth: (w as any).minWidth ?? 400,
+            minHeight: (w as any).minHeight ?? 300,
+            isMaximized: (w as any).isMaximized ?? false,
+        }));
 }
 
 /**
@@ -145,6 +172,27 @@ export function useWindowControls(windowId: string) {
     }, [windowId]);
 
     return { focus, minimize, close, restore };
+}
+
+/**
+ * Hook for window drag/resize/maximize interactions (Phase 13)
+ */
+export function useWindowInteraction(windowId: string) {
+    const wm = getWindowManager();
+
+    const move = useCallback((x: number, y: number) => {
+        wm.moveWindow(windowId, x, y, createCorrelationId());
+    }, [windowId]);
+
+    const resize = useCallback((w: number, h: number) => {
+        wm.resizeWindow(windowId, w, h, createCorrelationId());
+    }, [windowId]);
+
+    const toggleMaximize = useCallback(() => {
+        wm.toggleMaximize(windowId, createCorrelationId());
+    }, [windowId]);
+
+    return { move, resize, toggleMaximize };
 }
 
 /**

@@ -1,15 +1,15 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * BRAIN APP — AI Assistant for OS (Phase 39)
+ * BRAIN APP — AI Assistant for OS (Phase 18: Observer Mode)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Chat-like interface for interacting with the Brain Gateway.
  * - Sends requests to /api/brain (server-side)
- * - Supports Safe Mode (shadow/assist)
+ * - Phase 18: OBSERVER ONLY — always in shadow/safe mode
  * - Never exposes API keys client-side
  * 
  * @module components/os-shell/apps/brain/BrainApp
- * @version 1.0.0 (Phase 39)
+ * @version 2.0.0 (Phase 18)
  */
 
 'use client';
@@ -38,7 +38,7 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [safeMode, setSafeMode] = useState(false);
+    // Phase 18: Safe mode is ALWAYS ON — no toggle
     const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -83,7 +83,7 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                         role: m.role,
                         content: m.content,
                     })),
-                    shadow: safeMode,
+                    shadow: true, // Phase 18: FORCED — Observer Only
                 }),
             });
 
@@ -107,7 +107,7 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, messages, safeMode, t]);
+    }, [input, isLoading, messages, t]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -141,26 +141,31 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                     🧠 {t('brain.title')}
                 </div>
 
-                {/* Safe Mode Toggle */}
-                <button
-                    onClick={() => setSafeMode(!safeMode)}
-                    style={{
+                {/* Phase 18: Observer Mode Badge (always visible) */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                }}>
+                    <span style={{
                         padding: '4px 10px',
                         fontSize: 'var(--nx-text-micro)',
-                        fontWeight: 'var(--nx-weight-medium)',
-                        background: safeMode
-                            ? 'rgba(34, 197, 94, 0.15)'
-                            : 'rgba(156, 163, 175, 0.15)',
-                        color: safeMode ? '#22c55e' : '#9ca3af',
-                        border: `1px solid ${safeMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(156, 163, 175, 0.3)'}`,
+                        fontWeight: 500,
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        color: '#22c55e',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
                         borderRadius: 'var(--nx-radius-sm)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                    }}
-                    title={t('brain.safeMode')}
-                >
-                    {safeMode ? '🛡️' : '⚡'} {t('brain.safeMode')}
-                </button>
+                        letterSpacing: '0.02em',
+                    }}>
+                        🔍 Observer Mode
+                    </span>
+                    <span style={{
+                        fontSize: '10px',
+                        color: 'var(--nx-text-tertiary)',
+                    }}>
+                        Phase 18
+                    </span>
+                </div>
             </div>
 
             {/* Messages Area */}
