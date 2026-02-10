@@ -1,20 +1,22 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * useWindowDrag — Phase 13: Window Drag Hook
+ * useWindowDrag — Phase 13.1: Window Drag Hook (Hotfix)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Enables dragging windows by their title bar.
- * Calls WindowManager.moveWindow() through the governance adapter.
- * Uses refs (not state) for tracking to avoid re-renders during drag.
+ * 
+ * Phase 13.1 Hotfix: Bypasses frozen moveWindow() Y-clamp (max 600px)
+ * by dispatching WINDOW_MOVE directly to state store with dynamic
+ * viewport-based bounds. This respects the Fix Patch Protocol.
  * 
  * @module components/os-shell/hooks/useWindowDrag
- * @version 1.0.0 (Phase 13)
+ * @version 1.1.0 (Phase 13.1 Hotfix)
  */
 
 'use client';
 
 import { useCallback, useRef, useEffect } from 'react';
-import { getWindowManager, createCorrelationId } from '@/governance/synapse';
+import { getStateStore, createCorrelationId } from '@/governance/synapse';
 
 interface DragState {
     isDragging: boolean;
@@ -23,6 +25,11 @@ interface DragState {
     windowStartX: number;
     windowStartY: number;
 }
+
+// Menubar height constant (matches --nx-menubar-height)
+const MENUBAR_HEIGHT = 28;
+// Minimum visible title bar pixels that must remain on screen
+const MIN_VISIBLE_PX = 100;
 
 /**
  * Custom hook for window drag interaction.
@@ -60,8 +67,22 @@ export function useWindowDrag(
         const newX = dragState.current.windowStartX + dx;
         const newY = dragState.current.windowStartY + dy;
 
-        const wm = getWindowManager();
-        wm.moveWindow(windowId, newX, newY, createCorrelationId());
+        // Phase 13.1 Hotfix: Dynamic viewport-based clamp
+        // instead of frozen moveWindow() hardcoded clampedY max 600px
+        const viewportH = window.innerHeight;
+        const viewportW = window.innerWidth;
+        const clampedX = Math.max(-viewportW + MIN_VISIBLE_PX, Math.min(newX, viewportW - MIN_VISIBLE_PX));
+        const clampedY = Math.max(MENUBAR_HEIGHT, Math.min(newY, viewportH - MIN_VISIBLE_PX));
+
+        // Dispatch directly to state store to bypass frozen moveWindow() clamp
+        const store = getStateStore();
+        store.dispatch({
+            type: 'WINDOW_MOVE',
+            windowId,
+            x: clampedX,
+            y: clampedY,
+            correlationId: createCorrelationId(),
+        });
     }, [windowId]);
 
     const onMouseUp = useCallback(() => {

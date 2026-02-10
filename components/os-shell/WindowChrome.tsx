@@ -130,12 +130,10 @@ export function WindowChrome({ window: win, isFocused }: WindowChromeProps) {
     const windowStyle: React.CSSProperties = win.isMaximized
         ? {
             position: 'absolute',
-            top: 0,
+            top: 'var(--nx-menubar-height)',
             left: 0,
             right: 0,
-            bottom: 0,
-            width: '100%',
-            height: '100%',
+            bottom: 'calc(var(--nx-dock-height) + 20px)',
             background: 'var(--nx-surface-window)',
             borderRadius: 0,
             boxShadow: 'none',
