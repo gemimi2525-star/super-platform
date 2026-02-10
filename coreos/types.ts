@@ -58,6 +58,8 @@ export type CapabilityId =
     | 'core.admin'
     | 'core.finance'
     | 'brain.assist'
+    // Phase 16A: VFS App Integration
+    | 'core.notes'
     // Phase 15A
     | 'core.files';
 

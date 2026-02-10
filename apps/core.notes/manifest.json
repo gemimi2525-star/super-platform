@@ -1,0 +1,28 @@
+{
+    "appId": "core.notes",
+    "name": "Notes",
+    "version": "1.0.0",
+    "entry": "ui.tsx",
+    "runtime": "component",
+    "requestedCapabilities": [
+        "ui.window",
+        "fs.list",
+        "fs.read",
+        "fs.write",
+        "fs.mkdir"
+    ],
+    "storageScopes": [
+        "user://Documents",
+        "user://Notes"
+    ],
+    "defaultWindow": {
+        "title": "Notes",
+        "icon": "📝",
+        "width": 680,
+        "height": 520,
+        "resizable": true
+    },
+    "author": "APICOREDATA Platform",
+    "description": "Notes app with VFS integration — Phase 16A first VFS consumer",
+    "license": "MIT"
+}

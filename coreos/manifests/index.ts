@@ -37,6 +37,9 @@ import { BRAIN_ASSIST_MANIFEST } from './brain.assist';
 // Phase F: EXPERIMENTAL capabilities
 import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 
+// Phase 16A: VFS App Integration
+import { CORE_NOTES_MANIFEST } from './core.notes';
+
 import type { CapabilityId, CapabilityManifest } from '../types';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -87,6 +90,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
 
     // Phase 39: AI Brain Assistant
     'brain.assist': BRAIN_ASSIST_MANIFEST,
+
+    // Phase 16A: VFS App Integration
+    'core.notes': CORE_NOTES_MANIFEST,
 
     // Phase 39: AI Governance Brain
     'core.admin': {
@@ -139,6 +145,8 @@ export {
     PLUGIN_ANALYTICS_MANIFEST,
     // Phase 39: Best Practices
     BRAIN_ASSIST_MANIFEST,
+    // Phase 16A: VFS App Integration
+    CORE_NOTES_MANIFEST,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
