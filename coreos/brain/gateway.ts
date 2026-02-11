@@ -27,13 +27,13 @@ const getProvider = () => {
 
     // Auto-detect OpenAI if key is present, OR if explicitly set to openai
     // This allows "just works" behavior when key is added to Vercel
-    if (apiKey && (!process.env.BRAIN_PROVIDER || process.env.BRAIN_PROVIDER === 'openai')) {
-        console.log('[Brain] Factory: Instantiating OpenAIProvider');
-        return new OpenAIProvider(apiKey);
-    }
+    // if (apiKey && (!process.env.BRAIN_PROVIDER || process.env.BRAIN_PROVIDER === 'openai')) {
+    //     console.log('[Brain] Factory: Instantiating OpenAIProvider');
+    //     return new OpenAIProvider(apiKey);
+    // }
 
     console.log('[Brain] Factory: Fallback to MockProvider (Missing Key or Provider mismatch)');
-    return null; // Fallback to Mock
+    return null as OpenAIProvider | null; // Fallback to Mock
 };
 
 class BrainGateway {
