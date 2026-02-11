@@ -1,15 +1,15 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * BRAIN APP — AI Assistant for OS (Phase 18: Observer Mode)
+ * BRAIN APP — AI Assistant for OS (Phase 19: DRAFTER Mode)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Chat-like interface for interacting with the Brain Gateway.
  * - Sends requests to /api/brain (server-side)
- * - Phase 18: OBSERVER ONLY — always in shadow/safe mode
- * - Never exposes API keys client-side
+ * - Phase 19: DRAFTER MODE — AI can propose within app scope
+ * - shadow=true still enforced, proposals require user confirmation
  * 
  * @module components/os-shell/apps/brain/BrainApp
- * @version 2.0.0 (Phase 18)
+ * @version 3.0.0 (Phase 19 DRAFTER)
  */
 
 'use client';
@@ -18,6 +18,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import '@/styles/nexus-tokens.css';
 import type { AppProps } from '../registry';
 import { useTranslations } from '@/lib/i18n/context';
+import { ProposalCard, type ProposalData } from './ProposalCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -28,7 +29,16 @@ interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
+    proposal?: ProposalData; // Phase 19: Parsed proposal data
 }
+
+// Phase 19: App Scope Options
+const APP_SCOPE_OPTIONS = [
+    { id: 'brain.assist', label: '🧠 General', icon: '🧠' },
+    { id: 'core.notes', label: '📝 Notes', icon: '📝' },
+    { id: 'core.files', label: '📁 Files', icon: '📁' },
+    { id: 'core.settings', label: '⚙️ Settings', icon: '⚙️' },
+] as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -38,7 +48,7 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    // Phase 18: Safe mode is ALWAYS ON — no toggle
+    const [appScope, setAppScope] = useState('brain.assist'); // Phase 19
     const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -83,7 +93,8 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                         role: m.role,
                         content: m.content,
                     })),
-                    shadow: true, // Phase 18: FORCED — Observer Only
+                    shadow: true, // Phase 19: STILL FORCED
+                    appScope,     // Phase 19: App-scoped context
                 }),
             });
 
@@ -94,11 +105,26 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
 
             const data = await response.json();
 
+            // Phase 19: Try to parse proposal from response
+            let proposal: ProposalData | undefined;
+            let displayContent = data.content || 'No response.';
+
+            try {
+                const parsed = JSON.parse(data.content);
+                if (parsed?.type === 'proposal' && parsed?.proposal) {
+                    proposal = parsed.proposal;
+                    displayContent = parsed.proposal.title;
+                }
+            } catch {
+                // Not JSON — use as plain text
+            }
+
             const assistantMessage: ChatMessage = {
                 id: data.id || `resp-${Date.now()}`,
                 role: 'assistant',
-                content: data.content || 'No response.',
+                content: displayContent,
                 timestamp: Date.now(),
+                proposal,
             };
 
             setMessages(prev => [...prev, assistantMessage]);
@@ -107,7 +133,17 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, messages, t]);
+    }, [input, isLoading, messages, t, appScope]);
+
+    // Phase 19: Proposal confirm/reject handlers
+    const handleProposalConfirm = useCallback((proposal: ProposalData) => {
+        console.log(`[BrainApp] ✅ Proposal confirmed: ${proposal.id}`);
+        // Phase 19: ยังไม่ execute — แค่บันทึก feedback
+    }, []);
+
+    const handleProposalReject = useCallback((proposal: ProposalData) => {
+        console.log(`[BrainApp] ❌ Proposal rejected: ${proposal.id}`);
+    }, []);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -141,7 +177,7 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                     🧠 {t('brain.title')}
                 </div>
 
-                {/* Phase 18: Observer Mode Badge (always visible) */}
+                {/* Phase 19: DRAFTER Mode Badge */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -151,19 +187,19 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                         padding: '4px 10px',
                         fontSize: 'var(--nx-text-micro)',
                         fontWeight: 500,
-                        background: 'rgba(34, 197, 94, 0.15)',
-                        color: '#22c55e',
-                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        background: 'rgba(99, 102, 241, 0.15)',
+                        color: '#818cf8',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
                         borderRadius: 'var(--nx-radius-sm)',
                         letterSpacing: '0.02em',
                     }}>
-                        🔍 Observer Mode
+                        📝 DRAFTER Mode
                     </span>
                     <span style={{
                         fontSize: '10px',
                         color: 'var(--nx-text-tertiary)',
                     }}>
-                        Phase 18
+                        Phase 19
                     </span>
                 </div>
             </div>
@@ -200,6 +236,8 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                         style={{
                             display: 'flex',
                             justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                            flexDirection: 'column',
+                            alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
                         }}
                     >
                         <div style={{
@@ -222,6 +260,16 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                         }}>
                             {msg.content}
                         </div>
+                        {/* Phase 19: Render ProposalCard if present */}
+                        {msg.proposal && (
+                            <div style={{ maxWidth: '85%', marginTop: '4px' }}>
+                                <ProposalCard
+                                    proposal={msg.proposal}
+                                    onConfirm={handleProposalConfirm}
+                                    onReject={handleProposalReject}
+                                />
+                            </div>
+                        )}
                     </div>
                 ))}
 
@@ -262,6 +310,50 @@ export function BrainApp({ windowId, capabilityId, isFocused }: AppProps) {
                 )}
 
                 <div ref={messagesEndRef} />
+            </div>
+
+            {/* Phase 19: App Scope Selector */}
+            <div style={{
+                padding: '8px 16px',
+                borderTop: '1px solid var(--nx-border-divider)',
+                display: 'flex',
+                gap: '6px',
+                alignItems: 'center',
+                background: 'var(--nx-surface-panel)',
+            }}>
+                <span style={{
+                    fontSize: '10px',
+                    color: 'var(--nx-text-tertiary)',
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                }}>
+                    AI Scope:
+                </span>
+                {APP_SCOPE_OPTIONS.map(opt => (
+                    <button
+                        key={opt.id}
+                        onClick={() => setAppScope(opt.id)}
+                        style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: `1px solid ${appScope === opt.id
+                                ? 'rgba(99, 102, 241, 0.4)'
+                                : 'rgba(255, 255, 255, 0.08)'}`,
+                            background: appScope === opt.id
+                                ? 'rgba(99, 102, 241, 0.15)'
+                                : 'transparent',
+                            color: appScope === opt.id
+                                ? '#818cf8'
+                                : 'var(--nx-text-secondary)',
+                            fontSize: '11px',
+                            fontWeight: appScope === opt.id ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        {opt.label}
+                    </button>
+                ))}
             </div>
 
             {/* Input Area */}

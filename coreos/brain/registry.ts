@@ -12,6 +12,11 @@
 import { BrainTool, ToolContext } from './types';
 import { CapabilityId } from '../types';
 
+// Phase 19: App-Scoped Propose Tools
+import { PROPOSE_NOTE_TOOLS } from './propose-notes';
+import { PROPOSE_FILE_TOOLS } from './propose-files';
+import { PROPOSE_SETTING_TOOLS } from './propose-settings';
+
 class ToolRegistry {
     private tools: Map<string, BrainTool> = new Map();
 
@@ -657,6 +662,21 @@ class ToolRegistry {
                 return { success: true };
             }
         });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // PHASE 19: APP-SCOPED PROPOSE TOOLS (DRAFTER MODE)
+        // ═══════════════════════════════════════════════════════════════════════
+        const phase19Tools = [
+            ...PROPOSE_NOTE_TOOLS,
+            ...PROPOSE_FILE_TOOLS,
+            ...PROPOSE_SETTING_TOOLS,
+        ];
+
+        for (const tool of phase19Tools) {
+            this.registerTool(tool);
+        }
+
+        console.log(`[Registry] Phase 19: Registered ${phase19Tools.length} propose tools`);
     }
 }
 

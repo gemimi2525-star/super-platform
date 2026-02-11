@@ -1,10 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SAFETY SHIELD (Phase 25A)
+ * SAFETY SHIELD (Phase 25A → Phase 19 DRAFTER)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Pre-flight and Post-flight checks for AI interactions.
  * Ensures no dangerous intents bypass validation.
+ * 
+ * Phase 19: เพิ่ม App-Scoped tool filtering สำหรับ DRAFTER mode
  * 
  * @module coreos/brain/shield
  */
@@ -16,11 +18,23 @@ interface SafetyCheckResult {
     reason?: string;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 19: Tool → App Scope Mapping
+// propose_note_* → core.notes เท่านั้น
+// propose_file_* → core.files เท่านั้น
+// propose_setting_* → core.settings เท่านั้น
+// ═══════════════════════════════════════════════════════════════════════════
+const PROPOSE_TOOL_APP_MAP: Record<string, string> = {
+    'propose_note_': 'core.notes',
+    'propose_file_': 'core.files',
+    'propose_setting_': 'core.settings',
+};
+
 class SafetyGate {
 
     // ═══════════════════════════════════════════════════════════════════
-    // PHASE 18: Allowed tool prefixes (READ-only)
-    // Everything else is BLOCKED in Observer mode
+    // PHASE 18 → 19: Allowed tool prefixes (READ + PROPOSE)
+    // Everything else is BLOCKED
     // ═══════════════════════════════════════════════════════════════════
     private static readonly PHASE18_ALLOWED_PREFIXES = [
         'read_',
@@ -92,6 +106,43 @@ class SafetyGate {
             };
         }
 
+        return { safe: true };
+    }
+
+    /**
+     * Phase 19: Check if a propose tool is allowed for the given app scope
+     * Enforces that propose_note_* tools can only be used with core.notes, etc.
+     */
+    checkDrafterAccess(toolName: string, appScope?: string): SafetyCheckResult {
+        // Non-propose tools: ไม่จำเป็นต้องตรวจ app scope
+        if (!toolName.startsWith('propose_')) {
+            return { safe: true };
+        }
+
+        // ถ้าไม่มี app scope → block propose tools (ต้องระบุ context)
+        if (!appScope) {
+            console.warn(`[Shield] 🛑 Phase 19: propose tool '${toolName}' requires app scope`);
+            return {
+                safe: false,
+                reason: `Phase 19: Tool '${toolName}' ต้องระบุ app scope ก่อนใช้งาน`
+            };
+        }
+
+        // ตรวจว่า tool ตรงกับ app scope หรือไม่
+        for (const [prefix, allowedApp] of Object.entries(PROPOSE_TOOL_APP_MAP)) {
+            if (toolName.startsWith(prefix)) {
+                if (appScope !== allowedApp) {
+                    console.warn(`[Shield] 🛑 Phase 19: ${toolName} requires ${allowedApp} but got ${appScope}`);
+                    return {
+                        safe: false,
+                        reason: `Phase 19: Tool '${toolName}' ใช้ได้เฉพาะ ${allowedApp} เท่านั้น (ส่งมา: ${appScope})`
+                    };
+                }
+                return { safe: true };
+            }
+        }
+
+        // propose tool ที่ไม่มีใน map → อนุญาต (generic propose)
         return { safe: true };
     }
 

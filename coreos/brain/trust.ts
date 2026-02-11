@@ -1,6 +1,13 @@
 /**
- * Core OS Brain Trust Engine (Phase 29)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Core OS Brain Trust Engine (Phase 29 → Phase 19 DRAFTER)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
  * Manages AI Trust Score and Capability Escalation.
+ * 
+ * Phase 19: เพิ่ม App-Scoped Trust — ตรวจสอบว่า app ใดอนุญาต DRAFTER
+ * 
+ * @module coreos/brain/trust
  */
 
 export enum TrustTier {
@@ -16,6 +23,16 @@ export interface TrustState {
     failedActions: number;
     userRejections: number;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 19: App-Scoped DRAFTER Allow-List
+// เฉพาะ apps เหล่านี้เท่านั้นที่ AI จะ propose ได้
+// ═══════════════════════════════════════════════════════════════════════════
+const PHASE19_DRAFTER_APPS: ReadonlySet<string> = new Set([
+    'core.notes',
+    'core.files',
+    'core.settings',
+]);
 
 const DEFAULT_TRUST: TrustState = {
     score: 70, // Start High based on Pilot success
@@ -36,6 +53,10 @@ class TrustEngine {
         return this.state.score;
     }
 
+    getState(): Readonly<TrustState> {
+        return { ...this.state };
+    }
+
     /**
      * Check if current tier allows specific capability level
      */
@@ -44,6 +65,32 @@ class TrustEngine {
         const currentIdx = tiers.indexOf(this.state.tier);
         const requiredIdx = tiers.indexOf(requiredTier);
         return currentIdx >= requiredIdx;
+    }
+
+    /**
+     * Phase 19: ตรวจสอบว่า app นี้อนุญาต DRAFTER tier หรือไม่
+     * คืนค่า effective tier สำหรับ app ที่ระบุ
+     */
+    getTierForApp(appId: string): TrustTier {
+        // ถ้า trust score ต่ำกว่า 50 → บังคับ OBSERVER ไม่ว่า app ใด
+        if (this.state.score < 50) {
+            return TrustTier.OBSERVER;
+        }
+
+        // ถ้า app อยู่ใน allow-list → ใช้ tier จริง
+        if (PHASE19_DRAFTER_APPS.has(appId)) {
+            return this.state.tier;
+        }
+
+        // app อื่น ๆ → ล็อกที่ OBSERVER
+        return TrustTier.OBSERVER;
+    }
+
+    /**
+     * Phase 19: ตรวจว่า app นี้ได้รับอนุญาตให้ใช้ DRAFTER
+     */
+    isAppDrafterAllowed(appId: string): boolean {
+        return PHASE19_DRAFTER_APPS.has(appId);
     }
 
     /**

@@ -1,10 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * AI BRAIN TYPES (Phase 25A)
+ * AI BRAIN TYPES (Phase 25A → Phase 19 DRAFTER)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Defines the contract for interacting with the Core OS "Single Brain".
- * Supporting Request/Response models and Tool definitions.
+ * Supporting Request/Response models, Tool definitions, and Proposal types.
+ * 
+ * Phase 19: Added ProposalAction for DRAFTER mode (propose-only)
  * 
  * @module coreos/brain/types
  */
@@ -28,6 +30,7 @@ export interface BrainRequest {
     userId?: string;
     context?: Record<string, any>; // Additional context (e.g. selected text)
     shadow?: boolean; // If true, AI observes/explains only (No Execution)
+    appScope?: string; // Phase 19: App-scoped context (e.g. 'core.notes')
 }
 
 export interface BrainResponse {
@@ -63,6 +66,25 @@ export interface ToolContext {
     appId: string;
     userId: string;
     correlationId: string;
+    appScope?: string; // Phase 19: App scope for tool filtering
 }
 
 export type BrainStatus = 'idle' | 'processing' | 'error';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 19: PROPOSAL TYPES (DRAFTER MODE)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ProposalType = 'rewrite' | 'summarize' | 'structure' | 'organize' | 'recommend';
+
+export interface ProposalAction {
+    id: string;
+    type: ProposalType;
+    appId: string;
+    title: string;
+    description: string;
+    preview?: string;        // ตัวอย่างผลลัพธ์
+    confidence: number;      // 0-1
+    requiresConfirm: true;   // บังคับเสมอ — ผู้ใช้ต้องยืนยัน
+    metadata?: Record<string, any>;
+}

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API ROUTE — Brain Gateway (Phase 39)
+ * API ROUTE — Brain Gateway (Phase 39 → Phase 19 DRAFTER)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Server-side endpoint for AI Brain interactions.
@@ -9,12 +9,15 @@
  * - Returns BrainResponse
  * - API keys NEVER exposed to client
  * 
+ * Phase 19: shadow=true still enforced, appScope added for DRAFTER access
+ * 
  * @module app/api/brain/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { brainGateway } from '@/coreos/brain/gateway';
 import { BrainRequest } from '@/coreos/brain/types';
+import { trustEngine } from '@/coreos/brain/trust';
 
 // Simple in-memory rate limiting
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -66,10 +69,13 @@ export async function POST(request: NextRequest) {
 
         // Construct BrainRequest
         // ═══════════════════════════════════════════════════════════════
-        // PHASE 18 ENFORCEMENT: shadow = true (FORCED)
-        // AI Brain is Observer-only. Client cannot override this.
-        // This will be relaxed in Phase 19+ when DRAFTER tier unlocks.
+        // PHASE 19 ENFORCEMENT: shadow = true (STILL FORCED)
+        // AI Brain is DRAFTER mode. Client cannot override shadow.
+        // appScope enables app-scoped propose tools.
         // ═══════════════════════════════════════════════════════════════
+        const appScope = body.appScope || body.appId || 'brain.assist';
+        const effectiveTier = trustEngine.getTierForApp(appScope);
+
         const brainRequest: BrainRequest = {
             appId: body.appId || 'brain.assist',
             correlationId: body.correlationId || crypto.randomUUID(),
@@ -77,13 +83,22 @@ export async function POST(request: NextRequest) {
             locale: body.locale,
             userId: body.userId,
             context: body.context,
-            shadow: true, // Phase 18: FORCED — Observer Only
+            shadow: true, // Phase 19: STILL FORCED — DRAFTER cannot execute
+            appScope,     // Phase 19: App-scoped context for propose tools
         };
 
         // Process through BrainGateway (server-side only)
         const response = await brainGateway.processRequest(brainRequest);
 
-        return NextResponse.json(response);
+        return NextResponse.json({
+            ...response,
+            _meta: {
+                tier: effectiveTier,
+                appScope,
+                shadow: true,
+                phase: 19,
+            },
+        });
 
     } catch (error: any) {
         console.error('[API/Brain] Error:', error.message);
