@@ -33,3 +33,5 @@ yarn-error.log*
 coverage
 .credentials/
 dev_server.log
+.vercel
+.env*.local
