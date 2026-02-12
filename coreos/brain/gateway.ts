@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * BRAIN GATEWAY (Phase 25A → Phase 19 DRAFTER)
+ * BRAIN GATEWAY (Phase 25A → Phase 20 AGENT)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * The central entry point for all AI interactions in Core OS.
@@ -9,7 +9,8 @@
  * - Integrates Audit Logging
  * 
  * Phase 19: DRAFTER MODE — AI can propose within app scope
- *           shadow=true still enforced, execute_* still blocked
+ * Phase 20: AGENT MODE — AI can execute approved actions (core.notes only)
+ *           Requires SignedApproval + Snapshot + Undo + Audit
  * 
  * @module coreos/brain/gateway
  */
@@ -43,7 +44,8 @@ class BrainGateway {
      * Process a request from an App Integration
      * 
      * Phase 19: DRAFTER MODE — AI can propose within app scope
-     * shadow=true still enforced. Only propose_* and read_* tools allowed.
+     * Phase 20: AGENT MODE — AI can execute approved actions (core.notes)
+     *           shadow=true still enforced for non-approved paths
      */
     async processRequest(request: BrainRequest): Promise<BrainResponse> {
         console.log(`[Brain] Processing request from ${request.appId} (${request.correlationId})`);
@@ -53,12 +55,12 @@ class BrainGateway {
         // Defense-in-depth — route.ts also forces shadow=true
         // ═══════════════════════════════════════════════════════════════
         if (!request.shadow) {
-            console.error(`[Brain] 🛑 Phase 19 BLOCK: shadow=false rejected for ${request.appId}`);
-            this.auditLog(request.correlationId, 'brain.phase19_blocked', {
+            console.error(`[Brain] 🛑 Phase 20 BLOCK: shadow=false rejected for ${request.appId}`);
+            this.auditLog(request.correlationId, 'brain.phase20_blocked', {
                 appId: request.appId,
-                reason: 'Phase 19: shadow mode is mandatory (DRAFTER cannot execute)'
+                reason: 'Phase 20: shadow mode is mandatory (non-approved paths)'
             });
-            throw new Error('Phase 19: AI Brain is in DRAFTER mode. shadow=true is required.');
+            throw new Error('Phase 20: AI Brain is in shadow mode. shadow=true is required.');
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -86,10 +88,30 @@ class BrainGateway {
             throw new Error(`Safety Block: ${safetyCheck.reason}`);
         }
 
-        // 3. Phase 19: DRAFTER Mode System Prompt Injection
-        const isDrafterMode = effectiveTier === TrustTier.DRAFTER || effectiveTier === TrustTier.AGENT;
+        // 3. Phase 19/20: Mode-based System Prompt Injection
+        const isAgentMode = effectiveTier === TrustTier.AGENT && trustEngine.isAppExecuteAllowed(appScope);
+        const isDrafterMode = !isAgentMode && (effectiveTier === TrustTier.DRAFTER || effectiveTier === TrustTier.AGENT);
 
-        if (isDrafterMode && trustEngine.isAppDrafterAllowed(appScope)) {
+        if (isAgentMode) {
+            // Phase 20: AGENT MODE — can execute approved actions
+            console.log(`[Brain] 🤖 AGENT MODE: ${appScope}`);
+            this.auditLog(request.correlationId, 'brain.agent_mode', { appScope });
+
+            request.messages.unshift({
+                role: 'system',
+                content: `[AGENT MODE — Phase 20] คุณเป็น AI ที่สามารถ "ดำเนินการ" ได้ ภายใต้การอนุมัติจากผู้ใช้
+App Context: ${appScope}
+Trust Score: ${trustScore} | Tier: ${effectiveTier}
+
+กฎ Phase 20:
+1. ใช้ 'propose_*' เพื่อเสนอแนะ
+2. ใช้ 'apply_*' เพื่อดำเนินการ (ต้องมี Signed Approval)
+3. ทุกการ execute ต้องผ่าน 4 ขั้นตอน: Approval → Snapshot → Execute → Audit
+4. ผู้ใช้ต้องยืนยันก่อนดำเนินการทุกครั้ง
+5. ทำงานเฉพาะภายใน ${appScope} เท่านั้น
+6. ห้ามข้ามขอบเขต app เด็ดขาด`
+            });
+        } else if (isDrafterMode && trustEngine.isAppDrafterAllowed(appScope)) {
             console.log(`[Brain] 📝 DRAFTER MODE: ${appScope}`);
             this.auditLog(request.correlationId, 'brain.drafter_mode', { appScope });
 
@@ -146,6 +168,17 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         t.name.startsWith('validate_') ||
                         t.name.startsWith('draft_')
                     );
+                } else if (effectiveTier === TrustTier.AGENT && trustEngine.isAppExecuteAllowed(appScope)) {
+                    // AGENT: read_* + explain_* + propose_* + apply_* (scoped to app)
+                    tools = tools.filter(t =>
+                        t.name.startsWith('read_') ||
+                        t.name.startsWith('explain_') ||
+                        t.name.startsWith('search_') ||
+                        t.name.startsWith('propose_') ||
+                        t.name.startsWith('validate_') ||
+                        t.name.startsWith('draft_') ||
+                        t.name.startsWith('apply_')
+                    );
                 }
 
                 response = await provider.processRequest(request, tools);
@@ -174,6 +207,15 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         console.warn(`[Brain] 🛑 Phase 19 Drafter Blocked: ${toolName} — ${drafterCheck.reason}`);
                         this.auditLog(request.correlationId, 'brain.phase19_drafter_blocked', { tool: toolName, reason: drafterCheck.reason });
                         response.content = (response.content || '') + `\n[System]: Tool '${toolName}' blocked — ${drafterCheck.reason}`;
+                        continue;
+                    }
+
+                    // 🛑 PHASE 20: EXECUTE Access Check (apply_* tools)
+                    const executeCheck = safetyGate.checkExecuteAccess(toolName, appScope);
+                    if (!executeCheck.safe) {
+                        console.warn(`[Brain] 🛑 Phase 20 Execute Blocked: ${toolName} — ${executeCheck.reason}`);
+                        this.auditLog(request.correlationId, 'brain.phase20_execute_blocked', { tool: toolName, reason: executeCheck.reason });
+                        response.content = (response.content || '') + `\n[System]: Tool '${toolName}' blocked — ${executeCheck.reason}`;
                         continue;
                     }
 

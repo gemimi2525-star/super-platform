@@ -88,3 +88,112 @@ export interface ProposalAction {
     requiresConfirm: true;   // บังคับเสมอ — ผู้ใช้ต้องยืนยัน
     metadata?: Record<string, any>;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 20: EXECUTION TYPES (AGENT MODE — Single Human Authority)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Action types classified by risk level (see Document D) */
+export type ActionType =
+    | 'NOTE_REWRITE'        // 🟡 SENSITIVE
+    | 'NOTE_STRUCTURE'      // 🟡 SENSITIVE
+    | 'NOTE_SUMMARIZE'      // 🟡 SENSITIVE
+    | 'SETTING_CHANGE'      // 🟡 SENSITIVE
+    | 'FILE_ORGANIZE'       // 🟠 DESTRUCTIVE
+    | 'FILE_MOVE'           // 🟠 DESTRUCTIVE
+    | 'FILE_DELETE'         // 🟠 DESTRUCTIVE
+    | 'FILE_OVERWRITE'      // 🟠 DESTRUCTIVE
+    | 'FILE_PURGE'          // 🔴 IRREVERSIBLE
+    | 'ORG_PERMISSION'      // 🔴 IRREVERSIBLE
+    | 'SYSTEM_RESET';       // 🔴 IRREVERSIBLE
+
+/** Risk classification levels */
+export type RiskClass = 'SAFE' | 'SENSITIVE' | 'DESTRUCTIVE' | 'IRREVERSIBLE';
+
+/** Target resource for execution */
+export interface ResourceTarget {
+    resourceId: string;
+    resourceType: 'note' | 'file' | 'setting' | 'org' | 'system';
+    path?: string;           // Optional path (e.g. file path)
+    displayName?: string;    // Human-readable name
+}
+
+/** Before/after diff for preview and audit */
+export interface ActionDiff {
+    before: string;
+    after: string;
+    summary: string;         // Human-readable summary of changes
+}
+
+/**
+ * Signed Approval — ต้องมีทุกครั้งก่อน execute
+ * ลงนามด้วย Ed25519 (see Document B)
+ */
+export interface SignedApproval {
+    approvalId: string;              // Unique ID (uuid v4)
+    intentId: string;                // CorrelationId จาก proposal
+    actionType: ActionType;          // Action ที่อนุมัติ
+    scope: string;                   // App scope (e.g. 'core.notes')
+    target: ResourceTarget;          // Resource ที่จะกระทำ
+    diff: ActionDiff;                // Before/After
+    approvedBy: string;              // OWNER_AUTHORITY identifier
+    approvedAt: number;              // Unix timestamp (ms)
+    expiresAt: number;               // Unix timestamp (ms) — ต้องไม่เกิน 15 นาที
+    nonce: string;                   // Unique nonce (กัน replay)
+    signature: string;               // Ed25519 signature (base64)
+    signedFields: string[];          // List of fields in canonical order
+}
+
+/** Undo plan for rollback */
+export interface UndoPlan {
+    executionId: string;
+    snapshotRef: string;             // Reference to pre-execution snapshot
+    rollbackType: 'RESTORE' | 'REVERSE' | 'MANUAL';
+    rollbackSteps: string[];         // Human-readable steps
+    estimatedRisk: 'LOW' | 'MEDIUM' | 'HIGH';
+    expiresAt: number;               // Undo available until this time
+}
+
+/** Execution result */
+export interface ExecutionResult {
+    executionId: string;
+    intentId: string;
+    approvalId: string;
+    status: 'COMPLETED' | 'FAILED' | 'ROLLED_BACK';
+    snapshotRef: string;
+    undoPlan: UndoPlan;
+    executedAt: number;
+    duration: number;                // ms
+    error?: string;                  // Error message if FAILED
+}
+
+/** Append-only audit entry for execution */
+export interface ExecutionAuditEntry {
+    entryId: string;
+    executionId: string;
+    intentId: string;
+    approvalId: string;
+    snapshotRef: string;
+    actionType: ActionType;
+    scope: string;
+    target: ResourceTarget;
+    status: 'COMPLETED' | 'FAILED' | 'ROLLED_BACK';
+    executedAt: number;
+    duration: number;                // ms
+    undoPlan: UndoPlan;
+    prevHash: string;                // Hash of previous entry (chain)
+    recordHash: string;              // Hash of this entry
+}
+
+/** Snapshot for pre-execution state preservation */
+export interface ExecutionSnapshot {
+    id: string;
+    resourceId: string;
+    resourceType: string;
+    state: string;                   // JSON stringified state
+    createdAt: number;
+    expiresAt: number;               // 30 days retention
+}
+
+/** Kill switch state */
+export type KillSwitchState = 'EXECUTE_ENABLED' | 'EXECUTE_DISABLED';

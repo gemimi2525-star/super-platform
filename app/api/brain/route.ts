@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API ROUTE — Brain Gateway (Phase 39 → Phase 19 DRAFTER)
+ * API ROUTE — Brain Gateway (Phase 39 → Phase 20 AGENT)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Server-side endpoint for AI Brain interactions.
@@ -9,7 +9,9 @@
  * - Returns BrainResponse
  * - API keys NEVER exposed to client
  * 
- * Phase 19: shadow=true still enforced, appScope added for DRAFTER access
+ * Phase 19: shadow=true enforced, appScope for DRAFTER access
+ * Phase 20: shadow=true enforced, AGENT mode for core.notes
+ *           Execute via separate /api/brain/execute endpoint
  * 
  * @module app/api/brain/route
  */
@@ -83,8 +85,8 @@ export async function POST(request: NextRequest) {
             locale: body.locale,
             userId: body.userId,
             context: body.context,
-            shadow: true, // Phase 19: STILL FORCED — DRAFTER cannot execute
-            appScope,     // Phase 19: App-scoped context for propose tools
+            shadow: true, // Phase 20: shadow=true enforced for chat interactions
+            appScope,     // Phase 19+: App-scoped context for propose/apply tools
         };
 
         // Process through BrainGateway (server-side only)
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
                 tier: effectiveTier,
                 appScope,
                 shadow: true,
-                phase: 19,
+                phase: 20,
             },
         });
 

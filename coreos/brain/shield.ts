@@ -1,19 +1,20 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SAFETY SHIELD (Phase 25A → Phase 19 DRAFTER)
+ * SAFETY SHIELD (Phase 25A → Phase 20 AGENT)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Pre-flight and Post-flight checks for AI interactions.
  * Ensures no dangerous intents bypass validation.
  * 
  * Phase 19: เพิ่ม App-Scoped tool filtering สำหรับ DRAFTER mode
+ * Phase 20: เพิ่ม Execute Access check สำหรับ AGENT mode (core.notes only)
  * 
  * @module coreos/brain/shield
  */
 
-import { BrainRequest, BrainResponse } from './types';
+import { BrainRequest, BrainResponse, ActionType } from './types';
 
-interface SafetyCheckResult {
+export interface SafetyCheckResult {
     safe: boolean;
     reason?: string;
 }
@@ -30,6 +31,19 @@ const PROPOSE_TOOL_APP_MAP: Record<string, string> = {
     'propose_setting_': 'core.settings',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 20: Execute Action → App Scope Mapping
+// Phase 20 จำกัดเฉพาะ core.notes เท่านั้น
+// ═══════════════════════════════════════════════════════════════════════════
+const EXECUTE_ACTION_APP_MAP: Record<string, string> = {
+    'apply_note_': 'core.notes',
+};
+
+const PHASE20_ALLOWED_ACTIONS: ReadonlySet<ActionType> = new Set([
+    'NOTE_REWRITE',
+    'NOTE_STRUCTURE',
+]);
+
 class SafetyGate {
 
     // ═══════════════════════════════════════════════════════════════════
@@ -43,6 +57,7 @@ class SafetyGate {
         'propose_',
         'validate_',    // Existing compliance validator (read-only)
         'draft_',       // Draft intent (propose, not execute)
+        'apply_',       // Phase 20: Execute approved actions (scoped)
     ];
 
     private static readonly PHASE18_BLOCKED_PREFIXES = [
@@ -143,6 +158,50 @@ class SafetyGate {
         }
 
         // propose tool ที่ไม่มีใน map → อนุญาต (generic propose)
+        return { safe: true };
+    }
+
+    /**
+     * Phase 20: Check if an execute/apply action is allowed
+     * G20-1: ไม่มีเส้นทาง execute ที่ไม่มี Signed Approval
+     * G20-2: scope ต้องตรงกับ core.notes (Phase 20)
+     */
+    checkExecuteAccess(toolName: string, appScope?: string, actionType?: ActionType): SafetyCheckResult {
+        // Non-apply tools: ไม่จำเป็นต้องตรวจ execute access
+        if (!toolName.startsWith('apply_')) {
+            return { safe: true };
+        }
+
+        // ถ้าไม่มี app scope → block
+        if (!appScope) {
+            console.warn(`[Shield] 🛑 Phase 20: apply tool '${toolName}' requires app scope`);
+            return {
+                safe: false,
+                reason: `P20: Tool '${toolName}' ต้องระบุ app scope ก่อนใช้งาน`
+            };
+        }
+
+        // ตรวจว่า tool ตรงกับ app scope
+        for (const [prefix, allowedApp] of Object.entries(EXECUTE_ACTION_APP_MAP)) {
+            if (toolName.startsWith(prefix)) {
+                if (appScope !== allowedApp) {
+                    console.warn(`[Shield] 🛑 Phase 20: ${toolName} requires ${allowedApp} but got ${appScope}`);
+                    return {
+                        safe: false,
+                        reason: `P20: Tool '${toolName}' ใช้ได้เฉพาะ ${allowedApp} เท่านั้น (ส่งมา: ${appScope})`
+                    };
+                }
+            }
+        }
+
+        // ตรวจ action type (Phase 20 scope)
+        if (actionType && !PHASE20_ALLOWED_ACTIONS.has(actionType)) {
+            return {
+                safe: false,
+                reason: `P20: Action '${actionType}' ไม่ได้รับอนุญาตใน Phase 20`
+            };
+        }
+
         return { safe: true };
     }
 

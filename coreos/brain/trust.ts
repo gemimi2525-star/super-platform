@@ -1,11 +1,12 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Core OS Brain Trust Engine (Phase 29 → Phase 19 DRAFTER)
+ * Core OS Brain Trust Engine (Phase 29 → Phase 20 AGENT)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Manages AI Trust Score and Capability Escalation.
  * 
  * Phase 19: เพิ่ม App-Scoped Trust — ตรวจสอบว่า app ใดอนุญาต DRAFTER
+ * Phase 20: เพิ่ม Execute Access — core.notes only (AGENT tier)
  * 
  * @module coreos/brain/trust
  */
@@ -32,6 +33,14 @@ const PHASE19_DRAFTER_APPS: ReadonlySet<string> = new Set([
     'core.notes',
     'core.files',
     'core.settings',
+]);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 20: App-Scoped EXECUTE Allow-List
+// เฉพาะ core.notes เท่านั้นใน Phase 20 (Minimal Scope)
+// ═══════════════════════════════════════════════════════════════════════════
+const PHASE20_EXECUTE_APPS: ReadonlySet<string> = new Set([
+    'core.notes',
 ]);
 
 const DEFAULT_TRUST: TrustState = {
@@ -91,6 +100,14 @@ class TrustEngine {
      */
     isAppDrafterAllowed(appId: string): boolean {
         return PHASE19_DRAFTER_APPS.has(appId);
+    }
+
+    /**
+     * Phase 20: ตรวจว่า app นี้ได้รับอนุญาตให้ execute
+     * จำกัดเฉพาะ core.notes ใน Phase 20
+     */
+    isAppExecuteAllowed(appId: string): boolean {
+        return PHASE20_EXECUTE_APPS.has(appId);
     }
 
     /**
