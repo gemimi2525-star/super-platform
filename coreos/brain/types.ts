@@ -167,9 +167,12 @@ export interface ExecutionResult {
     error?: string;                  // Error message if FAILED
 }
 
-/** Append-only audit entry for execution */
+/** Append-only audit entry for execution (Phase 21A: Immutable) */
 export interface ExecutionAuditEntry {
     entryId: string;
+    entryType: 'EXECUTION' | 'ROLLBACK';          // Phase 21A: entry classification
+    referencesEntryId?: string;                     // Phase 21A: ROLLBACK → original EXECUTION entryId
+    auditVersion: number;                           // Phase 21A: v1=legacy, v2=immutable
     executionId: string;
     intentId: string;
     approvalId: string;
@@ -177,7 +180,7 @@ export interface ExecutionAuditEntry {
     actionType: ActionType;
     scope: string;
     target: ResourceTarget;
-    status: 'COMPLETED' | 'FAILED' | 'ROLLED_BACK';
+    status: 'COMPLETED' | 'FAILED' | 'ROLLED_BACK'; // IMMUTABLE after creation
     executedAt: number;
     duration: number;                // ms
     undoPlan: UndoPlan;
