@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
             try {
                 undoResult = await executionEngine.undo(
                     result3.executionId,
-                    async (_snapshotData: string) => {
+                    async (_target: ResourceTarget, _previousState: string) => {
                         console.log('[DeepVerify] 🔄 Restore applied from snapshot');
                     },
                 );
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
             try {
                 undoDoubleResult = await executionEngine.undo(
                     result3.executionId,
-                    async () => { },
+                    async (_t: ResourceTarget, _s: string) => { },
                 );
             } catch (err: any) {
                 undoDoubleResult = { error: err.message, expectedFailure: true };
