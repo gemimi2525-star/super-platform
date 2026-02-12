@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         const approval1 = createSignedApproval();
         const nonce1 = approval1.nonce;
 
-        let result1;
+        let result1: any;
         try {
             result1 = await executionEngine.executeWithApproval(
                 approval1,
@@ -101,18 +101,18 @@ export async function POST(request: NextRequest) {
                     });
                 },
                 async (target: ResourceTarget, diff: { before: string; after: string }) => {
-                    console.log(`[DeepVerify] 📝 Applied: ${diff.after.substring(0, 50)}...`);
+                    console.log(`[DeepVerify] \ud83d\udcdd Applied: ${diff.after.substring(0, 50)}...`);
                 },
             );
         } catch (err: any) {
-            result1 = { error: err.message };
+            result1 = { _caughtError: true, error: err.message };
         }
 
         results.gates['G20-2_Snapshot'] = {
             test: 'Execute NOTE_REWRITE → Verify snapshotRef created',
             approval: { approvalId: approval1.approvalId, nonce: nonce1 },
             result: result1,
-            passed: result1 && !('error' in result1) && result1.snapshotRef ? true : false,
+            passed: !!(result1 && !result1._caughtError && result1.snapshotRef),
             evidence: {
                 hasExecutionId: !!(result1 as any)?.executionId,
                 hasSnapshotRef: !!(result1 as any)?.snapshotRef,
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
         const approval2 = createSignedApproval();
 
-        let result2;
+        let result2: any;
         try {
             result2 = await executionEngine.executeWithApproval(
                 approval2,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
                 async () => { },
             );
         } catch (err: any) {
-            result2 = { error: err.message };
+            result2 = { _caughtError: true, error: err.message };
         }
 
         // Verify audit chain
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        let result3;
+        let result3: any;
         try {
             result3 = await executionEngine.executeWithApproval(
                 approval3,
@@ -201,12 +201,12 @@ export async function POST(request: NextRequest) {
                 async () => { },
             );
         } catch (err: any) {
-            result3 = { error: err.message };
+            result3 = { _caughtError: true, error: err.message };
         }
 
-        let undoResult;
-        let undoDoubleResult;
-        if (result3 && !('error' in result3)) {
+        let undoResult: any;
+        let undoDoubleResult: any;
+        if (result3 && !result3._caughtError) {
             // Try undo
             try {
                 undoResult = await executionEngine.undo(
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
                     },
                 );
             } catch (err: any) {
-                undoResult = { error: err.message };
+                undoResult = { _caughtError: true, error: err.message };
             }
 
             // Try double undo (should fail)
@@ -226,19 +226,19 @@ export async function POST(request: NextRequest) {
                     async (_t: ResourceTarget, _s: string) => { },
                 );
             } catch (err: any) {
-                undoDoubleResult = { error: err.message, expectedFailure: true };
+                undoDoubleResult = { _caughtError: true, error: err.message, expectedFailure: true };
             }
         }
 
         results.gates['G20-3_Undo'] = {
             test: 'Execute → Undo → Verify revert + double-undo rejection',
-            executeResult: result3 ? { executionId: (result3 as any).executionId, status: (result3 as any).status } : null,
+            executeResult: result3 ? { executionId: result3.executionId, status: result3.status } : null,
             undoResult,
             doubleUndoResult: undoDoubleResult,
-            passed: undoResult && !('error' in (undoResult as any)) && undoDoubleResult && ('error' in (undoDoubleResult as any)),
+            passed: !!(undoResult && !undoResult._caughtError && undoDoubleResult && undoDoubleResult._caughtError),
             evidence: {
-                undoSuccess: undoResult && !('error' in (undoResult as any)),
-                doubleUndoBlocked: undoDoubleResult && ('error' in (undoDoubleResult as any)),
+                undoSuccess: !!(undoResult && !undoResult._caughtError),
+                doubleUndoBlocked: !!(undoDoubleResult && undoDoubleResult._caughtError),
                 auditLogAfterUndo: executionEngine.getAuditLog().length,
                 chainStillValid: executionEngine.verifyAuditChain().valid,
             },
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
 
         const replayApproval = createSignedApproval({ nonce: nonce1 }); // REUSE nonce from TEST B.1
 
-        let replayResult;
+        let replayResult: any;
         try {
             replayResult = await executionEngine.executeWithApproval(
                 replayApproval,
@@ -259,18 +259,18 @@ export async function POST(request: NextRequest) {
                 async () => { },
             );
         } catch (err: any) {
-            replayResult = { error: err.message, isNonceRejection: err.message.includes('NONCE') };
+            replayResult = { _caughtError: true, error: err.message, isNonceRejection: err.message.includes('NONCE') };
         }
 
         results.gates['G20-6_NonceReplay'] = {
             test: 'Replay same nonce → must be rejected',
             reusedNonce: nonce1,
             result: replayResult,
-            passed: replayResult && ('error' in replayResult) && (replayResult as any).isNonceRejection === true,
+            passed: !!(replayResult && replayResult._caughtError && replayResult.isNonceRejection),
             evidence: {
-                rejected: 'error' in (replayResult as any),
-                errorMessage: (replayResult as any).error || null,
-                isNonceRelated: (replayResult as any).isNonceRejection || false,
+                rejected: !!replayResult?._caughtError,
+                errorMessage: replayResult?.error || null,
+                isNonceRelated: replayResult?.isNonceRejection || false,
             },
         };
 
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
 
         const wrongScopeApproval = createSignedApproval({ scope: 'core.files' });
 
-        let scopeResult;
+        let scopeResult: any;
         try {
             scopeResult = await executionEngine.executeWithApproval(
                 wrongScopeApproval,
@@ -289,13 +289,13 @@ export async function POST(request: NextRequest) {
                 async () => { },
             );
         } catch (err: any) {
-            scopeResult = { error: err.message, isScopeRejection: err.message.includes('scope') || err.message.includes('Phase 20') };
+            scopeResult = { _caughtError: true, error: err.message, isScopeRejection: err.message.includes('scope') || err.message.includes('Phase 20') };
         }
 
         results.gates['G20-4_ScopeIsolation'] = {
             test: 'Wrong scope (core.files) → must be rejected',
             result: scopeResult,
-            passed: scopeResult && ('error' in scopeResult),
+            passed: !!(scopeResult && scopeResult._caughtError),
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
         const unsignedApproval = createSignedApproval();
         unsignedApproval.signature = ''; // Remove signature
 
-        let unsignedResult;
+        let unsignedResult: any;
         try {
             unsignedResult = await executionEngine.executeWithApproval(
                 unsignedApproval,
@@ -315,13 +315,13 @@ export async function POST(request: NextRequest) {
                 async () => { },
             );
         } catch (err: any) {
-            unsignedResult = { error: err.message };
+            unsignedResult = { _caughtError: true, error: err.message };
         }
 
         results.gates['G20-1_UnsignedExec'] = {
             test: 'Execution without signature → must be rejected',
             result: unsignedResult,
-            passed: unsignedResult && ('error' in unsignedResult),
+            passed: !!(unsignedResult && unsignedResult._caughtError),
         };
 
         // ═══════════════════════════════════════════════════════════════
