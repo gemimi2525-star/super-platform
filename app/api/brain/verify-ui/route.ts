@@ -99,8 +99,13 @@ export async function GET(request: NextRequest) {
                     signedFields,
                 };
 
-                // Sign with Ed25519
-                const dataToSign = JSON.stringify(approvalPayload);
+                // Sign with Ed25519 — MUST match canonicalize() in ExecutionEngine
+                // canonicalize() extracts only the signedFields from approval
+                const canonical: Record<string, any> = {};
+                for (const field of signedFields) {
+                    canonical[field] = (approvalPayload as any)[field];
+                }
+                const dataToSign = JSON.stringify(canonical);
                 const signature = signData(dataToSign);
 
                 const approval: SignedApproval = {
