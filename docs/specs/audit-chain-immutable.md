@@ -1,79 +1,44 @@
-# Audit Chain — Immutable Design Note
+# Audit Chain — Immutable Design (Phase 21A)
 
-> **Status:** Known Design Consideration  
-> **Phase:** 20 (current) → Target fix: Phase 21+  
-> **Priority:** Medium  
+> **Status:** ✅ IMPLEMENTED (Phase 21A)
+> **Date:** 2026-02-12
 > **Component:** `coreos/brain/execution.ts`
 
 ---
 
-## Current Behavior
+## Problem (Resolved)
 
-When `undo()` is called, the `ExecutionEngine` **mutates** the original audit entry:
+`undo()` mutated the original audit entry (`auditEntry.status = 'ROLLED_BACK'`), breaking `verifyAuditChain()` because the SHA-256 hash was computed with `status: "COMPLETED"`.
 
-```typescript
-// execution.ts — undo() method
-auditEntry.status = 'ROLLED_BACK';  // ← mutates in-place
-```
+## Solution: Append-Only Rollback
 
-This causes `verifyAuditChain()` to return `chainValid: false` because the SHA-256 hash was computed with `status: "COMPLETED"` but now the entry has `status: "ROLLED_BACK"`.
+**Invariant:** No audit entry is ever mutated after creation.
 
-**Chain linkage (prevHash → recordHash) is intact.** Only the hash-to-content verification fails.
+| Entry Type | Behavior |
+|-----------|----------|
+| `EXECUTION` | Immutable — status stays `COMPLETED` forever |
+| `ROLLBACK` | New entry appended with `referencesEntryId` → original |
 
----
+### Schema v2 Fields
 
-## Root Cause
+| Field | Type | Purpose |
+|-------|------|---------|
+| `entryType` | `'EXECUTION' \| 'ROLLBACK'` | Classify entry |
+| `referencesEntryId` | `string?` | ROLLBACK → original EXECUTION |
+| `auditVersion` | `number` | `2` = immutable, `1`/absent = legacy |
 
-`computeHash()` includes `status` in its hash input:
+### Double-Undo Detection
 
-```typescript
-private computeHash(entry: ExecutionAuditEntry): string {
-    const data = JSON.stringify({
-        entryId: entry.entryId,
-        executionId: entry.executionId,
-        // ...
-        status: entry.status,  // ← included in hash
-        // ...
-    });
-    return createHash('sha256').update(data).digest('hex').substring(0, 16);
-}
-```
+Old: checked `auditEntry.status === 'ROLLED_BACK'` (required mutation)
+New: checks if any ROLLBACK entry exists with `referencesEntryId === auditEntry.entryId`
 
-When `undo()` changes `status` from `"COMPLETED"` to `"ROLLED_BACK"`, the recomputed hash no longer matches `recordHash`.
+### Legacy Tolerance
 
----
+Entries with `auditVersion < 2` are skipped during hash verification. No production data modified.
 
-## Recommended Fix (Phase 21+)
+## Verification
 
-### Option A: Append-Only Rollback Entry (Recommended)
+6/6 vitest tests pass. Build exit 0. CI guardrail PASSED.
 
-Instead of mutating the original entry, append a **new** entry with type `"ROLLBACK"`:
+See: [phase-21a-immutable-audit.md](../reports/phase-21a-immutable-audit.md)
 
-```typescript
-// Instead of:
-auditEntry.status = 'ROLLED_BACK';
-
-// Do:
-this.appendAuditEntry({
-    ...rollbackResult,
-    status: 'ROLLBACK',
-    referencesEntryId: originalEntry.entryId,
-}, approval);
-```
-
-**Benefits:**
-- Original entries are never mutated → hashes remain valid
-- `verifyAuditChain()` always returns `true`
-- Full history preserved (who executed, who rolled back, when)
-
-### Option B: Exclude `status` from Hash
-
-Remove `status` from `computeHash()` input. This allows status changes without breaking hashes.
-
-**Drawback:** Reduces the integrity guarantee (status changes become invisible to hash verification).
-
----
-
-## Decision
-
-**Option A (Append-Only) is recommended** for Phase 21+. It preserves full cryptographic integrity while supporting undo operations.

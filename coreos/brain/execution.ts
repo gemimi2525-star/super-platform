@@ -260,13 +260,19 @@ class ExecutionEngine {
     ): Promise<ExecutionResult> {
         const startTime = Date.now();
 
-        // Find the audit entry for this execution
-        const auditEntry = this.auditLog.find(e => e.executionId === executionId);
+        // Find the EXECUTION entry (not a ROLLBACK)
+        const auditEntry = this.auditLog.find(
+            e => e.executionId === executionId && e.entryType !== 'ROLLBACK'
+        );
         if (!auditEntry) {
             throw new Error(`P20: Execution '${executionId}' not found in audit log`);
         }
 
-        if (auditEntry.status === 'ROLLED_BACK') {
+        // Phase 21A: Double-undo check via ROLLBACK entry lookup (NOT mutation)
+        const existingRollback = this.auditLog.find(
+            e => e.entryType === 'ROLLBACK' && e.referencesEntryId === auditEntry.entryId
+        );
+        if (existingRollback) {
             throw new Error(`P20: Execution '${executionId}' already rolled back`);
         }
 
@@ -281,8 +287,7 @@ class ExecutionEngine {
             await applyRestore(auditEntry.target, snapshot.state);
             console.log(`[Execution] ↩️ Undo completed: ${executionId}`);
 
-            // Update audit entry status
-            auditEntry.status = 'ROLLED_BACK';
+            // Phase 21A: NO MUTATION of original entry — append ROLLBACK instead
 
             // Create a new audit entry for the rollback
             const undoResult: ExecutionResult = {
@@ -296,7 +301,7 @@ class ExecutionEngine {
                 duration: Date.now() - startTime,
             };
 
-            // Append rollback audit entry
+            // Append ROLLBACK audit entry (immutable, append-only)
             const entryId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
             const prevHash = this.auditLog.length > 0
                 ? this.auditLog[this.auditLog.length - 1].recordHash
@@ -304,6 +309,9 @@ class ExecutionEngine {
 
             const rollbackEntry: ExecutionAuditEntry = {
                 entryId,
+                entryType: 'ROLLBACK',                          // Phase 21A
+                referencesEntryId: auditEntry.entryId,          // Phase 21A
+                auditVersion: 2,                                // Phase 21A
                 executionId: undoResult.executionId,
                 intentId: auditEntry.intentId,
                 approvalId: auditEntry.approvalId,
@@ -345,6 +353,8 @@ class ExecutionEngine {
 
         const entry: ExecutionAuditEntry = {
             entryId,
+            entryType: 'EXECUTION',                              // Phase 21A
+            auditVersion: 2,                                     // Phase 21A: immutable
             executionId: result.executionId,
             intentId: result.intentId,
             approvalId: result.approvalId,
@@ -376,24 +386,49 @@ class ExecutionEngine {
     /**
      * Verify audit chain integrity
      */
-    verifyAuditChain(): { valid: boolean; brokenAt?: number } {
+    verifyAuditChain(): { valid: boolean; brokenAt?: number; details?: string } {
         for (let i = 0; i < this.auditLog.length; i++) {
             const entry = this.auditLog[i];
+
+            // Phase 21A: Legacy tolerance — skip hash check for v1 entries
+            if (!entry.auditVersion || entry.auditVersion < 2) {
+                continue;
+            }
 
             // Verify record hash
             const expectedHash = this.computeHash({ ...entry, recordHash: '' });
             if (entry.recordHash !== expectedHash) {
-                return { valid: false, brokenAt: i };
+                return { valid: false, brokenAt: i, details: `Hash mismatch at entry ${entry.entryId}` };
             }
 
-            // Verify chain
+            // Verify chain linkage
             if (i > 0) {
-                if (entry.prevHash !== this.auditLog[i - 1].recordHash) {
-                    return { valid: false, brokenAt: i };
+                // Find previous v2 entry for chain verification
+                const prevEntry = this.auditLog[i - 1];
+                if (entry.prevHash !== prevEntry.recordHash) {
+                    return { valid: false, brokenAt: i, details: `Chain break: prevHash mismatch at entry ${entry.entryId}` };
                 }
             } else {
                 if (entry.prevHash !== '0000000000000000') {
-                    return { valid: false, brokenAt: 0 };
+                    return { valid: false, brokenAt: 0, details: 'Genesis entry has wrong prevHash' };
+                }
+            }
+
+            // Phase 21A: Semantic validation for ROLLBACK entries
+            if (entry.entryType === 'ROLLBACK') {
+                if (!entry.referencesEntryId) {
+                    return { valid: false, brokenAt: i, details: 'ROLLBACK missing referencesEntryId' };
+                }
+                const referenced = this.auditLog.find(e => e.entryId === entry.referencesEntryId);
+                if (!referenced || referenced.entryType !== 'EXECUTION') {
+                    return { valid: false, brokenAt: i, details: 'ROLLBACK references non-existent EXECUTION' };
+                }
+                // Check for duplicate rollbacks
+                const duplicates = this.auditLog.filter(
+                    e => e.entryType === 'ROLLBACK' && e.referencesEntryId === entry.referencesEntryId
+                );
+                if (duplicates.length > 1) {
+                    return { valid: false, brokenAt: i, details: 'Duplicate ROLLBACK for same EXECUTION' };
                 }
             }
         }
@@ -428,6 +463,9 @@ class ExecutionEngine {
     private computeHash(entry: ExecutionAuditEntry): string {
         const data = JSON.stringify({
             entryId: entry.entryId,
+            entryType: entry.entryType,                    // Phase 21A
+            referencesEntryId: entry.referencesEntryId || null,  // Phase 21A
+            auditVersion: entry.auditVersion,              // Phase 21A
             executionId: entry.executionId,
             intentId: entry.intentId,
             approvalId: entry.approvalId,

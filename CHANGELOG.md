@@ -2,6 +2,20 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 21A] — 2026-02-12
+
+### Fixed
+- **Immutable Audit Chain** — `undo()` no longer mutates original audit entries
+- `verifyAuditChain()` now returns `valid: true` after execute + undo sequences
+- New `ROLLBACK` entry type appended instead of mutating `EXECUTION` entries
+- Double-undo detected via ROLLBACK entry lookup (not mutation check)
+- Legacy tolerance: v1 entries skipped during hash verification
+
+### Added
+- `entryType`, `referencesEntryId`, `auditVersion` fields on `ExecutionAuditEntry`
+- Semantic validation in `verifyAuditChain()` (ROLLBACK must reference valid EXECUTION)
+- 6 vitest tests for chain integrity (`coreos/brain/execution.test.ts`)
+
 ## [Phase 20] — 2026-02-12
 
 ### Added
