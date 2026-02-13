@@ -42,8 +42,9 @@ docs/
 *.md
 LICENSE
 
-# Dev scripts not needed in image
-scripts/
+# Dev shell scripts not needed in image (keep .ts scripts for prebuild)
+scripts/smoke-*.sh
+scripts/prod-*.sh
 
 # Tests
 **/*.test.*
