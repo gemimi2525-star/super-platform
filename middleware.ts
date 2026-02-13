@@ -341,6 +341,23 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // 3b. SPECIAL HANDLING: /ops (Ops Center — no i18n redirect)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 22C: Ops Center lives at /ops (outside locale groups).
+    // Must exempt from i18n redirect, same pattern as /os.
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (pathname === '/ops' || pathname.startsWith('/ops/')) {
+        return NextResponse.next();
+    }
+
+    // Canonicalize /{locale}/ops -> /ops
+    const localeOpsMatch = pathname.match(/^\/(en|th)\/ops/);
+    if (localeOpsMatch) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/ops';
+        return NextResponse.redirect(url, 301);
+    }
+
     // 4. PUBLIC ROOT → REDIRECT TO LOCALE
     // Root "/" should redirect to /{locale} based on cookie
     // NOTE: Do NOT set cookie here - cookie is only set by LanguageDropdown
