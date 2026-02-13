@@ -341,12 +341,24 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
-    // 3b. SPECIAL HANDLING: /ops (Ops Center — no i18n redirect)
+    // 3b. SPECIAL HANDLING: /ops (Owner-Only Ops Center)
     // ═══════════════════════════════════════════════════════════════════════════
-    // PHASE 22C: Ops Center lives at /ops (outside locale groups).
-    // Must exempt from i18n redirect, same pattern as /os.
+    // PHASE 22C: Ops Center is owner-only. 2-layer guard:
+    //   Layer 1 (here, Edge): Check session cookie exists → redirect /login if not
+    //   Layer 2 (ops/layout.tsx, Node.js): Verify UID == SUPER_ADMIN_ID → 403 if not
     // ═══════════════════════════════════════════════════════════════════════════
     if (pathname === '/ops' || pathname.startsWith('/ops/')) {
+        const hasSession = request.cookies.has('__session');
+        if (!hasSession) {
+            if (isDev) {
+                console.log('[MW][/ops] REDIRECT -> /login (no session)');
+            }
+            const url = request.nextUrl.clone();
+            url.pathname = '/login';
+            url.searchParams.set('callbackUrl', '/ops');
+            return NextResponse.redirect(url);
+        }
+        // Session exists → pass to server layout for UID verification
         return NextResponse.next();
     }
 
