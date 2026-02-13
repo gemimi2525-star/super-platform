@@ -1,17 +1,17 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * BRAIN GATEWAY (Phase 25A → Phase 20 AGENT)
+ * BRAIN GATEWAY (Phase 25A → Phase 21B ADAPTER)
  * ═══════════════════════════════════════════════════════════════════════════
- * 
+ *
  * The central entry point for all AI interactions in Core OS.
- * - Routes requests to provider (Mock for now)
+ * - Routes requests to LLMProvider (vendor-neutral)
  * - Enforces Rate Limits
  * - Integrates Audit Logging
- * 
+ *
  * Phase 19: DRAFTER MODE — AI can propose within app scope
  * Phase 20: AGENT MODE — AI can execute approved actions (core.notes only)
- *           Requires SignedApproval + Snapshot + Undo + Audit
- * 
+ * Phase 21B: ADAPTER LAYER — provider-agnostic via LLMProvider interface
+ *
  * @module coreos/brain/gateway
  */
 
@@ -19,23 +19,28 @@ import { BrainRequest, BrainResponse, BrainStatus } from './types';
 import { toolRegistry } from './registry';
 import { safetyGate } from './shield';
 import { trustEngine, TrustTier } from './trust';
+import { SYSTEM_PROMPT } from './prompts';
 
-import { OpenAIProvider } from './providers/openai';
+import { LLMProvider, LLMInput, LLMMessage, LLMToolDef } from './providers/types';
+import { OpenAIAdapter } from './providers/openai';
+import { MockAdapter } from './providers/mock';
 
-// Factory for Providers
-const getProvider = () => {
+/**
+ * Phase 21B: Provider resolution — returns LLMProvider interface.
+ * Orchestrator NEVER touches vendor SDK directly.
+ */
+function resolveProvider(): LLMProvider {
     const apiKey = process.env.OPENAI_API_KEY;
+    const providerConfig = process.env.BRAIN_PROVIDER || 'mock';
 
-    // Auto-detect OpenAI if key is present, OR if explicitly set to openai
-    // This allows "just works" behavior when key is added to Vercel
-    // if (apiKey && (!process.env.BRAIN_PROVIDER || process.env.BRAIN_PROVIDER === 'openai')) {
-    //     console.log('[Brain] Factory: Instantiating OpenAIProvider');
-    //     return new OpenAIProvider(apiKey);
-    // }
+    if (apiKey && providerConfig === 'openai') {
+        console.log('[Brain] Factory: Instantiating OpenAIAdapter');
+        return new OpenAIAdapter(apiKey);
+    }
 
-    console.log('[Brain] Factory: Fallback to MockProvider (Missing Key or Provider mismatch)');
-    return null as OpenAIProvider | null; // Fallback to Mock
-};
+    console.log('[Brain] Factory: Fallback to MockAdapter');
+    return new MockAdapter();
+}
 
 class BrainGateway {
     private status: BrainStatus = 'idle';
@@ -143,49 +148,110 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
         this.status = 'processing';
 
         try {
-            let response: BrainResponse;
-            const provider = getProvider();
+            // ═══════════════════════════════════════════════════════════
+            // Phase 21B: Provider-Agnostic LLM Call
+            // ═══════════════════════════════════════════════════════════
+            const provider: LLMProvider = resolveProvider();
+            console.log(`[Brain] Using provider: ${provider.providerId} (${provider.modelId})`);
 
-            if (provider) {
-                console.log(`[Brain] Using OpenAI Provider`);
-                let tools = toolRegistry.getAllTools();
-
-                // Phase 19: Filter tools by trust tier and app scope
-                if (effectiveTier === TrustTier.OBSERVER) {
-                    // OBSERVER: only read_*, explain_*, search_* tools
-                    tools = tools.filter(t =>
-                        t.name.startsWith('read_') ||
-                        t.name.startsWith('explain_') ||
-                        t.name.startsWith('search_')
-                    );
-                } else if (effectiveTier === TrustTier.DRAFTER) {
-                    // DRAFTER: read_* + explain_* + propose_* (scoped to app)
-                    tools = tools.filter(t =>
-                        t.name.startsWith('read_') ||
-                        t.name.startsWith('explain_') ||
-                        t.name.startsWith('search_') ||
-                        t.name.startsWith('propose_') ||
-                        t.name.startsWith('validate_') ||
-                        t.name.startsWith('draft_')
-                    );
-                } else if (effectiveTier === TrustTier.AGENT && trustEngine.isAppExecuteAllowed(appScope)) {
-                    // AGENT: read_* + explain_* + propose_* + apply_* (scoped to app)
-                    tools = tools.filter(t =>
-                        t.name.startsWith('read_') ||
-                        t.name.startsWith('explain_') ||
-                        t.name.startsWith('search_') ||
-                        t.name.startsWith('propose_') ||
-                        t.name.startsWith('validate_') ||
-                        t.name.startsWith('draft_') ||
-                        t.name.startsWith('apply_')
-                    );
-                }
-
-                response = await provider.processRequest(request, tools);
-            } else {
-                console.log(`[Brain] Using Mock Provider`);
-                response = await this.mockProvider(request, appScope, effectiveTier);
+            // Phase 19: Filter tools by trust tier and app scope
+            let tools = toolRegistry.getAllTools();
+            if (effectiveTier === TrustTier.OBSERVER) {
+                tools = tools.filter(t =>
+                    t.name.startsWith('read_') ||
+                    t.name.startsWith('explain_') ||
+                    t.name.startsWith('search_')
+                );
+            } else if (effectiveTier === TrustTier.DRAFTER) {
+                tools = tools.filter(t =>
+                    t.name.startsWith('read_') ||
+                    t.name.startsWith('explain_') ||
+                    t.name.startsWith('search_') ||
+                    t.name.startsWith('propose_') ||
+                    t.name.startsWith('validate_') ||
+                    t.name.startsWith('draft_')
+                );
+            } else if (effectiveTier === TrustTier.AGENT && trustEngine.isAppExecuteAllowed(appScope)) {
+                tools = tools.filter(t =>
+                    t.name.startsWith('read_') ||
+                    t.name.startsWith('explain_') ||
+                    t.name.startsWith('search_') ||
+                    t.name.startsWith('propose_') ||
+                    t.name.startsWith('validate_') ||
+                    t.name.startsWith('draft_') ||
+                    t.name.startsWith('apply_')
+                );
             }
+
+            // Build LLMInput (vendor-neutral)
+            const llmInput: LLMInput = {
+                messages: request.messages.map(m => ({
+                    role: m.role as LLMMessage['role'],
+                    content: m.content,
+                    name: m.name,
+                    toolCallId: m.tool_call_id,
+                })),
+                tools: tools.map(t => ({
+                    name: t.name,
+                    description: t.description,
+                    parameters: t.parameters,
+                })),
+                temperature: 0.2,
+                metadata: {
+                    correlationId: request.correlationId,
+                    appScope,
+                    trustTier: effectiveTier,
+                },
+            };
+
+            // Prepend system prompt for live providers (mock handles its own)
+            if (provider.providerId !== 'mock') {
+                llmInput.messages.unshift({
+                    role: 'system',
+                    content: SYSTEM_PROMPT,
+                });
+                if (request.context) {
+                    llmInput.messages.push({
+                        role: 'system',
+                        content: `Current Context: ${JSON.stringify(request.context)}`,
+                    });
+                }
+            }
+
+            // Call provider via LLMProvider interface
+            const llmOutput = await provider.generate(llmInput);
+
+            // Map LLMOutput → BrainResponse
+            const response: BrainResponse = {
+                id: llmOutput.providerMeta.requestId || `resp-${Date.now()}`,
+                content: llmOutput.content,
+                tool_calls: llmOutput.toolCalls.map(tc => ({
+                    id: tc.callId,
+                    type: 'function' as const,
+                    function: {
+                        name: tc.toolName,
+                        arguments: JSON.stringify(tc.arguments),
+                    },
+                })),
+                usage: {
+                    prompt_tokens: llmOutput.usage.promptTokens,
+                    completion_tokens: llmOutput.usage.completionTokens,
+                    total_tokens: llmOutput.usage.totalTokens,
+                },
+            };
+
+            // Phase 21B: Audit provider metadata
+            this.auditLog(request.correlationId, 'brain.provider_response', {
+                provider: llmOutput.providerMeta.providerId,
+                model: llmOutput.providerMeta.modelId,
+                latencyMs: llmOutput.providerMeta.latencyMs,
+                toolCallCount: llmOutput.toolCalls.length,
+                toolCallHashes: llmOutput.toolCalls.map(tc => ({
+                    toolName: tc.toolName,
+                    argumentsHash: tc.argumentsHash,
+                })),
+                usage: llmOutput.usage,
+            });
 
             // 4. Handle Tool Calls (if any)
             if (response.tool_calls && response.tool_calls.length > 0) {
@@ -232,7 +298,6 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         continue;
                     }
 
-                    // ... (rest of tool execution logic)
                     let toolArgs = {};
                     try {
                         toolArgs = JSON.parse(toolCall.function.arguments);
@@ -275,144 +340,6 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
             this.auditLog(request.correlationId, 'brain.error', { error: error.message });
             throw error;
         }
-    }
-
-    /**
-     * Phase 19: Smart Mock Provider with DRAFTER awareness
-     */
-    private async mockProvider(request: BrainRequest, appScope: string, tier: TrustTier): Promise<BrainResponse> {
-        // Simulate latency
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const lastMessage = request.messages[request.messages.length - 1];
-        const content = lastMessage.content.toLowerCase();
-
-        // Phase 19: DRAFTER Mock — return proposal-style responses
-        if (tier === TrustTier.DRAFTER || tier === TrustTier.AGENT) {
-            // Notes proposals
-            if (appScope === 'core.notes') {
-                if (content.includes('สรุป') || content.includes('summarize') || content.includes('summary')) {
-                    return {
-                        id: `resp-${Date.now()}`,
-                        content: JSON.stringify({
-                            type: 'proposal',
-                            proposal: {
-                                id: `prop-${Date.now()}`,
-                                type: 'summarize',
-                                appId: 'core.notes',
-                                title: '📝 สรุปเนื้อหา Note',
-                                description: 'AI เสนอสรุปเนื้อหา Note ของคุณ ให้กระชับและอ่านง่ายขึ้น',
-                                preview: 'ตัวอย่างสรุป: เนื้อหาหลักประกอบด้วย 3 หัวข้อ — (1) การตั้งค่าระบบ (2) การจัดการสิทธิ์ (3) การตรวจสอบ Audit Log',
-                                confidence: 0.85,
-                                requiresConfirm: true,
-                            }
-                        }),
-                        usage: { prompt_tokens: 50, completion_tokens: 30, total_tokens: 80 }
-                    };
-                }
-                if (content.includes('เขียนใหม่') || content.includes('rewrite')) {
-                    return {
-                        id: `resp-${Date.now()}`,
-                        content: JSON.stringify({
-                            type: 'proposal',
-                            proposal: {
-                                id: `prop-${Date.now()}`,
-                                type: 'rewrite',
-                                appId: 'core.notes',
-                                title: '✏️ เขียนเนื้อหาใหม่',
-                                description: 'AI เสนอเขียนเนื้อหาใหม่ให้ชัดเจนและเป็นระเบียบมากขึ้น',
-                                preview: 'ตัวอย่าง: ปรับโครงสร้างเป็นหัวข้อย่อย พร้อม bullet points',
-                                confidence: 0.78,
-                                requiresConfirm: true,
-                            }
-                        }),
-                        usage: { prompt_tokens: 50, completion_tokens: 30, total_tokens: 80 }
-                    };
-                }
-            }
-
-            // Files proposals
-            if (appScope === 'core.files') {
-                if (content.includes('จัด') || content.includes('organize') || content.includes('เรียง')) {
-                    return {
-                        id: `resp-${Date.now()}`,
-                        content: JSON.stringify({
-                            type: 'proposal',
-                            proposal: {
-                                id: `prop-${Date.now()}`,
-                                type: 'organize',
-                                appId: 'core.files',
-                                title: '📁 แผนจัดระเบียบไฟล์',
-                                description: 'AI เสนอแผนจัดไฟล์ให้เป็นระเบียบ (ยังไม่ย้ายจริง — ต้องกดยืนยัน)',
-                                preview: 'แผน: ย้าย .pdf → Documents/PDFs, ย้าย .jpg → Photos/2026, ลบ .tmp จาก Downloads',
-                                confidence: 0.82,
-                                requiresConfirm: true,
-                            }
-                        }),
-                        usage: { prompt_tokens: 50, completion_tokens: 30, total_tokens: 80 }
-                    };
-                }
-            }
-
-            // Settings proposals
-            if (appScope === 'core.settings') {
-                if (content.includes('แนะนำ') || content.includes('recommend') || content.includes('ตั้งค่า')) {
-                    return {
-                        id: `resp-${Date.now()}`,
-                        content: JSON.stringify({
-                            type: 'proposal',
-                            proposal: {
-                                id: `prop-${Date.now()}`,
-                                type: 'recommend',
-                                appId: 'core.settings',
-                                title: '⚙️ คำแนะนำการตั้งค่า',
-                                description: 'AI เสนอการตั้งค่าที่เหมาะสมกับการใช้งานของคุณ (read-only)',
-                                preview: 'แนะนำ: เปิด Dark Mode, ตั้ง Auto-save ที่ 30 วินาที, ปิด Animation เพื่อประสิทธิภาพ',
-                                confidence: 0.90,
-                                requiresConfirm: true,
-                            }
-                        }),
-                        usage: { prompt_tokens: 50, completion_tokens: 30, total_tokens: 80 }
-                    };
-                }
-            }
-
-            // Generic DRAFTER response
-            return {
-                id: `resp-${Date.now()}`,
-                content: `[DRAFTER Mode — ${appScope}] AI พร้อมเสนอแนะใน ${appScope} ลองถามเช่น:\n` +
-                    (appScope === 'core.notes' ? '• "ช่วยสรุป note นี้"\n• "เขียนใหม่ให้ชัดเจน"\n• "จัดโครงสร้างให้หน่อย"' :
-                        appScope === 'core.files' ? '• "ช่วยจัดระเบียบไฟล์"\n• "เรียงไฟล์ให้หน่อย"' :
-                            appScope === 'core.settings' ? '• "แนะนำการตั้งค่า"\n• "ช่วยปรับ settings"' :
-                                '• "ช่วยดู..."'),
-                usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
-            };
-        }
-
-        // OBSERVER fallback
-        if (content.includes("verify document")) {
-            return {
-                id: `resp-${Date.now()}`,
-                content: "I will verify this document for compliance.",
-                tool_calls: [
-                    {
-                        id: `call-${Date.now()}`,
-                        type: 'function',
-                        function: {
-                            name: 'validate_document_compliance',
-                            arguments: JSON.stringify({ documentId: 'doc-123', standard: 'ISO-27001' })
-                        }
-                    }
-                ],
-                usage: { prompt_tokens: 50, completion_tokens: 20, total_tokens: 70 }
-            };
-        }
-
-        return {
-            id: `resp-${Date.now()}`,
-            content: `[Observer Mode] ${lastMessage.content} — ระบบอยู่ในโหมดสังเกตการณ์ ใช้ได้เฉพาะ read/explain`,
-            usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 }
-        };
     }
 
     private auditLog(correlationId: string, event: string, metadata: any) {
