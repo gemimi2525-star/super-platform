@@ -14,6 +14,11 @@ export const COLLECTION_AUDIT_LOGS = 'audit_logs';
 export const COLLECTION_NOTIFICATIONS = 'notifications';
 export const COLLECTION_WORKFLOWS = 'workflows';
 
+// Job Queue Collections (Phase 21C)
+export const COLLECTION_JOB_QUEUE = 'job_queue';
+export const COLLECTION_JOB_RESULTS = 'job_results';
+export const COLLECTION_JOB_NONCES = 'job_nonces';
+
 // SEO Module Collections
 export const COLLECTION_SEO_SITES = 'seo_sites';
 export const COLLECTION_SEO_PAGES = 'seo_pages';
