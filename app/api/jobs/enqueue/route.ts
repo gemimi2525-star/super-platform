@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     try {
         // ─── Parse body ───
         const body = await request.json();
-        const { jobType, payload, policyDecisionId, scope, traceId } = body;
+        const { jobType, payload, policyDecisionId, scope, traceId, maxAttempts } = body;
 
         // ─── Validate required fields ───
         if (!jobType || !JOB_TYPES.includes(jobType as JobType)) {
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
             ticket,
             payload: canonicalPayload,
             version: '1.0',
-        });
+        }, maxAttempts ? Number(maxAttempts) : undefined);
 
         console.log(`[API/jobs/enqueue] Job enqueued: ${jobId} (${jobType}) trace=${jobTraceId}`);
 

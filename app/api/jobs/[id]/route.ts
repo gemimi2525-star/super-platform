@@ -40,6 +40,9 @@ export async function GET(
             workerId: job.workerId,
             claimedAt: job.claimedAt,
             createdAt: job.createdAt,
+            attempts: job.attempts,
+            maxAttempts: job.maxAttempts,
+            lastError: job.lastError,
             result: job.result ? {
                 status: job.result.status,
                 metrics: job.result.metrics,

@@ -1,19 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API — POST /api/jobs/result (Phase 21C)
+ * API — POST /api/jobs/result (Phase 22A)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Accepts a signed JobResult from Go worker.
- * Verifies HMAC signature, payloadHash, policyDecisionId.
- * Updates job status and appends audit entry.
+ * Verifies HMAC signature, then decides: COMPLETED / retry / dead-letter.
  *
  * Body: JobResult (signed with HMAC-SHA256)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { JobResult } from '@/coreos/jobs/types';
+import type { JobResult, JobQueueRecord } from '@/coreos/jobs/types';
+import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { validateResult, validateJobExists } from '@/coreos/jobs/validator';
-import { updateJobStatus } from '@/coreos/jobs/queue';
+import { updateJobStatus, retryJob, deadLetterJob } from '@/coreos/jobs/queue';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
@@ -51,19 +51,59 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ─── Update job status ───
-        const newStatus = result.status === 'SUCCEEDED' ? 'COMPLETED' : 'FAILED';
-        await updateJobStatus(result.jobId, newStatus, result);
+        // ─── Read job record for retry decision ───
+        const jobDoc = await db.collection(COLLECTION_JOB_QUEUE).doc(result.jobId).get();
+        const jobRecord = jobDoc.data() as JobQueueRecord;
+        const attempts = jobRecord.attempts ?? 1;
+        const maxAttempts = jobRecord.maxAttempts ?? 3;
+
+        let newStatus: string;
+
+        if (result.status === 'SUCCEEDED') {
+            // ── SUCCESS ──
+            newStatus = 'COMPLETED';
+            await updateJobStatus(result.jobId, 'COMPLETED', result);
+        } else {
+            // ── FAILED — decide retry vs dead-letter ──
+            const lastError = {
+                code: result.errorCode ?? 'UNKNOWN',
+                message: result.errorMessage ?? 'Unknown error',
+                at: Date.now(),
+            };
+
+            if (attempts < maxAttempts) {
+                // Retry: set FAILED_RETRYABLE + backoff
+                newStatus = 'FAILED_RETRYABLE';
+                await retryJob(result.jobId, lastError, attempts);
+
+                // Also store the result for audit
+                await db.collection('job_results').doc(`${result.jobId}_attempt_${attempts}`).set({
+                    ...result,
+                    receivedAt: Date.now(),
+                });
+            } else {
+                // Dead-letter: max attempts exhausted
+                newStatus = 'DEAD';
+                await deadLetterJob(result.jobId, lastError);
+                await updateJobStatus(result.jobId, 'DEAD', result);
+            }
+        }
 
         // ─── Audit append (append-only) ───
         const auditEntry = {
-            type: result.status === 'SUCCEEDED' ? 'job.complete' : 'job.failed',
+            type: newStatus === 'COMPLETED' ? 'job.complete'
+                : newStatus === 'DEAD' ? 'job.dead'
+                    : newStatus === 'FAILED_RETRYABLE' ? 'job.retry'
+                        : 'job.failed',
             jobId: result.jobId,
             traceId: result.traceId,
             workerId: result.workerId,
-            status: result.status,
+            status: newStatus,
+            attempts,
+            maxAttempts,
             resultHash: result.resultHash,
             metrics: result.metrics,
+            errorCode: result.errorCode,
             timestamp: Date.now(),
         };
 
@@ -71,13 +111,15 @@ export async function POST(request: NextRequest) {
 
         console.log(
             `[API/jobs/result] ${result.jobId} → ${newStatus} ` +
-            `(worker=${result.workerId}, latency=${result.metrics.latencyMs}ms)`,
+            `(worker=${result.workerId}, attempt=${attempts}/${maxAttempts}, latency=${result.metrics.latencyMs}ms)`,
         );
 
         return NextResponse.json({
             jobId: result.jobId,
             status: newStatus,
             traceId: result.traceId,
+            attempts,
+            maxAttempts,
         });
 
     } catch (error: any) {

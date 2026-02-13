@@ -1,30 +1,32 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Job System Types (Phase 21C)
+ * CORE OS — Job System Types (Phase 22A)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Contracts for the Background Execution Layer.
  * TS is authoritative — Go is non-authoritative executor.
  *
  * @module coreos/jobs/types
- * @version 1.0.0 (Phase 21C)
+ * @version 2.0.0 (Phase 22A — Retry/Lease/Heartbeat)
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
 // JOB TYPES (Enumeration)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Supported job types for Phase 21C */
+/** Supported job types for Phase 22A */
 export type JobType =
     | 'scheduler.tick'
     | 'index.build'
-    | 'webhook.process';
+    | 'webhook.process'
+    | '__test.fail_n_times';
 
 /** All valid job types */
 export const JOB_TYPES: readonly JobType[] = [
     'scheduler.tick',
     'index.build',
     'webhook.process',
+    '__test.fail_n_times',
 ] as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -35,7 +37,9 @@ export type JobStatus =
     | 'PENDING'
     | 'PROCESSING'
     | 'COMPLETED'
-    | 'FAILED';
+    | 'FAILED'
+    | 'FAILED_RETRYABLE'
+    | 'DEAD';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // JOB TICKET (Created by TS, Verified by Go)
@@ -130,6 +134,25 @@ export interface JobResult {
 // FIRESTORE QUEUE RECORD
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Last error information stored on job doc */
+export interface JobLastError {
+    code: string;
+    message: string;
+    at: number;
+}
+
+/** Lease information for worker claiming */
+export interface JobLease {
+    workerId: string;
+    leaseUntil: number;
+}
+
+/** Heartbeat information */
+export interface JobHeartbeat {
+    workerId: string;
+    at: number;
+}
+
 /**
  * JobQueueRecord — Firestore document schema for job_queue collection.
  */
@@ -152,6 +175,20 @@ export interface JobQueueRecord {
     updatedAt: number;
     /** Nonce index for replay prevention */
     nonce: string;
+
+    // ── Phase 22A: Retry/Lease/Heartbeat fields ──
+    /** Number of execution attempts so far */
+    attempts: number;
+    /** Maximum allowed attempts before dead-letter */
+    maxAttempts: number;
+    /** Earliest time this job can be claimed (epoch ms) */
+    nextRunAt: number;
+    /** Last error details (set on failure) */
+    lastError?: JobLastError;
+    /** Current lease (set on claim, extended by heartbeat) */
+    lease?: JobLease;
+    /** Last heartbeat (set by worker during execution) */
+    heartbeat?: JobHeartbeat;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -160,6 +197,12 @@ export interface JobQueueRecord {
 
 /** Default ticket TTL: 30 minutes */
 export const DEFAULT_TICKET_TTL_MS = 30 * 60 * 1000;
+
+/** Default max retry attempts */
+export const DEFAULT_MAX_ATTEMPTS = 3;
+
+/** Lease duration in ms (30 seconds) */
+export const LEASE_DURATION_MS = 30_000;
 
 /** Job queue Firestore collection */
 export const COLLECTION_JOB_QUEUE = 'job_queue';

@@ -30,13 +30,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ job: null }, { status: 200 });
         }
 
-        console.log(`[API/jobs/claim] Job claimed: ${envelope.ticket.jobId} → ${workerId}`);
+        console.log(`[API/jobs/claim] Job claimed: ${envelope.ticket.jobId} → ${workerId} (attempt ${envelope.attempts}/${envelope.maxAttempts})`);
 
         return NextResponse.json({
             job: {
                 ticket: envelope.ticket,
                 payload: envelope.payload,
                 version: envelope.version,
+                attempts: envelope.attempts,
+                maxAttempts: envelope.maxAttempts,
             },
         });
 
