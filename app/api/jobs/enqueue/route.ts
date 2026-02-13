@@ -22,6 +22,7 @@ import type { JobType } from '@/coreos/jobs/types';
 import { JOB_TYPES, DEFAULT_TICKET_TTL_MS } from '@/coreos/jobs/types';
 import { signTicket, computePayloadHash, canonicalJSON } from '@/coreos/jobs/signer';
 import { enqueueJob } from '@/coreos/jobs/queue';
+import { incrementCounter } from '@/coreos/ops/metrics';
 import { validateNonceUnique } from '@/coreos/jobs/validator';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 
@@ -93,6 +94,8 @@ export async function POST(request: NextRequest) {
             payload: canonicalPayload,
             version: '1.0',
         }, maxAttempts ? Number(maxAttempts) : undefined);
+
+        incrementCounter('jobs_total', { jobType: jobType as string });
 
         console.log(`[API/jobs/enqueue] Job enqueued: ${jobId} (${jobType}) trace=${jobTraceId}`);
 

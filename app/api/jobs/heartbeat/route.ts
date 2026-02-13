@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
+import { incrementCounter } from '@/coreos/ops/metrics';
 
 const LEASE_EXTENSION_MS = 30_000; // 30 seconds
 
@@ -60,6 +61,8 @@ export async function POST(request: NextRequest) {
             'heartbeat.at': now,
             updatedAt: now,
         });
+
+        incrementCounter('worker_heartbeat_total', { workerId });
 
         return NextResponse.json({
             jobId,

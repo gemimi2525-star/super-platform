@@ -27,6 +27,20 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "core_metrics_ts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "metric",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

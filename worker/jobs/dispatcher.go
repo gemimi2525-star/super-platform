@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 // JobHandler processes a job and returns result data.
@@ -31,6 +32,7 @@ func NewDispatcher() *Dispatcher {
 	d.Register("index.build", HandleIndexBuild)
 	d.Register("webhook.process", HandleWebhookProcess)
 	d.Register("__test.fail_n_times", HandleTestFailNTimes)
+	d.Register("__test.hang", HandleTestHang)
 
 	return d
 }
@@ -139,5 +141,35 @@ func HandleTestFailNTimes(payload string, traceID string) (any, error) {
 	return map[string]any{
 		"testPassed": true,
 		"traceId":    traceID,
+	}, nil
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HANDLER: __test.hang (smoke test — stuck job detection)
+// ═══════════════════════════════════════════════════════════════════════════
+
+type testHangPayload struct {
+	HangSec int `json:"hangSec"`
+}
+
+// HandleTestHang sleeps for hangSec seconds (default 300s) to simulate a stuck job.
+func HandleTestHang(payload string, traceID string) (any, error) {
+	var p testHangPayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return nil, fmt.Errorf("invalid __test.hang payload: %w", err)
+	}
+
+	duration := p.HangSec
+	if duration <= 0 {
+		duration = 300
+	}
+
+	log.Printf("[__test.hang] Sleeping %ds to simulate stuck job (trace=%s)", duration, traceID)
+	time.Sleep(time.Duration(duration) * time.Second)
+
+	return map[string]any{
+		"hung":    true,
+		"hangSec": duration,
+		"traceId": traceID,
 	}, nil
 }

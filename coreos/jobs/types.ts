@@ -19,7 +19,8 @@ export type JobType =
     | 'scheduler.tick'
     | 'index.build'
     | 'webhook.process'
-    | '__test.fail_n_times';
+    | '__test.fail_n_times'
+    | '__test.hang';
 
 /** All valid job types */
 export const JOB_TYPES: readonly JobType[] = [
@@ -27,6 +28,7 @@ export const JOB_TYPES: readonly JobType[] = [
     'index.build',
     'webhook.process',
     '__test.fail_n_times',
+    '__test.hang',
 ] as const;
 
 // ═══════════════════════════════════════════════════════════════════════════

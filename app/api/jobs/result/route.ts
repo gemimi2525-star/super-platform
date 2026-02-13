@@ -15,6 +15,7 @@ import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { validateResult, validateJobExists } from '@/coreos/jobs/validator';
 import { updateJobStatus, retryJob, deadLetterJob } from '@/coreos/jobs/queue';
 import { getAdminFirestore } from '@/lib/firebase-admin';
+import { incrementCounter, recordTimeseries } from '@/coreos/ops/metrics';
 
 export async function POST(request: NextRequest) {
     try {
@@ -63,6 +64,8 @@ export async function POST(request: NextRequest) {
             // ── SUCCESS ──
             newStatus = 'COMPLETED';
             await updateJobStatus(result.jobId, 'COMPLETED', result);
+            incrementCounter('jobs_completed', { jobType: jobRecord.ticket?.jobType ?? 'unknown' });
+            recordTimeseries('job_latency', result.metrics.latencyMs, { jobType: jobRecord.ticket?.jobType ?? 'unknown' });
         } else {
             // ── FAILED — decide retry vs dead-letter ──
             const lastError = {
@@ -75,17 +78,18 @@ export async function POST(request: NextRequest) {
                 // Retry: set FAILED_RETRYABLE + backoff
                 newStatus = 'FAILED_RETRYABLE';
                 await retryJob(result.jobId, lastError, attempts);
+                incrementCounter('jobs_failed_retryable', { jobType: jobRecord.ticket?.jobType ?? 'unknown' });
 
-                // Also store the result for audit
-                await db.collection('job_results').doc(`${result.jobId}_attempt_${attempts}`).set({
-                    ...result,
-                    receivedAt: Date.now(),
-                });
+                // Also store the result for audit (strip undefined values for Firestore)
+                await db.collection('job_results').doc(`${result.jobId}_attempt_${attempts}`).set(
+                    JSON.parse(JSON.stringify({ ...result, receivedAt: Date.now() })),
+                );
             } else {
                 // Dead-letter: max attempts exhausted
                 newStatus = 'DEAD';
                 await deadLetterJob(result.jobId, lastError);
                 await updateJobStatus(result.jobId, 'DEAD', result);
+                incrementCounter('jobs_dead', { jobType: jobRecord.ticket?.jobType ?? 'unknown' });
             }
         }
 
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
             maxAttempts,
             resultHash: result.resultHash,
             metrics: result.metrics,
-            errorCode: result.errorCode,
+            errorCode: result.errorCode ?? null,
             timestamp: Date.now(),
         };
 
