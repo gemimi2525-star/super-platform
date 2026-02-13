@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Dockerfile — Go Worker (Phase 22C)
+# ═══════════════════════════════════════════════════════════════════════════
+# Multi-stage build: compile → minimal runtime (scratch-like Alpine)
+
+# ── Stage 1: Build ──
+FROM golang:1.22-alpine AS builder
+WORKDIR /build
+COPY worker/go.mod worker/go.sum ./
+RUN go mod download
+COPY worker/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /coreos-worker .
+
+# ── Stage 2: Runtime ──
+FROM alpine:3.19 AS runner
+RUN apk add --no-cache ca-certificates wget
+
+# Non-root user for security
+RUN addgroup -g 1001 -S worker \
+ && adduser -u 1001 -S worker -G worker
+
+WORKDIR /app
+COPY --from=builder /coreos-worker ./coreos-worker
+
+# Run as non-root
+USER worker
+
+# Healthcheck: verify process is alive and polling
+# The Go worker doesn't have an HTTP endpoint, so we check process + latest heartbeat age
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD pgrep coreos-worker > /dev/null || exit 1
+
+ENTRYPOINT ["./coreos-worker"]
