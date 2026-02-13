@@ -69,3 +69,37 @@ func (c *APIClient) PostResult(result *contracts.JobResult) error {
 
 	return nil
 }
+
+// ClaimJob calls POST /api/jobs/claim to atomically claim the next pending job.
+// Returns nil if no jobs are available.
+func (c *APIClient) ClaimJob(workerID string) (*JobEnvelope, error) {
+	reqBody, _ := json.Marshal(map[string]string{"workerId": workerID})
+
+	resp, err := c.httpClient.Post(
+		c.baseURL+"/api/jobs/claim",
+		"application/json",
+		bytes.NewReader(reqBody),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("claim request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 204 = no jobs available
+	if resp.StatusCode == 204 {
+		return nil, nil
+	}
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("claim failed (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var pollResp PollResponse
+	if err := json.NewDecoder(resp.Body).Decode(&pollResp); err != nil {
+		return nil, fmt.Errorf("failed to decode claim response: %w", err)
+	}
+
+	return pollResp.Job, nil
+}
+

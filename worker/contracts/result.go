@@ -32,9 +32,11 @@ type JobResult struct {
 }
 
 // JobMetrics contains execution performance data.
+// Fields MUST be in alphabetical order by JSON tag
+// to match TS canonicalJSON recursive sort.
 type JobMetrics struct {
-	LatencyMs int64 `json:"latencyMs"`
 	Attempts  int   `json:"attempts"`
+	LatencyMs int64 `json:"latencyMs"`
 }
 
 // resultSignableData is the structure used for HMAC computation.

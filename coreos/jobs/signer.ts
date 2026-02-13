@@ -20,11 +20,28 @@ import type { JobTicket, JobResult } from './types';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Create canonical JSON string with sorted keys.
- * Deterministic serialization for signing.
+ * Create canonical JSON string with recursively sorted keys.
+ * Deterministic serialization for signing — ensures TS and Go produce identical output.
  */
-export function canonicalJSON(obj: Record<string, unknown>): string {
-    return JSON.stringify(obj, Object.keys(obj).sort());
+export function canonicalJSON(obj: unknown): string {
+    return JSON.stringify(sortKeysDeep(obj));
+}
+
+/**
+ * Recursively sort object keys for deterministic serialization.
+ */
+function sortKeysDeep(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(sortKeysDeep);
+    }
+    if (value !== null && typeof value === 'object') {
+        const sorted: Record<string, unknown> = {};
+        for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+            sorted[key] = sortKeysDeep((value as Record<string, unknown>)[key]);
+        }
+        return sorted;
+    }
+    return value;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -60,7 +77,7 @@ export function getTicketSignableData(ticket: Omit<JobTicket, 'signature'>): str
         nonce: ticket.nonce,
         traceId: ticket.traceId,
     };
-    return canonicalJSON(signable as Record<string, unknown>);
+    return canonicalJSON(signable);
 }
 
 /**
@@ -114,7 +131,7 @@ export function getResultSignableData(result: Omit<JobResult, 'signature'>): str
         workerId: result.workerId,
         metrics: result.metrics,
     };
-    return canonicalJSON(signable as Record<string, unknown>);
+    return canonicalJSON(signable);
 }
 
 /**

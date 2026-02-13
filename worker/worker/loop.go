@@ -63,9 +63,22 @@ func (w *Worker) Run(ctx context.Context) {
 
 // processNextJob handles one iteration of the polling loop.
 func (w *Worker) processNextJob() {
-	// NOTE: In Phase 21C, Go worker polls via TS API.
-	// Future: direct Firestore access or dedicated poll endpoint.
-	log.Printf("[Worker] Poll tick (worker=%s)", w.config.WorkerID)
+	envelope, err := w.apiClient.ClaimJob(w.config.WorkerID)
+	if err != nil {
+		log.Printf("[Worker] Claim error: %v", err)
+		return
+	}
+
+	if envelope == nil {
+		// No jobs available — silent poll
+		return
+	}
+
+	log.Printf("[Worker] Claimed job %s (%s)", envelope.Ticket.JobID, envelope.Ticket.JobType)
+
+	if err := w.ProcessJob(envelope); err != nil {
+		log.Printf("[Worker] Job %s failed: %v", envelope.Ticket.JobID, err)
+	}
 }
 
 // ProcessJob executes a single job envelope.
