@@ -344,29 +344,36 @@ export function middleware(request: NextRequest) {
     // 3b. SPECIAL HANDLING: /ops (Owner-Only Ops Center)
     // ═══════════════════════════════════════════════════════════════════════════
     // PHASE 22C: Ops Center is owner-only. 2-layer guard:
-    //   Layer 1 (here, Edge): Check session cookie exists → redirect /login if not
-    //   Layer 2 (ops/layout.tsx, Node.js): Verify UID == SUPER_ADMIN_ID → 403 if not
+    //   Layer 1 (here, Edge): Check session cookie exists → redirect /ops/login if not
+    //   Layer 2 (ops/layout.tsx, Node.js): Verify UID == SUPER_ADMIN_ID → redirect /os if not
+    // EXEMPT: /ops/login is the login entry — must pass through without guard
     // ═══════════════════════════════════════════════════════════════════════════
+    if (pathname === '/ops/login' || pathname.startsWith('/ops/login/')) {
+        // Ops login page — no auth required (this IS the login entry)
+        // Inject header so ops/layout.tsx can skip the UID guard
+        const response = NextResponse.next();
+        response.headers.set('x-ops-path', pathname);
+        return response;
+    }
     if (pathname === '/ops' || pathname.startsWith('/ops/')) {
         const hasSession = request.cookies.has('__session');
         if (!hasSession) {
             if (isDev) {
-                console.log('[MW][/ops] REDIRECT -> /login (no session)');
+                console.log('[MW][/ops] REDIRECT -> /ops/login (no session)');
             }
             const url = request.nextUrl.clone();
-            url.pathname = '/login';
-            url.searchParams.set('callbackUrl', '/ops');
+            url.pathname = '/ops/login';
             return NextResponse.redirect(url);
         }
         // Session exists → pass to server layout for UID verification
         return NextResponse.next();
     }
 
-    // Canonicalize /{locale}/ops -> /ops
-    const localeOpsMatch = pathname.match(/^\/(en|th)\/ops/);
+    // Canonicalize /{locale}/ops/* -> /ops/*
+    const localeOpsMatch = pathname.match(/^\/(en|th)(\/ops(?:\/.*)?)/);
     if (localeOpsMatch) {
         const url = request.nextUrl.clone();
-        url.pathname = '/ops';
+        url.pathname = localeOpsMatch[2]; // e.g. /ops or /ops/login
         return NextResponse.redirect(url, 301);
     }
 
