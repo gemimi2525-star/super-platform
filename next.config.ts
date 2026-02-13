@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: false,
 
+  // Docker: standalone output for minimal container image
+  output: 'standalone',
+
   // Next.js 16: Acknowledge that webpack config is intentional
   // (Payload CMS 2.x requires webpack — see TC-1.2)
   turbopack: {},

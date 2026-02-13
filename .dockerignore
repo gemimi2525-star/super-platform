@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# .dockerignore — CORE OS (Phase 22C)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Dependencies (rebuilt inside container)
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+
+# Git
+.git
+.gitignore
+
+# Environment files (mounted via env_file, not baked in)
+.env
+.env.*
+!.env.production.sample
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Worker (only needed by Dockerfile.worker)
+# Note: Dockerfile.worker copies worker/ specifically
+
+# Docs
+docs/
+*.md
+LICENSE
+
+# Dev scripts not needed in image
+scripts/
+
+# Tests
+**/*.test.*
+**/*.spec.*
+coverage/

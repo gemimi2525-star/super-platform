@@ -1,0 +1,62 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Docker Compose — CORE OS Local Production Sim (Phase 22C)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Usage:
+#   docker compose up -d --build      # Start both services
+#   docker compose logs -f            # Tail logs
+#   docker compose down               # Stop
+#
+# Env files:
+#   .env.local          — Development secrets (git-ignored)
+#   .env.production     — Production secrets (git-ignored)
+
+services:
+  # ── Next.js TS API ──
+  coreos-ts:
+    build:
+      context: .
+      dockerfile: Dockerfile.ts
+    container_name: coreos-ts
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - coreos
+
+  # ── Go Worker ──
+  coreos-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: coreos-worker
+    env_file:
+      - .env.local
+    environment:
+      - COREOS_API_URL=http://coreos-ts:3001
+      - WORKER_ID=worker-docker-1
+    depends_on:
+      coreos-ts:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - coreos
+
+networks:
+  coreos:
+    driver: bridge
