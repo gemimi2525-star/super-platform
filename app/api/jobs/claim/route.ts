@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         const envelope = await claimNextJob(workerId);
 
         if (!envelope) {
-            return NextResponse.json({ job: null }, { status: 204 });
+            return NextResponse.json({ job: null }, { status: 200 });
         }
 
         console.log(`[API/jobs/claim] Job claimed: ${envelope.ticket.jobId} → ${workerId}`);

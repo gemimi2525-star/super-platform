@@ -155,12 +155,18 @@ export class EnvironmentKeyProvider implements KeyProvider {
 let defaultKeyProvider: KeyProvider | null = null;
 
 /**
- * Get default key provider (test provider for dev, env provider for prod)
+ * Get default key provider.
+ * Uses EnvironmentKeyProvider when ATTESTATION_PRIVATE_KEY + ATTESTATION_PUBLIC_KEY
+ * are set (production & stable dev); falls back to TestKeyProvider otherwise.
  */
 export function getDefaultKeyProvider(): KeyProvider {
     if (!defaultKeyProvider) {
-        // Use test provider by default (safe for dev/test)
-        defaultKeyProvider = new TestKeyProvider();
+        if (process.env.ATTESTATION_PRIVATE_KEY && process.env.ATTESTATION_PUBLIC_KEY) {
+            defaultKeyProvider = new EnvironmentKeyProvider();
+        } else {
+            // Fallback: random test provider (dev only, NOT stable across modules)
+            defaultKeyProvider = new TestKeyProvider();
+        }
     }
     return defaultKeyProvider;
 }

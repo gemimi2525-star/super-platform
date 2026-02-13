@@ -96,6 +96,15 @@ export async function POST(request: NextRequest) {
 
         console.log(`[API/jobs/enqueue] Job enqueued: ${jobId} (${jobType}) trace=${jobTraceId}`);
 
+        // DEBUG: log public key for cross-verification with Go worker
+        try {
+            const { exportPublicKeyBase64 } = await import('@/coreos/jobs/signer');
+            const pubKeyB64 = exportPublicKeyBase64();
+            console.log(`[API/jobs/enqueue] DEBUG — Public key (base64): ${pubKeyB64}`);
+        } catch (e) {
+            console.log('[API/jobs/enqueue] DEBUG — Could not export public key');
+        }
+
         return NextResponse.json({
             jobId,
             status: 'PENDING',
