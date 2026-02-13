@@ -16,3 +16,27 @@ This is the clean, standalone repository for the APICOREDATA Platform V2, focusi
 
 ## Legacy Note
 This repo replaces `super-platform` and `seo-dashboard`. Legacy code is NOT included here.
+
+---
+
+## Local E2E (TS + Go Worker) Quickstart
+
+### Terminal A — TS Dev Server
+```bash
+./scripts/dev-ts.sh
+```
+
+### Terminal B — Go Worker
+```bash
+./scripts/kill-workers.sh && ./scripts/dev-worker.sh
+```
+
+### Terminal C — Smoke Test
+```bash
+./scripts/smoke-job.sh scheduler.tick local-e2e
+```
+
+Or just print the guide:
+```bash
+./scripts/quick-e2e.sh
+```
