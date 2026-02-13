@@ -26,19 +26,92 @@
 
 ## Required Environment Variables
 
-| Variable | Required | Description |
+### 🔒 Private / Server-Only (NEVER expose to client or build logs)
+
+| Variable | Service | Description |
 |---|---|---|
-| `FIREBASE_PROJECT_ID` | ✅ | Firebase project ID |
-| `FIREBASE_CLIENT_EMAIL` | ✅ | Service account email |
-| `FIREBASE_PRIVATE_KEY` | ✅ | Service account private key (PEM) |
-| `JOB_WORKER_HMAC_SECRET` | ✅ | 64-char hex HMAC secret for worker auth |
-| `JOB_TICKET_PUBLIC_KEY` | ✅ | Base64 Ed25519 public key for job tickets |
-| `WORKER_ID` | ✅ | Unique worker identifier (e.g. `worker-prod-1`) |
-| `COREOS_API_URL` | ✅ | TS API URL (e.g. `http://coreos-ts:3001` in Docker) |
-| `PORT` | Optional | TS server port (default: `3001`) |
-| `NEXT_PUBLIC_FIREBASE_*` | ✅ | Firebase client SDK config (6 vars) |
+| `FIREBASE_PRIVATE_KEY` | TS | Firebase Admin SDK private key (PEM) |
+| `ATTESTATION_PRIVATE_KEY` | TS | Ed25519 private key (64-char hex) for job ticket signing |
+| `JOB_WORKER_HMAC_SECRET` | TS + Worker | 64-char hex HMAC secret for worker authentication |
+
+### 🔑 Shared / Public-OK (safe for deploy env, but not build logs)
+
+| Variable | Service | Description |
+|---|---|---|
+| `FIREBASE_PROJECT_ID` | TS | Firebase project ID |
+| `FIREBASE_CLIENT_EMAIL` | TS | Service account email |
+| `ATTESTATION_PUBLIC_KEY` | TS | Ed25519 public key (64-char hex) for attestation verification |
+| `JOB_TICKET_PUBLIC_KEY` | Worker | Base64 Ed25519 public key (same as `ATTESTATION_PUBLIC_KEY`, base64-encoded) |
+| `WORKER_ID` | Worker | Unique worker identifier (e.g. `worker-prod-1`) |
+| `COREOS_API_URL` | Worker | TS API URL (e.g. `http://coreos-ts:3001` in Docker) |
+| `PORT` | TS | Server port (default: `3001`) |
+
+### 🌐 Build-Time / Client-Side (NEXT_PUBLIC_*)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase client API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
+| `NEXT_PUBLIC_AUTH_MODE` | Auth mode (firebase / bypass) |
+| `NEXT_PUBLIC_SUPER_ADMIN_ID` | Super admin UID |
+
+> **⚠️ Build-time vars**: These are baked into the JS bundle at `next build` time. They must be passed as Docker build args (see `docker-compose.yml` → `args`).
 
 Template: `.env.production.sample`
+
+---
+
+## Key Rotation
+
+### Ed25519 Attestation Keys (ATTESTATION_* + JOB_TICKET_PUBLIC_KEY)
+
+**When to rotate**: Suspected key compromise, employee offboarding, or on quarterly schedule.
+
+**Procedure**:
+
+1. Generate new key pair:
+   ```bash
+   node -e "
+   const { generateKeyPairSync } = require('crypto');
+   const { publicKey, privateKey } = generateKeyPairSync('ed25519', {
+     privateKeyEncoding: { type: 'pkcs8', format: 'der' },
+     publicKeyEncoding: { type: 'spki', format: 'der' },
+   });
+   const pub = publicKey.subarray(-32), priv = privateKey.subarray(-32);
+   console.log('ATTESTATION_PRIVATE_KEY=' + priv.toString('hex'));
+   console.log('ATTESTATION_PUBLIC_KEY=' + pub.toString('hex'));
+   console.log('JOB_TICKET_PUBLIC_KEY=' + pub.toString('base64'));
+   "
+   ```
+
+2. Update **all three** vars simultaneously on the deployment platform (Vercel / Docker env):
+   - `ATTESTATION_PRIVATE_KEY` (TS server)
+   - `ATTESTATION_PUBLIC_KEY` (TS server)
+   - `JOB_TICKET_PUBLIC_KEY` (Go worker)
+
+3. Restart both services:
+   ```bash
+   docker compose restart coreos-ts coreos-worker
+   ```
+
+4. Verify with smoke test:
+   ```bash
+   ./scripts/smoke-prod.sh
+   ```
+
+**⚠️ Impact**: Jobs enqueued with the OLD key will fail verification by the worker. They will become `DEAD` after max retries. Only rotate during a maintenance window or when the queue is empty.
+
+### HMAC Secret (JOB_WORKER_HMAC_SECRET)
+
+Same procedure but only affects worker authentication. Update on both TS and Worker simultaneously.
+
+### Firebase Keys
+
+Rotate via Firebase Console → Project Settings → Service Accounts → Generate New Private Key.
 
 ---
 
