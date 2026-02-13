@@ -1,142 +1,190 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * OPENAI PROVIDER (Phase 26A)
+ * OPENAI ADAPTER (Phase 21B — Brain-Adapter Hardening)
  * ═══════════════════════════════════════════════════════════════════════════
- * 
- * Adapter for OpenAI Chat Completion API.
- * Handles:
- * - Message format conversion
- * - Tool calling (Function calling)
- * - Rate limits and timeouts
- * 
+ *
+ * Implements LLMProvider for OpenAI Chat Completion API (raw fetch).
+ * Maps LLMInput → OpenAI format → fetch → LLMOutput
+ *
+ * Phase 21B changes:
+ * - Renamed from OpenAIProvider to OpenAIAdapter
+ * - Implements LLMProvider interface (generate instead of processRequest)
+ * - Returns ToolCallNormalized with argumentsHash
+ * - Classifies errors: 429/5xx = Retryable, 400/401/403 = NonRetryable
+ * - Reports ProviderMeta for audit
+ *
  * @module coreos/brain/providers/openai
  */
 
-import { BrainRequest, BrainResponse, BrainMessage, BrainToolCall } from '../types';
-import { SYSTEM_PROMPT } from '../prompts';
-import { toolRegistry } from '../registry'; // We need access to registered tools for definitions
+import {
+    LLMProvider,
+    LLMInput,
+    LLMOutput,
+    LLMMessage,
+    ToolCallNormalized,
+    ProviderMeta,
+    LLMRetryableError,
+    LLMNonRetryableError,
+    hashArguments,
+} from './types';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const DEFAULT_MODEL = 'gpt-4o'; // Or gpt-4-turbo
+const DEFAULT_MODEL = 'gpt-4o';
+const DEFAULT_TIMEOUT_MS = 30_000;
 
-export class OpenAIProvider {
-    private apiKey: string;
-    private model: string;
+export class OpenAIAdapter implements LLMProvider {
+    readonly providerId = 'openai' as const;
+    readonly modelId: string;
+    private readonly apiKey: string;
 
     constructor(apiKey: string, model: string = DEFAULT_MODEL) {
         this.apiKey = apiKey;
-        this.model = model;
+        this.modelId = model;
     }
 
-    async processRequest(request: BrainRequest, tools: any[]): Promise<BrainResponse> {
-        const messages = this.buildMessages(request);
+    async generate(input: LLMInput): Promise<LLMOutput> {
+        const startMs = Date.now();
 
+        // Map LLMInput → OpenAI request payload
+        const messages = this.buildMessages(input.messages);
         const payload: any = {
-            model: this.model,
-            messages: messages,
-            temperature: 0.2, // Low temperature for deterministic behavior
-            tools: tools.length > 0 ? tools.map(t => ({
+            model: this.modelId,
+            messages,
+            temperature: input.temperature ?? 0.2,
+        };
+
+        if (input.maxTokens) {
+            payload.max_tokens = input.maxTokens;
+        }
+
+        if (input.tools.length > 0) {
+            payload.tools = input.tools.map(t => ({
                 type: 'function',
                 function: {
                     name: t.name,
                     description: t.description,
-                    parameters: t.parameters
-                }
-            })) : undefined,
-            tool_choice: tools.length > 0 ? 'auto' : undefined
-        };
+                    parameters: t.parameters,
+                },
+            }));
+            payload.tool_choice = 'auto';
+        }
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+            const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
             const response = await fetch(OPENAI_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'Authorization': `Bearer ${this.apiKey}`,
                 },
                 body: JSON.stringify(payload),
-                signal: controller.signal
+                signal: controller.signal,
             });
 
             clearTimeout(timeoutId);
+            const latencyMs = Date.now() - startMs;
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`OpenAI API Error: ${response.status} - ${errorText}`);
+                this.throwClassifiedError(response.status, errorText);
             }
 
             const data = await response.json();
-            return this.parseResponse(data);
+            return this.parseResponse(data, latencyMs);
 
         } catch (error: any) {
-            console.error('[OpenAI] Request Failed:', error);
-            throw error;
-        }
-    }
-
-    private buildMessages(request: BrainRequest): any[] {
-        const messages: any[] = [
-            { role: 'system', content: SYSTEM_PROMPT }
-        ];
-
-        // Add additional context as system message if present
-        if (request.context) {
-            messages.push({
-                role: 'system',
-                content: `Current Context: ${JSON.stringify(request.context)}`
-            });
-        }
-
-        // Map internal messages to OpenAI format
-        for (const msg of request.messages) {
-            const openAIMsg: any = {
-                role: mapRole(msg.role),
-                content: msg.content
-            };
-
-            if (msg.name) openAIMsg.name = msg.name;
-            if (msg.tool_call_id) openAIMsg.tool_call_id = msg.tool_call_id;
-
-            // If it's a tool response, content is the result
-            if (msg.role === 'tool') {
-                openAIMsg.role = 'tool';
-                // OpenAI expects 'tool_call_id' in tool messages
+            if (error instanceof LLMRetryableError || error instanceof LLMNonRetryableError) {
+                throw error;
             }
-
-            messages.push(openAIMsg);
+            // Timeout or network error → retryable
+            console.error('[OpenAIAdapter] Request failed:', error.message);
+            throw new LLMRetryableError(
+                `OpenAI request failed: ${error.message}`,
+                this.providerId,
+            );
         }
-
-        return messages;
     }
 
-    private parseResponse(data: any): BrainResponse {
+    // ═══════════════════════════════════════════════════════════════
+    // PRIVATE: Message mapping
+    // ═══════════════════════════════════════════════════════════════
+
+    private buildMessages(messages: LLMMessage[]): any[] {
+        return messages.map(msg => {
+            const oai: any = {
+                role: this.mapRole(msg.role),
+                content: msg.content,
+            };
+            if (msg.name) oai.name = msg.name;
+            if (msg.toolCallId) oai.tool_call_id = msg.toolCallId;
+            if (msg.role === 'tool') oai.role = 'tool';
+            return oai;
+        });
+    }
+
+    private mapRole(role: string): string {
+        if (role === 'app') return 'user';
+        return role;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRIVATE: Response parsing
+    // ═══════════════════════════════════════════════════════════════
+
+    private parseResponse(data: any, latencyMs: number): LLMOutput {
         const choice = data.choices[0];
         const message = choice.message;
 
-        const response: BrainResponse = {
-            id: data.id,
-            content: message.content || undefined,
-            usage: data.usage
-        };
-
+        const toolCalls: ToolCallNormalized[] = [];
         if (message.tool_calls) {
-            response.tool_calls = message.tool_calls.map((tc: any) => ({
-                id: tc.id,
-                type: 'function',
-                function: {
-                    name: tc.function.name,
-                    arguments: tc.function.arguments
+            for (const tc of message.tool_calls) {
+                let parsedArgs: Record<string, any> = {};
+                try {
+                    parsedArgs = JSON.parse(tc.function.arguments);
+                } catch {
+                    parsedArgs = { _raw: tc.function.arguments };
                 }
-            }));
+
+                toolCalls.push({
+                    callId: tc.id,
+                    toolName: tc.function.name,
+                    arguments: parsedArgs,
+                    argumentsHash: hashArguments(parsedArgs),
+                });
+            }
         }
 
-        return response;
-    }
-}
+        const providerMeta: ProviderMeta = {
+            providerId: this.providerId,
+            modelId: this.modelId,
+            requestId: data.id,
+            latencyMs,
+            rawResponse: data,
+        };
 
-function mapRole(role: string): string {
-    if (role === 'app') return 'user'; // Treat app requests as user messages
-    return role;
+        return {
+            content: message.content || undefined,
+            toolCalls,
+            usage: {
+                promptTokens: data.usage?.prompt_tokens ?? 0,
+                completionTokens: data.usage?.completion_tokens ?? 0,
+                totalTokens: data.usage?.total_tokens ?? 0,
+            },
+            providerMeta,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRIVATE: Error classification
+    // ═══════════════════════════════════════════════════════════════
+
+    private throwClassifiedError(status: number, body: string): never {
+        const msg = `OpenAI API Error: ${status} - ${body}`;
+        if (status === 429 || status >= 500) {
+            throw new LLMRetryableError(msg, this.providerId, status);
+        }
+        throw new LLMNonRetryableError(msg, this.providerId, status);
+    }
 }
