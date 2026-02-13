@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// CORE OS — API Client (Phase 21C)
+// CORE OS — API Client (Phase 22A)
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // HTTP client for communicating with TS Core OS.
+// Supports: claim, result, heartbeat.
 
 package client
 
@@ -35,9 +36,11 @@ func NewAPIClient(baseURL string, timeout time.Duration) *APIClient {
 
 // JobEnvelope is the response from polling the queue.
 type JobEnvelope struct {
-	Ticket  contracts.JobTicket `json:"ticket"`
-	Payload string              `json:"payload"`
-	Version string              `json:"version"`
+	Ticket      contracts.JobTicket `json:"ticket"`
+	Payload     string              `json:"payload"`
+	Version     string              `json:"version"`
+	Attempts    int                 `json:"attempts"`
+	MaxAttempts int                 `json:"maxAttempts"`
 }
 
 // PollResponse is the response from the claim endpoint.
@@ -85,7 +88,7 @@ func (c *APIClient) ClaimJob(workerID string) (*JobEnvelope, error) {
 	}
 	defer resp.Body.Close()
 
-	// 204 = no jobs available
+	// 204 = no jobs available (legacy)
 	if resp.StatusCode == 204 {
 		return nil, nil
 	}
@@ -103,3 +106,27 @@ func (c *APIClient) ClaimJob(workerID string) (*JobEnvelope, error) {
 	return pollResp.Job, nil
 }
 
+// Heartbeat sends a heartbeat to extend the lease for a running job.
+func (c *APIClient) Heartbeat(jobID, workerID string) error {
+	reqBody, _ := json.Marshal(map[string]string{
+		"jobId":    jobID,
+		"workerId": workerID,
+	})
+
+	resp, err := c.httpClient.Post(
+		c.baseURL+"/api/jobs/heartbeat",
+		"application/json",
+		bytes.NewReader(reqBody),
+	)
+	if err != nil {
+		return fmt.Errorf("heartbeat request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("heartbeat failed (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}

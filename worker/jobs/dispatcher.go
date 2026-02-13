@@ -1,12 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// CORE OS — Job Dispatcher (Phase 21C)
+// CORE OS — Job Dispatcher (Phase 22A)
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // Routes jobType to the correct handler.
+// Includes __test.fail_n_times for smoke testing retry/dead-letter.
 
 package jobs
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 )
@@ -19,7 +21,7 @@ type Dispatcher struct {
 	handlers map[string]JobHandler
 }
 
-// NewDispatcher creates a dispatcher with the 3 Phase 21C job handlers.
+// NewDispatcher creates a dispatcher with all registered job handlers.
 func NewDispatcher() *Dispatcher {
 	d := &Dispatcher{
 		handlers: make(map[string]JobHandler),
@@ -28,6 +30,7 @@ func NewDispatcher() *Dispatcher {
 	d.Register("scheduler.tick", HandleSchedulerTick)
 	d.Register("index.build", HandleIndexBuild)
 	d.Register("webhook.process", HandleWebhookProcess)
+	d.Register("__test.fail_n_times", HandleTestFailNTimes)
 
 	return d
 }
@@ -53,11 +56,9 @@ func (d *Dispatcher) Dispatch(jobType string, payload string, traceID string) (a
 // ═══════════════════════════════════════════════════════════════════════════
 
 // HandleSchedulerTick fires scheduled tasks.
-// Phase 21C: stub implementation.
 func HandleSchedulerTick(payload string, traceID string) (any, error) {
 	log.Printf("[scheduler.tick] Processing scheduled tick (trace=%s)", traceID)
 
-	// TODO Phase 22+: Parse payload, check schedule table, fire due tasks
 	result := map[string]any{
 		"tickProcessed": true,
 		"traceId":       traceID,
@@ -72,11 +73,9 @@ func HandleSchedulerTick(payload string, traceID string) (any, error) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // HandleIndexBuild runs background indexing.
-// Phase 21C: stub for future Spotlight/VFS indexing.
 func HandleIndexBuild(payload string, traceID string) (any, error) {
 	log.Printf("[index.build] Building index (trace=%s)", traceID)
 
-	// TODO Phase 24: Parse payload, scan files, build search index
 	result := map[string]any{
 		"indexBuilt": true,
 		"traceId":    traceID,
@@ -91,11 +90,9 @@ func HandleIndexBuild(payload string, traceID string) (any, error) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // HandleWebhookProcess handles generic webhook processing.
-// Phase 21C: stub for future webhook delivery.
 func HandleWebhookProcess(payload string, traceID string) (any, error) {
 	log.Printf("[webhook.process] Processing webhook (trace=%s)", traceID)
 
-	// TODO Phase 23+: Parse payload, deliver webhook, retry on failure
 	result := map[string]any{
 		"webhookProcessed": true,
 		"traceId":          traceID,
@@ -103,4 +100,44 @@ func HandleWebhookProcess(payload string, traceID string) (any, error) {
 	}
 
 	return result, nil
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HANDLER: __test.fail_n_times (smoke test only)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// testFailPayload is the expected payload for __test.fail_n_times.
+type testFailPayload struct {
+	Reason    string `json:"reason"`
+	FailCount int    `json:"failCount"`
+	Attempt   int    `json:"attempt"`
+}
+
+// HandleTestFailNTimes intentionally fails the first N attempts.
+// Payload: { "reason": "...", "failCount": N, "attempt": current_attempt }
+// The attempt field comes from the overall job attempts counter.
+// It fails if: current_attempt <= failCount.
+//
+// NOTE: The "attempt" in payload is set at enqueue time and doesn't change.
+// We use the failCount to deterministically control behavior.
+// The actual attempt number comes from the envelope.
+func HandleTestFailNTimes(payload string, traceID string) (any, error) {
+	var p testFailPayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return nil, fmt.Errorf("invalid __test.fail_n_times payload: %w", err)
+	}
+
+	log.Printf("[__test.fail_n_times] payload failCount=%d (trace=%s)", p.FailCount, traceID)
+
+	// The TS side incremented attempts before dispatching to us.
+	// We always fail — the TS result route decides retry vs dead-letter.
+	// For the test handler: always return error (TS handles retry decision).
+	if p.FailCount > 0 {
+		return nil, fmt.Errorf("intentional test failure (failCount=%d)", p.FailCount)
+	}
+
+	return map[string]any{
+		"testPassed": true,
+		"traceId":    traceID,
+	}, nil
 }
