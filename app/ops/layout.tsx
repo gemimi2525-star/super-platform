@@ -72,9 +72,9 @@ export default async function OpsLayout({
         }
 
         if (context.uid !== SUPER_ADMIN_ID) {
-            // Authenticated but not owner → redirect to OS home
+            // Authenticated but not owner → redirect to ops login
             console.warn(`[OPS] Access denied: uid=${context.uid} is not owner (expected=${SUPER_ADMIN_ID})`);
-            redirect('/os');
+            redirect('/ops/login');
         }
     }
 
