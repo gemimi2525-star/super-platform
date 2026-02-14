@@ -252,9 +252,9 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
 
     'ops.center': {
         appId: 'ops.center',
-        name: 'Monitor Hub',
+        name: 'Ops Center',
         icon: '📊',
-        version: '2.0.0',
+        version: '2.1.0',
         category: 'admin',
         requiredRole: 'owner', // Phase 25B: Tightened from admin to owner
         capabilities: [],

@@ -63,9 +63,9 @@ const ExplorerAppLazy = lazy(() =>
     import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
 );
 
-// Phase 25C: Ops Hub Launcher (replaces legacy OpsCenterMVP)
-const OpsHubLauncherAppLazy = lazy(() =>
-    import('./ops/OpsHubLauncherApp').then(m => ({ default: m.OpsHubLauncherApp }))
+// Phase 5.4: Ops Center (Restored Phase 25D — full mirror in OS Shell)
+const OpsCenterAppLazy = lazy(() =>
+    import('@/coreos/ui/OpsCenterMVP').then(m => ({ default: m.OpsCenterMVP }))
 );
 
 // Phase 9: Intent Browser
@@ -160,7 +160,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // OPS CENTER (Phase 5.4)
     // ─────────────────────────────────────────────────────────────────────────
 
-    'ops.center': createLazyApp(OpsHubLauncherAppLazy), // Phase 25C: Replaced OpsCenterMVP
+    'ops.center': createLazyApp(OpsCenterAppLazy), // Phase 25D: Full mirror view restored
     'brain.dashboard': createLazyApp(BrainDashboardAppLazy), // Phase 25B
 
     // ─────────────────────────────────────────────────────────────────────────
