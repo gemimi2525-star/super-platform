@@ -63,9 +63,9 @@ const ExplorerAppLazy = lazy(() =>
     import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
 );
 
-// Phase 5.4: Ops Center (Restored Phase 25D — full mirror in OS Shell)
-const OpsCenterAppLazy = lazy(() =>
-    import('@/coreos/ui/OpsCenterMVP').then(m => ({ default: m.OpsCenterMVP }))
+// Phase 26A: Monitor Hub (replaces legacy OpsCenterMVP)
+const MonitorHubAppLazy = lazy(() =>
+    import('./ops/MonitorHubApp').then(m => ({ default: m.MonitorHubApp }))
 );
 
 // Phase 9: Intent Browser
@@ -81,11 +81,6 @@ const AppUnavailableLazy = lazy(() =>
 // Phase 39: Brain Assistant
 const BrainAppLazy = lazy(() =>
     import('./brain/BrainApp').then(m => ({ default: m.BrainApp }))
-);
-
-// Phase 25B: Brain Dashboard (Owner-only)
-const BrainDashboardAppLazy = lazy(() =>
-    import('./brain/BrainDashboardApp').then(m => ({ default: m.BrainDashboardApp }))
 );
 
 // Phase 16A: Notes (VFS Consumer)
@@ -157,11 +152,10 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     'system.configure': createLazyApp(SystemConfigureAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────
-    // OPS CENTER (Phase 5.4)
+    // MONITOR HUB (Phase 26A — replaces legacy OpsCenterMVP + BrainDashboardApp)
     // ─────────────────────────────────────────────────────────────────────────
 
-    'ops.center': createLazyApp(OpsCenterAppLazy), // Phase 25D: Full mirror view restored
-    'brain.dashboard': createLazyApp(BrainDashboardAppLazy), // Phase 25B
+    'ops.center': createLazyApp(MonitorHubAppLazy), // Phase 26A: Shared mirror views
 
     // ─────────────────────────────────────────────────────────────────────────
     // UTILITY APPS (Phase 9)

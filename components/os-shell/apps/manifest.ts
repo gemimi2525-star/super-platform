@@ -247,28 +247,14 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // OPS CENTER (Observability - Admin only)
+    // MONITOR HUB (Phase 26A — replaces Ops Center + Brain Dashboard)
     // ─────────────────────────────────────────────────────────────────────────
 
     'ops.center': {
         appId: 'ops.center',
-        name: 'Ops Center',
-        icon: '📊',
-        version: '2.1.0',
-        category: 'admin',
-        requiredRole: 'owner', // Phase 25B: Tightened from admin to owner
-        capabilities: [],
-        singleInstance: true,
-        showInDock: true,
-        showInFinder: true,
-    },
-
-    // Phase 25B: Brain Dashboard (Owner-only)
-    'brain.dashboard': {
-        appId: 'brain.dashboard',
-        name: 'Brain Dashboard',
-        icon: '🧪',
-        version: '1.0.0',
+        name: 'Monitor Hub',
+        icon: '◈',
+        version: '3.0.0',
         category: 'admin',
         requiredRole: 'owner',
         capabilities: [],
@@ -276,6 +262,9 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         showInDock: true,
         showInFinder: true,
     },
+
+    // Phase 26A: brain.dashboard merged into Monitor Hub → Brain tab
+    // (entry removed — Brain is accessed via Monitor Hub internal tabs)
 
     // ─────────────────────────────────────────────────────────────────────────
     // UTILITY APPS

@@ -38,10 +38,15 @@ export async function POST(request: NextRequest) {
         try {
             const claims = await verifySessionCookie(sessionCookie);
             uid = claims.uid;
-        } catch {
+        }
+
+        // ─── Owner-only guard (Phase 26D) ───
+        const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_SUPER_ADMIN_ID || '';
+        if (uid !== SUPER_ADMIN_ID) {
+            console.warn(`[BRAIN/API] Propose denied: uid=${uid} is not owner`);
             return NextResponse.json(
-                { error: 'Invalid session' },
-                { status: 401 },
+                { error: 'Forbidden: owner-only action' },
+                { status: 403 },
             );
         }
 

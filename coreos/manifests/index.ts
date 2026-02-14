@@ -34,9 +34,6 @@ import { OPS_CENTER_MANIFEST } from './ops.center';
 // Phase 39: AI Brain Assistant
 import { BRAIN_ASSIST_MANIFEST } from './brain.assist';
 
-// Phase 25B: Brain Dashboard (Owner-only)
-import { BRAIN_DASHBOARD_MANIFEST } from './brain.dashboard';
-
 // Phase F: EXPERIMENTAL capabilities
 import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 
@@ -94,9 +91,6 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     // Phase 39: AI Brain Assistant
     'brain.assist': BRAIN_ASSIST_MANIFEST,
 
-    // Phase 25B: Brain Dashboard (Owner-only)
-    'brain.dashboard': BRAIN_DASHBOARD_MANIFEST,
-
     // Phase 16A: VFS App Integration
     'core.notes': CORE_NOTES_MANIFEST,
 
@@ -147,12 +141,8 @@ export {
     CORE_TOOLS_MANIFEST,
     // Phase 5: Operational Visibility
     OPS_CENTER_MANIFEST,
-    // Phase F: EXPERIMENTAL
-    PLUGIN_ANALYTICS_MANIFEST,
     // Phase 39: Best Practices
     BRAIN_ASSIST_MANIFEST,
-    // Phase 25B: Brain Dashboard (Owner-only)
-    BRAIN_DASHBOARD_MANIFEST,
     // Phase 16A: VFS App Integration
     CORE_NOTES_MANIFEST,
 };

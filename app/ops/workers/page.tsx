@@ -2,34 +2,34 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Brain Dashboard Page — /ops/brain (Phase 26A)
+ * Monitor Hub — Workers (Phase 26A)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Full-page wrapper for BrainDashboardView with OpsNavBar.
+ * /ops/workers page — placeholder.
  * Inherits /ops layout guard (owner-only).
  *
- * @module app/ops/brain/page
- * @version 3.0.0
+ * @module app/ops/workers/page
+ * @version 1.0.0
  */
 
 import React from 'react';
 import { OpsNavBar } from '@/coreos/ops/ui/OpsNavBar';
-import { BrainDashboardView } from '@/coreos/brain/ui/BrainDashboardView';
+import { WorkersView } from '@/coreos/ops/ui/WorkersView';
 
-export default function BrainDashboardPage() {
+export default function WorkersPage() {
     return (
         <div style={s.page}>
             <div style={s.container}>
                 <header style={s.header}>
                     <div>
                         <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Brain Dashboard</p>
+                        <p style={s.subtitle}>Phase 26A — Workers</p>
                     </div>
                 </header>
 
                 <OpsNavBar />
 
-                <BrainDashboardView />
+                <WorkersView />
             </div>
         </div>
     );

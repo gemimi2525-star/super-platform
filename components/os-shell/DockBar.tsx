@@ -141,6 +141,20 @@ export function DockBar() {
         );
     };
 
+    // Phase 26D: Security Matrix v1 - Filter Dock Items
+    // Monitor Hub (ops.center) is OWNER ONLY.
+    // Brain Assistant (brain.assist) is Open to All.
+    const currentUserId = state.security.userId;
+    const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_SUPER_ADMIN_ID;
+
+    const visibleCapabilities = dockCapabilities.filter(cap => {
+        if (cap.id === 'ops.center') {
+            // Only show Monitor Hub if user is owner
+            return currentUserId === SUPER_ADMIN_ID;
+        }
+        return true;
+    });
+
     // Phase 14.1: Emit intent event when opening app
     const handleAppOpen = async (capabilityId: CapabilityId, title: string) => {
         // Phase 14.2: Generate traceId for this interaction
@@ -186,7 +200,7 @@ export function DockBar() {
             }}
         >
             {/* Capability Launchers */}
-            {dockCapabilities.map(cap => (
+            {visibleCapabilities.map(cap => (
                 <DockItem
                     key={cap.id}
                     icon={cap.icon}

@@ -2,34 +2,34 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Brain Dashboard Page — /ops/brain (Phase 26A)
+ * Monitor Hub — Audit (Phase 26A)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Full-page wrapper for BrainDashboardView with OpsNavBar.
+ * /ops/audit page — placeholder.
  * Inherits /ops layout guard (owner-only).
  *
- * @module app/ops/brain/page
- * @version 3.0.0
+ * @module app/ops/audit/page
+ * @version 1.0.0
  */
 
 import React from 'react';
 import { OpsNavBar } from '@/coreos/ops/ui/OpsNavBar';
-import { BrainDashboardView } from '@/coreos/brain/ui/BrainDashboardView';
+import { AuditView } from '@/coreos/ops/ui/AuditView';
 
-export default function BrainDashboardPage() {
+export default function AuditPage() {
     return (
         <div style={s.page}>
             <div style={s.container}>
                 <header style={s.header}>
                     <div>
                         <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Brain Dashboard</p>
+                        <p style={s.subtitle}>Phase 26A — Audit</p>
                     </div>
                 </header>
 
                 <OpsNavBar />
 
-                <BrainDashboardView />
+                <AuditView />
             </div>
         </div>
     );
