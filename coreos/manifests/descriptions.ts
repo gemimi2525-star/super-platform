@@ -30,6 +30,7 @@ export const CAPABILITY_DESCRIPTIONS: Record<CapabilityId | string, string> = {
 
     // Operational
     'ops.center': 'Monitor system performance and operations.',
+    'brain.dashboard': 'Access AI governance dashboard and proposal engine.',
 
     // Experimental
     'plugin.analytics': 'Collect usage data for analysis.',
