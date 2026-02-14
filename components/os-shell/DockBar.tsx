@@ -26,6 +26,7 @@ import {
     type Window,
     type CapabilityId,
 } from '@/governance/synapse';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DOCK ITEM
@@ -144,13 +145,14 @@ export function DockBar() {
     // Phase 26D: Security Matrix v1 - Filter Dock Items
     // Monitor Hub (ops.center) is OWNER ONLY.
     // Brain Assistant (brain.assist) is Open to All.
-    const currentUserId = state.security.userId;
+    const firebaseUser = useAuthStore((s) => s.firebaseUser);
+    const currentUid = firebaseUser?.uid;
     const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_SUPER_ADMIN_ID;
 
     const visibleCapabilities = dockCapabilities.filter(cap => {
         if (cap.id === 'ops.center') {
             // Only show Monitor Hub if user is owner
-            return currentUserId === SUPER_ADMIN_ID;
+            return currentUid === SUPER_ADMIN_ID;
         }
         return true;
     });
