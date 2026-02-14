@@ -71,8 +71,54 @@ export interface StuckJob {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SYSTEM ALERT (Phase 24 — Observability)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Alert event types triggered by threshold violations */
+export type SystemAlertType =
+    | 'WORKER_DEAD_RATE_HIGH'
+    | 'WORKER_RETRY_SPIKE'
+    | 'WORKER_HEARTBEAT_LOST';
+
+/** System status derived from threshold evaluation */
+export type SystemStatus = 'HEALTHY' | 'DEGRADED';
+
+/** Firestore document schema for system_alerts collection */
+export interface SystemAlert {
+    /** Alert event type */
+    type: SystemAlertType;
+    /** Observed metric value at time of trigger */
+    value: number;
+    /** Threshold that was violated */
+    threshold: number;
+    /** Timestamp when alert was created (epoch ms) */
+    timestamp: number;
+    /** Environment where the alert was triggered */
+    environment: string;
+    /** Whether the alert has been auto-resolved */
+    resolved: boolean;
+    /** Timestamp when the alert was resolved (epoch ms) */
+    resolved_at?: number;
+}
+
+/** Result of threshold evaluation */
+export interface ThresholdResult {
+    status: SystemStatus;
+    violations: ThresholdViolation[];
+}
+
+/** A single threshold violation */
+export interface ThresholdViolation {
+    type: SystemAlertType;
+    value: number;
+    threshold: number;
+    message: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const COLLECTION_CORE_METRICS = 'core_metrics';
 export const COLLECTION_CORE_METRICS_TS = 'core_metrics_ts';
+export const COLLECTION_SYSTEM_ALERTS = 'system_alerts';

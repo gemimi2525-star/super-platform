@@ -2,20 +2,30 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Ops Center — Runtime Metrics Dashboard (Phase 22B)
+ * Ops Center — Runtime Metrics Dashboard (Phase 24 — Observability)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Standalone /ops page: counters, rates, stuck jobs, active workers.
+ * Standalone /ops page: system status, alerts, counters, rates, stuck jobs.
  * Auto-refreshes every 10s.
  */
 
 import { useEffect, useState, useCallback } from 'react';
+
+interface ThresholdViolation {
+    type: string;
+    value: number;
+    threshold: number;
+    message: string;
+}
 
 interface MetricsSummary {
     counters: Record<string, number>;
     aggregated: { total: number; completed: number; dead: number; retryable: number };
     rates: { successRate: number; deadRate: number; retryRate: number };
     activeWorkers: string[];
+    systemStatus: 'HEALTHY' | 'DEGRADED';
+    unresolvedAlerts: number;
+    violations: ThresholdViolation[];
     generatedAt: string;
 }
 
@@ -59,12 +69,14 @@ export default function OpsCenter() {
         return () => clearInterval(interval);
     }, [fetchData]);
 
+    const isDegraded = summary?.systemStatus === 'DEGRADED';
+
     return (
         <div style={styles.container}>
             <header style={styles.header}>
                 <div>
                     <h1 style={styles.title}>◈ Ops Center</h1>
-                    <p style={styles.subtitle}>Runtime Metrics — Phase 22B</p>
+                    <p style={styles.subtitle}>Runtime Metrics — Phase 24</p>
                 </div>
                 <div style={styles.headerRight}>
                     <span style={styles.refreshBadge}>
@@ -75,6 +87,47 @@ export default function OpsCenter() {
             </header>
 
             {error && <div style={styles.errorBanner}>⚠ {error}</div>}
+
+            {/* Phase 24: System Status Alert Banner */}
+            <div style={{
+                ...styles.alertBanner,
+                ...(isDegraded ? styles.alertBannerDegraded : styles.alertBannerHealthy),
+            }}>
+                <div style={styles.alertBannerLeft}>
+                    <span style={{
+                        ...styles.statusDot,
+                        background: isDegraded ? '#ef4444' : '#4ade80',
+                        boxShadow: isDegraded
+                            ? '0 0 8px rgba(239, 68, 68, 0.6)'
+                            : '0 0 8px rgba(74, 222, 128, 0.6)',
+                    }} />
+                    <span style={styles.alertBannerTitle}>
+                        System Status: {summary?.systemStatus ?? 'LOADING'}
+                    </span>
+                </div>
+                <div style={styles.alertBannerRight}>
+                    {isDegraded && summary?.unresolvedAlerts ? (
+                        <span style={styles.alertCountBadge}>
+                            {summary.unresolvedAlerts} unresolved alert{summary.unresolvedAlerts !== 1 ? 's' : ''}
+                        </span>
+                    ) : (
+                        <span style={styles.alertCountOk}>All systems operational</span>
+                    )}
+                </div>
+            </div>
+
+            {/* Violation Details (when DEGRADED) */}
+            {isDegraded && summary?.violations && summary.violations.length > 0 && (
+                <div style={styles.violationPanel}>
+                    <h4 style={styles.violationTitle}>⚠ Active Violations</h4>
+                    {summary.violations.map((v, i) => (
+                        <div key={i} style={styles.violationItem}>
+                            <span style={styles.violationBadge}>{v.type}</span>
+                            <span style={styles.violationMessage}>{v.message}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Rate Cards */}
             <section style={styles.cardGrid}>
@@ -212,7 +265,7 @@ const styles: Record<string, React.CSSProperties> = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: 24,
         borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
         paddingBottom: 20,
     },
@@ -255,9 +308,99 @@ const styles: Record<string, React.CSSProperties> = {
         borderRadius: 8,
         padding: '10px 16px',
         color: '#fca5a5',
-        marginBottom: 24,
+        marginBottom: 16,
         fontSize: 14,
     },
+
+    // Phase 24: Alert Banner
+    alertBanner: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderRadius: 12,
+        padding: '14px 20px',
+        marginBottom: 24,
+        transition: 'all 0.3s ease',
+    },
+    alertBannerHealthy: {
+        background: 'rgba(74, 222, 128, 0.08)',
+        border: '1px solid rgba(74, 222, 128, 0.25)',
+    },
+    alertBannerDegraded: {
+        background: 'rgba(239, 68, 68, 0.12)',
+        border: '1px solid rgba(239, 68, 68, 0.4)',
+    },
+    alertBannerLeft: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+    },
+    statusDot: {
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        display: 'inline-block',
+    },
+    alertBannerTitle: {
+        fontSize: 15,
+        fontWeight: 600,
+        letterSpacing: 0.5,
+    },
+    alertBannerRight: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    alertCountBadge: {
+        background: 'rgba(239, 68, 68, 0.2)',
+        color: '#fca5a5',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        borderRadius: 8,
+        padding: '4px 12px',
+        fontSize: 13,
+        fontWeight: 600,
+    },
+    alertCountOk: {
+        color: '#86efac',
+        fontSize: 13,
+        fontWeight: 500,
+    },
+
+    // Violation panel
+    violationPanel: {
+        background: 'rgba(239, 68, 68, 0.06)',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        borderRadius: 12,
+        padding: '16px 20px',
+        marginBottom: 24,
+    },
+    violationTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#fca5a5',
+        margin: '0 0 10px',
+    },
+    violationItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '6px 0',
+    },
+    violationBadge: {
+        background: 'rgba(239, 68, 68, 0.15)',
+        color: '#f87171',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        borderRadius: 6,
+        padding: '2px 8px',
+        fontSize: 11,
+        fontWeight: 700,
+        fontFamily: 'monospace',
+        whiteSpace: 'nowrap' as const,
+    },
+    violationMessage: {
+        fontSize: 13,
+        color: '#e2e8f0',
+    },
+
     cardGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -363,3 +506,4 @@ const styles: Record<string, React.CSSProperties> = {
         borderBottom: '1px solid rgba(148, 163, 184, 0.06)',
     },
 };
+
