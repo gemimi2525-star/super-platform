@@ -63,22 +63,22 @@ export function BrainDashboardApp({ windowId, capabilityId, isFocused }: AppProp
             {/* Actions */}
             <div style={styles.actions}>
                 <button
-                    onClick={() => window.location.href = '/os/brain'}
+                    onClick={() => window.location.href = '/ops/brain'}
                     style={styles.primaryBtn}
                 >
                     🧠 Open Brain Dashboard
                 </button>
                 <button
-                    onClick={() => window.location.href = '/os/ops'}
+                    onClick={() => window.location.href = '/ops'}
                     style={styles.secondaryBtn}
                 >
-                    📊 Open Ops Center
+                    📊 Open Monitor Hub
                 </button>
             </div>
 
             {/* Info */}
             <p style={styles.footerText}>
-                Phase 25B — Owner-only control plane access
+                Phase 25C — Owner-only control plane access
             </p>
         </div>
     );

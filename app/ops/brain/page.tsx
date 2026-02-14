@@ -137,6 +137,16 @@ export default function BrainDashboard() {
     return (
         <div style={styles.page}>
             <div style={styles.container}>
+                {/* Back to Hub */}
+                <div style={{ marginBottom: 12 }}>
+                    <button
+                        onClick={() => window.location.href = '/ops'}
+                        style={styles.backBtn}
+                    >
+                        ← Back to Monitor Hub
+                    </button>
+                </div>
+
                 {/* Header */}
                 <div style={styles.header}>
                     <div>
@@ -698,5 +708,16 @@ const styles: Record<string, React.CSSProperties> = {
         padding: 40,
         color: 'rgba(255,255,255,0.3)',
         fontSize: 14,
+    },
+    backBtn: {
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        color: 'rgba(255,255,255,0.6)',
+        padding: '6px 14px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        fontSize: 13,
+        fontWeight: 500,
+        transition: 'all 0.2s',
     },
 };

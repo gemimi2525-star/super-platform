@@ -63,9 +63,9 @@ const ExplorerAppLazy = lazy(() =>
     import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
 );
 
-// Phase 5.4: Ops Center
-const OpsCenterAppLazy = lazy(() =>
-    import('@/coreos/ui/OpsCenterMVP').then(m => ({ default: m.OpsCenterMVP }))
+// Phase 25C: Ops Hub Launcher (replaces legacy OpsCenterMVP)
+const OpsHubLauncherAppLazy = lazy(() =>
+    import('./ops/OpsHubLauncherApp').then(m => ({ default: m.OpsHubLauncherApp }))
 );
 
 // Phase 9: Intent Browser
@@ -160,7 +160,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // OPS CENTER (Phase 5.4)
     // ─────────────────────────────────────────────────────────────────────────
 
-    'ops.center': createLazyApp(OpsCenterAppLazy),
+    'ops.center': createLazyApp(OpsHubLauncherAppLazy), // Phase 25C: Replaced OpsCenterMVP
     'brain.dashboard': createLazyApp(BrainDashboardAppLazy), // Phase 25B
 
     // ─────────────────────────────────────────────────────────────────────────
