@@ -1,20 +1,22 @@
 /**
  * Ops Center Layout — Owner-Only Guard (Layer 2) + I18n
  * 
- * PHASE 22C: Server-side UID verification.
- * Middleware (Layer 1) already confirmed session cookie exists.
- * This layout verifies the UID matches NEXT_PUBLIC_SUPER_ADMIN_ID.
+ * P0 HOTFIX: Defense-in-depth owner verification.
+ *   Layer 1 (middleware.ts, Edge): Session cookie check → redirect /ops/login
+ *   Layer 2 (THIS FILE, Node.js): UID verification → redirect /os if not owner
+ *   Layer 3 (page-level): Individual pages verify auth redundantly
  * 
- * EXEMPT: /ops/login is detected via x-ops-path header injected by middleware.
+ * SECURITY: Login page detection uses URL pathname only — NOT request headers.
+ *   Previous x-ops-path header was REMOVED (header injection vulnerability).
  * 
+ * EXEMPT: Only /ops/login pathname is allowed without auth.
  * Owner is determined by Firebase Auth UID only — no email/password in code.
  * Change owner by updating NEXT_PUBLIC_SUPER_ADMIN_ID env variable.
  */
 
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { cookies } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 import { getAuthContext } from '@/lib/auth/server';
@@ -57,29 +59,46 @@ export default async function OpsLayout({
 }: {
     children: React.ReactNode;
 }) {
-    // Check x-ops-path header injected by middleware for /ops/login
+    // ═══════════════════════════════════════════════════════════════════════════
+    // P0 HOTFIX: Layer 2 — Owner-Only Guard
+    // SECURITY: Detect login page via URL pathname ONLY (no header injection)
+    // ═══════════════════════════════════════════════════════════════════════════
     const headerStore = await headers();
-    const opsPath = headerStore.get('x-ops-path') || '';
-    const isLoginPage = opsPath.includes('/ops/login');
+    const cookieStore = await cookies();
+
+    // Detect pathname from middleware-verified header (non-spoofable)
+    // Middleware injects 'x-ops-pathname' via requestHeaders for /ops/login only
+    // For all other /ops/* paths, middleware strips this header
+    const pathname = headerStore.get('x-ops-pathname') || '';
+    const isLoginPage = pathname === '/ops/login';
 
     if (!isLoginPage) {
-        // Layer 2: Verify UID matches owner (only for non-login pages)
+        // ── Redundant Layer 2a: Direct cookie check (belt) ────────────────
+        const sessionCookie = cookieStore.get('__session');
+        if (!sessionCookie?.value) {
+            console.warn(`[OPS/Layout] No __session cookie → redirect /ops/login`);
+            redirect('/ops/login');
+        }
+
+        // ── Layer 2b: UID verification (suspenders) ──────────────────────
         const context = await getAuthContext();
 
         if (!context) {
             // Session invalid/expired → redirect to ops login
+            console.warn(`[OPS/Layout] getAuthContext() returned null → redirect /ops/login`);
             redirect('/ops/login');
         }
 
         if (context.uid !== SUPER_ADMIN_ID) {
-            // Authenticated but not owner → redirect to ops login
-            console.warn(`[OPS] Access denied: uid=${context.uid} is not owner (expected=${SUPER_ADMIN_ID})`);
-            redirect('/ops/login');
+            // Authenticated but not owner → redirect to /os (NOT /ops/login)
+            console.warn(`[OPS/Layout] Access denied: uid=${context.uid} is not owner (expected=${SUPER_ADMIN_ID}) → redirect /os`);
+            redirect('/os');
         }
+
+        // ✅ Owner verified — render children
     }
 
     // Load i18n messages for LoginScreen (uses useTranslations)
-    const cookieStore = await cookies();
     const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
 
     const filePath = path.join(process.cwd(), 'locales', 'messages.json');

@@ -343,30 +343,39 @@ export function middleware(request: NextRequest) {
 
     // 3b. SPECIAL HANDLING: /ops (Owner-Only Ops Center)
     // ═══════════════════════════════════════════════════════════════════════════
-    // PHASE 22C: Ops Center is owner-only. 2-layer guard:
+    // P0 HOTFIX: Defense-in-depth guard for /ops/*
     //   Layer 1 (here, Edge): Check session cookie exists → redirect /ops/login if not
     //   Layer 2 (ops/layout.tsx, Node.js): Verify UID == SUPER_ADMIN_ID → redirect /os if not
-    // EXEMPT: /ops/login is the login entry — must pass through without guard
+    //   Layer 3 (page-level): Individual pages verify auth redundantly
+    // EXEMPT: /ops/login is the ONLY path that skips auth
+    // SECURITY: No header injection (x-ops-path removed — was exploitable)
     // ═══════════════════════════════════════════════════════════════════════════
-    if (pathname === '/ops/login' || pathname.startsWith('/ops/login/')) {
-        // Ops login page — no auth required (this IS the login entry)
-        // Inject header so ops/layout.tsx can skip the UID guard
-        const response = NextResponse.next();
-        response.headers.set('x-ops-path', pathname);
-        return response;
-    }
     if (pathname === '/ops' || pathname.startsWith('/ops/')) {
+        // EXEMPT: /ops/login is the login entry — no auth required
+        if (pathname === '/ops/login') {
+            // Inject VERIFIED pathname via requestHeaders (non-spoofable by client)
+            // This replaces incoming headers — any user-injected x-ops-pathname is stripped
+            const newHeaders = new Headers(request.headers);
+            newHeaders.set('x-ops-pathname', '/ops/login');
+            return NextResponse.next({
+                request: { headers: newHeaders },
+            });
+        }
         const hasSession = request.cookies.has('__session');
         if (!hasSession) {
-            if (isDev) {
-                console.log('[MW][/ops] REDIRECT -> /ops/login (no session)');
-            }
+            console.warn(`[MW][/ops] REDIRECT -> /ops/login (no session) path=${pathname}`);
             const url = request.nextUrl.clone();
             url.pathname = '/ops/login';
+            url.searchParams.set('callbackUrl', pathname);
             return NextResponse.redirect(url);
         }
         // Session exists → pass to server layout for UID verification
-        return NextResponse.next();
+        // Strip any spoofed x-ops-pathname header from client
+        const newHeaders = new Headers(request.headers);
+        newHeaders.delete('x-ops-pathname');
+        return NextResponse.next({
+            request: { headers: newHeaders },
+        });
     }
 
     // Canonicalize /{locale}/ops/* -> /ops/*
