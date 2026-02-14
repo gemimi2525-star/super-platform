@@ -83,6 +83,11 @@ const BrainAppLazy = lazy(() =>
     import('./brain/BrainApp').then(m => ({ default: m.BrainApp }))
 );
 
+// Phase 25B: Brain Dashboard (Owner-only)
+const BrainDashboardAppLazy = lazy(() =>
+    import('./brain/BrainDashboardApp').then(m => ({ default: m.BrainDashboardApp }))
+);
+
 // Phase 16A: Notes (VFS Consumer)
 const NotesAppLazy = lazy(() =>
     import('./notes/NotesApp').then(m => ({ default: m.NotesApp }))
@@ -156,6 +161,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // ─────────────────────────────────────────────────────────────────────────
 
     'ops.center': createLazyApp(OpsCenterAppLazy),
+    'brain.dashboard': createLazyApp(BrainDashboardAppLazy), // Phase 25B
 
     // ─────────────────────────────────────────────────────────────────────────
     // UTILITY APPS (Phase 9)

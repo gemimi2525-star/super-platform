@@ -256,7 +256,21 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         icon: '📊',
         version: '1.0.0',
         category: 'admin',
-        requiredRole: 'admin',
+        requiredRole: 'owner', // Phase 25B: Tightened from admin to owner
+        capabilities: [],
+        singleInstance: true,
+        showInDock: true,
+        showInFinder: true,
+    },
+
+    // Phase 25B: Brain Dashboard (Owner-only)
+    'brain.dashboard': {
+        appId: 'brain.dashboard',
+        name: 'Brain Dashboard',
+        icon: '🧪',
+        version: '1.0.0',
+        category: 'admin',
+        requiredRole: 'owner',
         capabilities: [],
         singleInstance: true,
         showInDock: true,
