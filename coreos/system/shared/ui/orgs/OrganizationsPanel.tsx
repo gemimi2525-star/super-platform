@@ -486,6 +486,10 @@ export function OrganizationsPanel({
 
     const [saving, setSaving] = useState(false);
     const mountedRef = useRef(true);
+    // Phase 27C-stab: Quota backoff guard — skip auto-refresh after 503
+    const quotaBackoffRef = useRef(false);
+    // Phase 27C-stab: Dedupe guard — prevent double-fetch from re-renders
+    const fetchInFlightRef = useRef(false);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -494,20 +498,41 @@ export function OrganizationsPanel({
         };
     }, []);
 
-    const loadOrgs = useCallback(async () => {
+    const loadOrgs = useCallback(async (force = false) => {
+        // Dedupe: skip if fetch already in progress
+        if (fetchInFlightRef.current) return;
+        // Backoff: skip auto-fetch after 503 (user must click Retry)
+        if (quotaBackoffRef.current && !force) return;
+
+        fetchInFlightRef.current = true;
         setLoading(true);
         setLoadError(null);
         try {
             const data = await ds.list();
             if (!mountedRef.current) return;
             setOrgs(data);
+            quotaBackoffRef.current = false; // Reset backoff on success
         } catch (err: any) {
             if (!mountedRef.current) return;
-            setLoadError(err?.message || 'Failed to load organizations');
+            const msg = err?.message || 'Failed to load organizations';
+            // Detect 503 / quota errors → enable backoff
+            if (msg.includes('503') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('unavailable')) {
+                quotaBackoffRef.current = true;
+                setLoadError('Service Temporarily Unavailable (Quota Exceeded). Please retry later.');
+            } else {
+                setLoadError(msg);
+            }
         } finally {
+            fetchInFlightRef.current = false;
             if (mountedRef.current) setLoading(false);
         }
     }, [ds]);
+
+    // Manual retry (bypasses backoff)
+    const retryLoadOrgs = useCallback(() => {
+        quotaBackoffRef.current = false;
+        loadOrgs(true);
+    }, [loadOrgs]);
 
     useEffect(() => {
         loadOrgs();
@@ -671,7 +696,7 @@ export function OrganizationsPanel({
                             Failed to load
                         </div>
                         <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 10 }}>{loadError}</div>
-                        <Button onClick={loadOrgs}>Retry</Button>
+                        <Button onClick={retryLoadOrgs}>Retry</Button>
                     </div>
                 )}
 

@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { UserRecord, UserFormData } from '../../types';
 import type { UsersDataSource } from '../../datasources/users-datasource';
 import { usersApiDataSource } from '../../datasources/users-api';
@@ -124,29 +124,49 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
     const [permissionError, setPermissionError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
 
+    // Phase 27C-stab: Quota backoff guard — skip auto-refresh after 503
+    const quotaBackoffRef = useRef(false);
+    // Phase 27C-stab: Dedupe guard — prevent double-fetch from re-renders
+    const fetchInFlightRef = useRef(false);
+
     // Governance
     const { governedCreate, governedUpdate, governedDelete, log } = useGovernedMutation();
 
     // Load users
-    const loadUsers = useCallback(async () => {
+    const loadUsers = useCallback(async (force = false) => {
+        // Dedupe: skip if fetch already in progress
+        if (fetchInFlightRef.current) return;
+        // Backoff: skip auto-fetch after 503 (user must click Retry)
+        if (quotaBackoffRef.current && !force) return;
+
+        fetchInFlightRef.current = true;
         setLoading(true);
         setLoadError(null);
         try {
             const data = await ds.list();
             setUsers(data);
+            quotaBackoffRef.current = false; // Reset backoff on success
         } catch (error: any) {
             console.error('[UsersPanel] Failed to load:', error);
             // Phase 27C.5: Detect quota-specific errors for user-friendly message
             const msg = error.message || 'Failed to load users';
             if (msg.includes('503') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('unavailable')) {
+                quotaBackoffRef.current = true;
                 setLoadError('Service Temporarily Unavailable (Quota Exceeded). Please retry later.');
             } else {
                 setLoadError(msg);
             }
         } finally {
+            fetchInFlightRef.current = false;
             setLoading(false);
         }
     }, [ds]);
+
+    // Manual retry (bypasses backoff)
+    const retryLoadUsers = useCallback(() => {
+        quotaBackoffRef.current = false;
+        loadUsers(true);
+    }, [loadUsers]);
 
     useEffect(() => {
         loadUsers();
@@ -206,7 +226,7 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
                         message={loadError}
                         onDismiss={() => setLoadError(null)}
                         variant={variant}
-                        action={{ label: 'Retry', onClick: loadUsers }}
+                        action={{ label: 'Retry', onClick: retryLoadUsers }}
                     />
                 </div>
             )}
