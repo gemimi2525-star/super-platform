@@ -144,15 +144,23 @@ export function DockBar() {
 
     // Phase 26D: Security Matrix v1 - Filter Dock Items
     // Monitor Hub (ops.center) is OWNER ONLY.
+    // System Hub (system.hub) is OWNER + ADMIN ONLY.
     // Brain Assistant (brain.assist) is Open to All.
     const firebaseUser = useAuthStore((s) => s.firebaseUser);
     const currentUid = firebaseUser?.uid;
     const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_SUPER_ADMIN_ID;
+    const isOwner = currentUid === SUPER_ADMIN_ID;
+    // Phase 27A: For system.hub, admin check would need role from state
+    const userRole = state.security?.role || 'user';
 
     const visibleCapabilities = dockCapabilities.filter(cap => {
         if (cap.id === 'ops.center') {
             // Only show Monitor Hub if user is owner
-            return currentUid === SUPER_ADMIN_ID;
+            return isOwner;
+        }
+        if (cap.id === 'system.hub') {
+            // System Hub visible for owner and admin
+            return isOwner || userRole === 'admin';
         }
         return true;
     });

@@ -137,8 +137,8 @@ describe('Phase 21C — E2E Integration Test', () => {
             payload,
             version: '1.0',
             status: 'PENDING',
-            workerId: null,
-            claimedAt: null,
+            workerId: null as string | null,
+            claimedAt: null as number | null,
         };
 
         // Simulate claim

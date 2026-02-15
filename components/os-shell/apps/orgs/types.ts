@@ -1,36 +1,21 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * ORGANIZATIONS APP — Types
+ * Organizations Types — Re-export from Shared Core (Phase 27C.2)
  * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Legacy compatibility module. All types now sourced from shared layer.
+ * Existing imports from './types' continue to work unchanged.
+ *
+ * @module components/os-shell/apps/orgs/types
+ * @version 2.0.0
  */
 
-export type OrganizationPlan = 'free' | 'starter' | 'pro' | 'enterprise';
-export type OrganizationStatus = 'active' | 'suspended' | 'disabled';
+// Re-export shared types with legacy aliases
+export type {
+    OrgRecord as Organization,
+    OrgFormData as OrganizationFormData,
+    OrgPlan as OrganizationPlan,
+    OrgStatus as OrganizationStatus,
+} from '@/coreos/system/shared/types/org';
 
-export interface Organization {
-    id: string;
-    name: string;
-    slug?: string;
-    plan?: OrganizationPlan;
-    domain?: string | null;
-    status?: OrganizationStatus;
-    modules?: string[];
-    createdAt?: string;
-    updatedAt?: string;
-    createdBy?: string;
-}
-
-export interface OrganizationFormData {
-    name: string;
-    slug?: string;
-    plan?: OrganizationPlan;
-    domain?: string;
-    status?: OrganizationStatus;
-}
-
-export interface OrganizationsDataSource {
-    listOrganizations(): Promise<Organization[]>;
-    createOrganization(data: OrganizationFormData): Promise<Organization>;
-    updateOrganization(id: string, data: Partial<OrganizationFormData>): Promise<Organization>;
-    disableOrganization(id: string): Promise<void>;
-}
+export type { OrgsDataSource as OrganizationsDataSource } from '@/coreos/system/shared/datasources/orgs-datasource';

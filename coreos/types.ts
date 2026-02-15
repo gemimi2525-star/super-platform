@@ -62,6 +62,8 @@ export type CapabilityId =
     | 'brain.dashboard'
     // Phase 16A: VFS App Integration
     | 'core.notes'
+    // Phase 27A: System Hub (Control Plane Consolidation)
+    | 'system.hub'
     // Phase 15A
     | 'core.files';
 

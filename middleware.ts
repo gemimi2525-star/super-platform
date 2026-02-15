@@ -386,6 +386,33 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // 3c. SPECIAL HANDLING: /system (Owner/Admin System Hub)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 27A: Defense-in-depth guard for /system/*
+    //   Layer 1 (here, Edge): Check session cookie exists → redirect /login if not
+    //   Layer 2 (system/layout.tsx, Node.js): Verify role == owner/admin → redirect /os if not
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (pathname === '/system' || pathname.startsWith('/system/')) {
+        const hasSession = request.cookies.has('__session');
+        if (!hasSession) {
+            console.warn(`[MW][/system] REDIRECT -> /login (no session) path=${pathname}`);
+            const url = request.nextUrl.clone();
+            url.pathname = '/login';
+            url.searchParams.set('callbackUrl', pathname);
+            return NextResponse.redirect(url);
+        }
+        // Session exists → pass to server layout for role verification
+        return NextResponse.next();
+    }
+
+    // Canonicalize /{locale}/system/* -> /system/*
+    const localeSystemMatch = pathname.match(/^\/(en|th)(\/system(?:\/.*)?)/);
+    if (localeSystemMatch) {
+        const url = request.nextUrl.clone();
+        url.pathname = localeSystemMatch[2];
+        return NextResponse.redirect(url, 301);
+    }
+
     // 4. PUBLIC ROOT → REDIRECT TO LOCALE
     // Root "/" should redirect to /{locale} based on cookie
     // NOTE: Do NOT set cookie here - cookie is only set by LanguageDropdown

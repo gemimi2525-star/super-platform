@@ -17,6 +17,7 @@ import type { AppProps } from '../registry';
 import { tokens } from '../../tokens';
 import { addDecisionLog } from '../../system-log';
 import { useStepUpAuth } from '@/governance/synapse/stepup';
+import { MigrationBanner } from '@/coreos/system/ui/MigrationBanner';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -358,6 +359,9 @@ export function SystemConfigureApp({ windowId, capabilityId, isFocused }: AppPro
             padding: 32,
             overflow: 'auto',
         }}>
+            {/* Phase 27A: Migration Banner */}
+            <MigrationBanner hubTab="configuration" hubLabel="System Configuration" />
+
             {/* Header */}
             <div style={{ marginBottom: 24 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>

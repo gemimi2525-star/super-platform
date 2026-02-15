@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+// Trigger Server Restart for Phase 27C.3
 
 /**
  * APICOREDATA OS — Next.js Configuration

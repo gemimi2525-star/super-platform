@@ -39,3 +39,4 @@ export const SYSTEM_HUB_MANIFEST: CapabilityManifest = {
 };
 
 export default SYSTEM_HUB_MANIFEST;
+// Force git update

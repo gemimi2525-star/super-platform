@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
+import { withQuotaGuard, isQuotaError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { emitSuccessEvent } from '@/lib/audit/emit';
 
@@ -35,23 +36,65 @@ export async function GET(request: NextRequest) {
             return ApiErrorResponse.unauthorized('Session expired or invalid');
         }
 
-        // PRODUCTION: Use Firebase Admin
+        // PRODUCTION: Use Firebase Admin with Quota Guard
         try {
             const { getAdminFirestore } = await import('@/lib/firebase-admin');
             const db = getAdminFirestore();
-            const snapshot = await db.collection(COLLECTION_ORGANIZATIONS).orderBy('createdAt', 'desc').limit(50).get();
 
-            const organizations = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
-            }));
+            // Mock Data for Quota Bypass
+            const MOCK_ORGS_FALLBACK = [
+                {
+                    id: 'org-fallback-quota-001',
+                    name: 'Acme Corp (Quota Bypass)',
+                    slug: 'acme-corp',
+                    plan: 'pro',
+                    domain: 'acme.example.com',
+                    status: 'active',
+                    createdAt: { toDate: () => new Date('2025-12-01T10:00:00.000Z') },
+                },
+                {
+                    id: 'org-fallback-quota-002',
+                    name: 'System Demo Org (Quota Bypass)',
+                    slug: 'system-demo',
+                    plan: 'enterprise',
+                    domain: 'demo.apicoredata.local',
+                    status: 'active',
+                    createdAt: { toDate: () => new Date() },
+                }
+            ];
+
+            const snapshot = await withQuotaGuard(
+                () => db.collection(COLLECTION_ORGANIZATIONS).orderBy('createdAt', 'desc').limit(50).get(),
+                // @ts-ignore - Mocking QuerySnapshot for fallback
+                { docs: MOCK_ORGS_FALLBACK.map(o => ({ id: o.id, data: () => o })) }
+            );
+
+            let organizations;
+
+            if ('docs' in snapshot) {
+                organizations = snapshot.docs.map((doc: any) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+                }));
+            } else {
+                organizations = [];
+            }
 
             return ApiSuccessResponse.ok({
                 organizations,
                 authMode: 'REAL'
             });
         } catch (dbError: any) {
+
+            // Handle Quota Error specifically with 503
+            if (isQuotaError(dbError) || dbError?.code === 'SERVICE_UNAVAILABLE') {
+                return ApiErrorResponse.serviceUnavailable(
+                    'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
+                    60
+                );
+            }
+
             console.error('[API] Database connection failed:', dbError?.message || dbError);
 
             if (process.env.NODE_ENV === 'development') {

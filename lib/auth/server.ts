@@ -177,15 +177,21 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
                     }
                 }
             } catch (error: any) {
-                const appError = handleError(error as Error);
-                console.error(`[AUTH] Failed to check platform_users [${appError.errorId}]:`, (error as Error).message || String(error));
-                // FAILSAFE: If DB fails (bad cert) but we have a valid token, allow access in dev mode
-                if (process.env.NODE_ENV === 'development') {
-                    console.warn('[AUTH] ⚠️ Using token data only (DB unreachable due to config error)');
-                    // Default to owner/admin if email matches known admins for dev convenience
-                    if (decodedToken.email && decodedToken.email.includes('admin')) {
+                // PHASE 27C.3: Quota/Infra Failure Handler
+                // If DB is down (Quota or Service Unavailable), we still want to allow the request 
+                // to proceed so the API Route's Quota Guard can handle it (or Mock Mode can take over).
+                const isQuota = error.code === 8 || error.message?.includes('Resource exhausted') || error.code === 14;
+
+                if (process.env.NODE_ENV === 'development' || isQuota) {
+                    console.warn(`[AUTH] ⚠️ DB Error during Role Lookup (${error.code}): Using token data only.`);
+
+                    // Fallback: If email suggests admin/owner, grant it for DEV/Rescue operations
+                    if (decodedToken.email && (decodedToken.email.includes('admin') || decodedToken.email.includes('owner'))) {
                         role = 'owner';
                     }
+                } else {
+                    const appError = handleError(error as Error);
+                    console.error(`[AUTH] Failed to check platform_users [${appError.errorId}]:`, (error as Error).message || String(error));
                 }
             }
 

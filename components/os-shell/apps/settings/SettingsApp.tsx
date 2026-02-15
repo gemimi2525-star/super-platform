@@ -19,6 +19,7 @@ import '@/styles/nexus-tokens.css';
 import type { AppProps } from '../registry';
 import { addDecisionLog } from '../../system-log';
 import { useStepUpAuth } from '@/governance/synapse/stepup';
+import { MigrationBanner } from '@/coreos/system/ui/MigrationBanner';
 import { useSecurityContext } from '@/governance/synapse';
 import { roleHasAccess, type UserRole } from '../manifest';
 import { useTranslations } from '@/lib/i18n/context';
@@ -240,6 +241,8 @@ export function SettingsApp({ windowId, capabilityId, isFocused }: AppProps) {
                 padding: 32,
                 overflow: 'auto',
             }}>
+                {/* Phase 27A: Migration Banner */}
+                <MigrationBanner hubTab="general" hubLabel="General Settings" />
                 {activeSection === 'general' && (
                     <>
                         <SettingsPanel title={t('settings.appearance')} icon="🎨">

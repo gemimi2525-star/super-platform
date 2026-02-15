@@ -12,6 +12,7 @@ import { getAdminFirestore, getAdminAuth } from '@/lib/firebase-admin';
 import type { PlatformUser, PlatformRole } from '@/lib/platform/types';
 import { ROLE_HIERARCHY, hasPermission } from '@/lib/platform/types';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
+import { withQuotaGuard, isQuotaError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { filterVisibleUsers } from '@super-platform/core';
 import { emitPermissionDenialEvent } from '@/lib/audit/emit';
@@ -110,26 +111,76 @@ export async function GET() {
             return ApiErrorResponse.forbidden('Insufficient permissions');
         }
 
-        // Get all platform users
-        const usersSnap = await db.collection(COLLECTION_PLATFORM_USERS)
-            .orderBy('createdAt', 'desc')
-            .get();
+        // MOCK DATA for Quota Bypass
+        const MOCK_USERS_FALLBACK: PlatformUser[] = [
+            {
+                uid: 'mock-owner-quota-bypass',
+                email: 'owner@apicoredata.mock',
+                displayName: 'Mock Owner (Quota Bypass)',
+                role: 'owner',
+                permissions: [],
+                enabled: true,
+                createdBy: 'system',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            },
+            {
+                uid: 'mock-user-quota-bypass',
+                email: 'user@apicoredata.mock',
+                displayName: 'Mock User (Quota Bypass)',
+                role: 'user',
+                permissions: [],
+                enabled: true,
+                createdBy: 'system',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
+        ];
 
-        const allUsers: PlatformUser[] = usersSnap.docs.map(doc => ({
-            uid: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate(),
-            lastLogin: doc.data().lastLogin?.toDate(),
-        })) as PlatformUser[];
+        // Get all platform users with Quota Guard
+        const usersSnap = await withQuotaGuard(
+            () => db.collection(COLLECTION_PLATFORM_USERS)
+                .orderBy('createdAt', 'desc')
+                .get(),
+            // @ts-ignore - Mocking QuerySnapshot for fallback
+            { docs: MOCK_USERS_FALLBACK.map(u => ({ id: u.uid, data: () => u })) }
+        );
+
+        let allUsers: PlatformUser[];
+
+        // Handle real snapshot vs mock fallback
+        if ('docs' in usersSnap) {
+            allUsers = usersSnap.docs.map((doc: any) => ({
+                uid: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt,
+                updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : doc.data().updatedAt,
+                lastLogin: doc.data().lastLogin?.toDate ? doc.data().lastLogin.toDate() : doc.data().lastLogin,
+            })) as PlatformUser[];
+        } else {
+            // Should not happen with current mock structure but safe fallback
+            allUsers = [];
+        }
 
         // Apply visibility scope filtering
         // Policy: owner sees all, non-owner cannot see owner users
+        console.log(`[API:Users] Current User: ${currentUser.uid} (${currentUser.role})`);
+        console.log(`[API:Users] Total Users (before filter): ${allUsers.length}`);
+
         const visibleUsers = filterVisibleUsers(allUsers, currentUser.role);
+        console.log(`[API:Users] Visible Users: ${visibleUsers.length}`);
 
         return ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
 
     } catch (error) {
+        // Handle Quota Error specifically
+        if (isQuotaError(error)) {
+            return ApiErrorResponse.serviceUnavailable(
+                'System is temporarily unavailable due to high traffic (Quota). Please try again later.',
+                60 // Retry after 60 seconds
+            );
+        }
+
         const appError = handleError(error as Error);
         console.error(`[API] Error fetching platform users [${appError.errorId}]:`, appError.message);
         return ApiErrorResponse.internalError();

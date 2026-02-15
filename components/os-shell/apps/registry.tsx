@@ -88,6 +88,11 @@ const NotesAppLazy = lazy(() =>
     import('./notes/NotesApp').then(m => ({ default: m.NotesApp }))
 );
 
+// Phase 27A: System Hub (Control Plane Consolidation)
+const SystemHubAppLazy = lazy(() =>
+    import('./system-hub/SystemHubApp').then(m => ({ default: m.SystemHubApp }))
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOADING PLACEHOLDER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -156,6 +161,12 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // ─────────────────────────────────────────────────────────────────────────
 
     'ops.center': createLazyApp(MonitorHubAppLazy), // Phase 26A: Shared mirror views
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SYSTEM HUB (Phase 27A — consolidates Settings/Config/Users/Orgs)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'system.hub': createLazyApp(SystemHubAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────
     // UTILITY APPS (Phase 9)

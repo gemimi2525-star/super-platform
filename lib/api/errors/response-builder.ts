@@ -182,4 +182,30 @@ export class ApiErrorResponse {
 
         return response;
     }
+    /**
+     * 503 Service Unavailable
+     * Temporary server overload or maintenance
+     */
+    static serviceUnavailable(
+        message: string = 'Service temporarily unavailable',
+        retryAfter?: number
+    ): NextResponse {
+        const appError = handleError(new Error(message));
+
+        const response = NextResponse.json({
+            success: false,
+            error: {
+                code: ApiErrorCode.SERVICE_UNAVAILABLE,
+                message,
+                errorId: appError.errorId,
+                timestamp: new Date().toISOString(),
+            }
+        }, { status: 503 });
+
+        if (retryAfter) {
+            response.headers.set('Retry-After', retryAfter.toString());
+        }
+
+        return response;
+    }
 }

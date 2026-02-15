@@ -43,6 +43,9 @@ const CAPABILITY_TIERS: Record<CapabilityId, TrustLevel> = {
     'core.finance': TrustLevel.ENTERPRISE,
     'brain.assist': TrustLevel.SYSTEM,
     'brain.dashboard': TrustLevel.SYSTEM, // Phase 25B: Owner-only
+
+    // Phase 27A: System Hub
+    'system.hub': TrustLevel.SYSTEM,
 };
 
 /**
