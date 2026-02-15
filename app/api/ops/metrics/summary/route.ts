@@ -7,13 +7,16 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getAllCounters, getActiveWorkers } from '@/coreos/ops/metrics';
+import { getAllCounters, getActiveWorkers, getFreshHeartbeatCount } from '@/coreos/ops/metrics';
 import { evaluateThresholds, processAlerts, getUnresolvedAlertCount } from '@/coreos/ops/threshold-engine';
 
 export async function GET() {
     try {
-        const counters = await getAllCounters();
-        const activeWorkers = await getActiveWorkers();
+        const [counters, activeWorkers, freshHeartbeatCount] = await Promise.all([
+            getAllCounters(),
+            getActiveWorkers(),
+            getFreshHeartbeatCount(),
+        ]);
 
         // Compute rates — aggregate by key prefix (keys have suffixes like :jobType=scheduler.tick)
         let total = 0;
@@ -35,7 +38,7 @@ export async function GET() {
         };
 
         // Phase 24: Evaluate thresholds and persist alerts
-        const thresholdResult = evaluateThresholds(rates, activeWorkers, counters);
+        const thresholdResult = evaluateThresholds(rates, activeWorkers, counters, freshHeartbeatCount);
 
         // Fire-and-forget: persist alerts to Firestore (don't block response)
         processAlerts(thresholdResult).catch((err) => {

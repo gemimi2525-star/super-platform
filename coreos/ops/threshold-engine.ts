@@ -63,13 +63,15 @@ const ALERT_COOLDOWN_MS = 5 * 60_000; // 5 minutes
  *
  * @param rates - { deadRate, retryRate } in percentage
  * @param activeWorkers - list of worker IDs with recent heartbeat
- * @param counters - raw counters (used to check if workers exist at all)
+ * @param counters - raw counters (used for rate checks)
+ * @param freshHeartbeatCount - count of worker_heartbeat_total docs updated recently (2× threshold)
  * @returns ThresholdResult with status and violations
  */
 export function evaluateThresholds(
     rates: { deadRate: number; retryRate: number },
     activeWorkers: string[],
     counters: Record<string, number>,
+    freshHeartbeatCount = 0,
 ): ThresholdResult {
     const violations: ThresholdViolation[] = [];
 
@@ -87,11 +89,9 @@ export function evaluateThresholds(
     }
 
     // Check worker heartbeat lost
-    // Only trigger if there are worker heartbeat counters but no active workers
-    const hasWorkerCounters = Object.keys(counters).some(
-        (k) => k.startsWith('worker_heartbeat_total'),
-    );
-    if (hasWorkerCounters && activeWorkers.length === 0) {
+    // Only trigger if there are RECENTLY updated heartbeat counters but no active workers.
+    // Old/stale counters from defunct workers are ignored (freshHeartbeatCount === 0).
+    if (freshHeartbeatCount > 0 && activeWorkers.length === 0) {
         violations.push({
             type: 'WORKER_HEARTBEAT_LOST',
             value: 0,

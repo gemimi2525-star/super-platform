@@ -162,6 +162,32 @@ export async function getActiveWorkers(thresholdMs = 60_000): Promise<string[]> 
     return workers;
 }
 
+/**
+ * Count worker_heartbeat_total counters updated within the threshold window.
+ * Used by evaluateThresholds to distinguish "no workers expected"
+ * (all counters are ancient) from "workers died" (recent counters but
+ * no active workers).
+ */
+export async function getFreshHeartbeatCount(thresholdMs = 120_000): Promise<number> {
+    const db = getAdminFirestore();
+    const since = Date.now() - thresholdMs;
+
+    const snapshot = await db.collection(COLLECTION_CORE_METRICS).get();
+
+    let count = 0;
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (
+            data.name === 'worker_heartbeat_total' &&
+            data.updatedAt >= since
+        ) {
+            count++;
+        }
+    });
+
+    return count;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
