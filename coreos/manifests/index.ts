@@ -37,6 +37,9 @@ import { BRAIN_ASSIST_MANIFEST } from './brain.assist';
 // Phase F: EXPERIMENTAL capabilities
 import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 
+// Phase 27A: System Hub (Control Plane Consolidation)
+import { SYSTEM_HUB_MANIFEST } from './system.hub';
+
 // Phase 16A: VFS App Integration
 import { CORE_NOTES_MANIFEST } from './core.notes';
 
@@ -94,6 +97,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     // Phase 16A: VFS App Integration
     'core.notes': CORE_NOTES_MANIFEST,
 
+    // Phase 27A: System Hub
+    'system.hub': SYSTEM_HUB_MANIFEST,
+
     // Phase 39: AI Governance Brain
     'core.admin': {
         id: 'core.admin',
@@ -125,6 +131,24 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
         certificationTier: 'core',
         requiredRole: 'admin',
     },
+
+    // Phase 25B: Brain Dashboard (Owner-only)
+    'brain.dashboard': {
+        id: 'brain.dashboard',
+        title: 'Brain Dashboard',
+        icon: '🧠',
+        hasUI: true,
+        windowMode: 'single',
+        windowDisplay: 'window',
+        contextsSupported: ['global'],
+        requiredPolicies: ['owner.access'],
+        requiresStepUp: true,
+        stepUpMessage: 'Brain Dashboard requires owner verification',
+        dependencies: [],
+        showInDock: true,
+        certificationTier: 'core',
+        requiredRole: 'owner',
+    },
 };
 
 // Re-export individual manifests
@@ -145,6 +169,8 @@ export {
     BRAIN_ASSIST_MANIFEST,
     // Phase 16A: VFS App Integration
     CORE_NOTES_MANIFEST,
+    // Phase 27A: System Hub
+    SYSTEM_HUB_MANIFEST,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
