@@ -11,12 +11,33 @@
  *   2. Return tick status for monitoring
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { incrementCounter } from '@/coreos/ops/metrics';
 
 const WORKER_ID = 'system-cron';
 
-export async function GET() {
+/**
+ * Vercel Cron Guard — validates the request comes from Vercel Cron
+ * or carries a matching CRON_SECRET Bearer token.
+ * If CRON_SECRET is not configured, the guard is bypassed (open access).
+ */
+function isCronAuthorized(request: NextRequest): boolean {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return true; // No secret set → open (dev/staging)
+
+    const authHeader = request.headers.get('authorization') ?? '';
+    return authHeader === `Bearer ${secret}`;
+}
+
+export async function GET(request: NextRequest) {
+    // ── Cron Guard ──
+    if (!isCronAuthorized(request)) {
+        return NextResponse.json(
+            { ok: false, error: 'Unauthorized — invalid or missing CRON_SECRET' },
+            { status: 401 },
+        );
+    }
+
     try {
         const now = Date.now();
 

@@ -7,12 +7,30 @@
  * GET /api/ops/diag/firestore → { ok, errorCode, grpcStatus, ... }
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthContext } from '@/lib/auth/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+const ALLOWED_ROLES = ['owner', 'admin'];
+
+export async function GET(request: NextRequest) {
+    // ── Auth Guard — admin/owner only ──
+    try {
+        const auth = await getAuthContext(request);
+        if (!auth || !ALLOWED_ROLES.includes(auth.role)) {
+            return NextResponse.json(
+                { ok: false, error: 'Forbidden — admin or owner role required' },
+                { status: auth ? 403 : 401 },
+            );
+        }
+    } catch {
+        return NextResponse.json(
+            { ok: false, error: 'Authentication failed' },
+            { status: 401 },
+        );
+    }
     const t0 = Date.now();
     try {
         const { getAdminFirestore } = await import('@/lib/firebase-admin');

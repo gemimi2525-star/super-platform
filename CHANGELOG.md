@@ -2,6 +2,26 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 27C — v0.27c-hotfix] — 2026-02-15
+
+### Fixed
+- **WORKER_HEARTBEAT_LOST false positive** — stale Firestore counters from old workers caused Ops Center to show DEGRADED
+- **Git remote URL mismatch** — uppercase `Super-Platform` vs lowercase `super-platform` broke Vercel deploy webhook
+
+### Added
+- `/api/worker/tick` — Vercel Cron heartbeat endpoint (`system-cron` worker)
+- `getFreshHeartbeatCount()` — age-aware counter check (ignores stale counters > 2× threshold)
+- Vercel Cron config — daily heartbeat insurance (`0 0 * * *`, Hobby plan)
+- Evidence docs: `docs/phase-27c-evidence.md`, `docs/phase-27c-incident-closure.md`
+
+### Security
+- `/api/worker/tick` — `CRON_SECRET` Bearer token guard
+- `/api/ops/diag/firestore` — auth guard (admin/owner only via `getAuthContext`)
+
+### Production
+- Commit: `f5dc967`
+- Tag: `v0.27c-hotfix`
+
 ## [Phase 21A] — 2026-02-12
 
 ### Fixed
