@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
-import { isQuotaError } from '@/lib/firebase-admin';
+import { isQuotaError, logFirestoreError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { emitSuccessEvent } from '@/lib/audit/emit';
 import { cachedFetch, cacheInvalidate, type CacheStatus } from '@/lib/cache/ttl-cache';
@@ -88,12 +88,16 @@ export async function GET(request: NextRequest) {
             organizations = result.value;
             cacheStatus = result.status;
             console.log(`[API:Orgs] Cache ${cacheStatus} — ${organizations.length} orgs`);
-        } catch {
-            // cachedFetch threw = MISS + fetch failed + no stale data
-            return ApiErrorResponse.serviceUnavailable(
+        } catch (cacheError: any) {
+            // cachedFetch threw = MISS + fetch failed + no stale + no persistent snapshot
+            logFirestoreError('Orgs:CacheFetch', cacheError, auth.uid);
+            const errResp = ApiErrorResponse.serviceUnavailable(
                 'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
                 60
             );
+            errResp.headers.set('X-Cache', 'MISS');
+            errResp.headers.set('X-Cache-Key', CACHE_KEY_ORGS_LIST);
+            return errResp;
         }
 
         const response = ApiSuccessResponse.ok({
@@ -104,6 +108,7 @@ export async function GET(request: NextRequest) {
 
     } catch (error: any) {
         if (isQuotaError(error)) {
+            logFirestoreError('Orgs:Outer', error, 'no-auth');
             return ApiErrorResponse.serviceUnavailable(
                 'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
                 60

@@ -236,7 +236,7 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
             )}
 
             {/* Phase 27C.8: Stale data notice */}
-            {!loading && !loadError && cacheStatus === 'STALE' && users.length > 0 && (
+            {!loading && !loadError && (cacheStatus === 'STALE' || cacheStatus === 'PERSISTENT_STALE') && users.length > 0 && (
                 <div style={{
                     padding: '8px 14px',
                     fontSize: 12,

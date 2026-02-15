@@ -1,5 +1,5 @@
 /**
- * TTL Cache with Stale-While-Revalidate — Phase 27C.8
+ * TTL Cache with Stale-While-Revalidate — Phase 27C.8 + 27C.8b
  *
  * In-memory cache using globalThis to survive across warm lambda invocations.
  * Designed for Vercel/Next.js serverless: one cache per lambda instance.
@@ -9,7 +9,11 @@
  * - Stale window (default 5min) — serves stale data if source is unavailable
  * - Stampede protection — single in-flight promise per key
  * - Manual invalidation for mutations
+ * - Persistent snapshot fallback (Phase 27C.8b) — /tmp + bundled seed
  */
+
+import * as fs from 'fs';
+import * as path from 'path';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,11 +48,79 @@ function getInFlight(): InFlightMap {
 
 // ─── Cache Status ─────────────────────────────────────────────────────────────
 
-export type CacheStatus = 'HIT' | 'STALE' | 'MISS';
+export type CacheStatus = 'HIT' | 'STALE' | 'MISS' | 'PERSISTENT_STALE';
 
 export interface CacheResult<T> {
     value: T;
     status: CacheStatus;
+}
+
+// ─── Persistent Snapshot (Phase 27C.8b) ───────────────────────────────────────
+
+const TMP_SNAPSHOT_DIR = '/tmp/apicoredata-snapshots';
+const SEED_DIR = path.join(process.cwd(), 'data', 'snapshots');
+
+/** Sanitise cache key to filesystem-safe name */
+function keyToFilename(key: string): string {
+    return key.replace(/[^a-zA-Z0-9_-]/g, '_') + '.json';
+}
+
+/**
+ * Persist a snapshot to /tmp so it survives warm lambda reuse.
+ * Non-blocking — errors are logged but swallowed.
+ */
+export function persistSnapshot<T>(key: string, data: T): void {
+    try {
+        if (!fs.existsSync(TMP_SNAPSHOT_DIR)) {
+            fs.mkdirSync(TMP_SNAPSHOT_DIR, { recursive: true });
+        }
+        const filePath = path.join(TMP_SNAPSHOT_DIR, keyToFilename(key));
+        fs.writeFileSync(filePath, JSON.stringify(data), 'utf-8');
+        console.log(`[TTLCache] Persisted snapshot: ${key}`);
+    } catch (err: any) {
+        console.warn(`[TTLCache] Failed to persist snapshot ${key}:`, err?.message);
+    }
+}
+
+/**
+ * Load a snapshot — tries /tmp first (recent warm data), then bundled seed.
+ * Returns null if nothing found anywhere.
+ */
+export function loadSnapshot<T>(key: string): T | null {
+    const filename = keyToFilename(key);
+
+    // 1. Try /tmp (most recent warm data)
+    try {
+        const tmpPath = path.join(TMP_SNAPSHOT_DIR, filename);
+        if (fs.existsSync(tmpPath)) {
+            const raw = fs.readFileSync(tmpPath, 'utf-8');
+            const data = JSON.parse(raw) as T;
+            // Only return if non-empty array
+            if (Array.isArray(data) && data.length > 0) {
+                console.log(`[TTLCache] Loaded snapshot from /tmp: ${key} (${(data as any[]).length} items)`);
+                return data;
+            }
+        }
+    } catch (err: any) {
+        console.warn(`[TTLCache] Failed to read /tmp snapshot ${key}:`, err?.message);
+    }
+
+    // 2. Try bundled seed from deploy
+    try {
+        const seedPath = path.join(SEED_DIR, filename);
+        if (fs.existsSync(seedPath)) {
+            const raw = fs.readFileSync(seedPath, 'utf-8');
+            const data = JSON.parse(raw) as T;
+            if (Array.isArray(data) && data.length > 0) {
+                console.log(`[TTLCache] Loaded snapshot from seed: ${key} (${(data as any[]).length} items)`);
+                return data;
+            }
+        }
+    } catch (err: any) {
+        console.warn(`[TTLCache] Failed to read seed snapshot ${key}:`, err?.message);
+    }
+
+    return null;
 }
 
 // ─── Core API ─────────────────────────────────────────────────────────────────
@@ -117,6 +189,7 @@ export function cacheInvalidate(key: string): void {
  * 1. If fresh cache exists → return HIT immediately
  * 2. If stale cache exists → start background refresh, return STALE immediately
  * 3. If no cache → fetch, cache result, return MISS
+ * 4. If fetch fails, no stale → try persistent snapshot → PERSISTENT_STALE (27C.8b)
  *
  * Stampede protection: only one in-flight fetch per key.
  * If fetch fails and stale data exists → keep stale data, don't evict.
@@ -151,7 +224,13 @@ export async function cachedFetch<T>(
             const value = (await inFlight.get(key)!) as T;
             return { value, status: 'MISS' };
         } catch {
-            // If in-flight fails and we have no cache, propagate error
+            // If in-flight fails, try persistent snapshot (27C.8b)
+            const snapshot = loadSnapshot<T>(key);
+            if (snapshot) {
+                // Promote to memory cache so next request is a HIT
+                cacheSet(key, snapshot, ttlMs, staleWindowMs);
+                return { value: snapshot, status: 'PERSISTENT_STALE' };
+            }
             throw new Error(`[TTLCache] Fetch failed for key: ${key}`);
         }
     }
@@ -163,7 +242,19 @@ export async function cachedFetch<T>(
     try {
         const value = await fetchPromise;
         cacheSet(key, value, ttlMs, staleWindowMs);
+        // Persist to /tmp for cold-start resilience (27C.8b)
+        persistSnapshot(key, value);
         return { value, status: 'MISS' };
+    } catch (fetchError) {
+        // Fetch failed — try persistent snapshot before giving up (27C.8b)
+        const snapshot = loadSnapshot<T>(key);
+        if (snapshot) {
+            cacheSet(key, snapshot, ttlMs, staleWindowMs);
+            console.log(`[TTLCache] Serving PERSISTENT_STALE for ${key} after fetch failure`);
+            return { value: snapshot, status: 'PERSISTENT_STALE' };
+        }
+        // No persistent data either — propagate error
+        throw fetchError;
     } finally {
         inFlight.delete(key);
     }
@@ -185,6 +276,7 @@ function triggerBackgroundRevalidate<T>(
     const promise = fetcher()
         .then((value) => {
             cacheSet(key, value, ttlMs, staleWindowMs);
+            persistSnapshot(key, value); // Also update persistent snapshot
             console.log(`[TTLCache] Background revalidate OK: ${key}`);
         })
         .catch((err) => {

@@ -13,7 +13,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { handleError } from '@super-platform/core';
 
 // Export Quota Wrapper for API usage
-export { isQuotaError, QuotaExceededError, withQuotaGuard } from './quota-wrapper';
+export { isQuotaError, QuotaExceededError, withQuotaGuard, classifyFirestoreError, logFirestoreError } from './quota-wrapper';
+export type { QuotaErrorKind } from './quota-wrapper';
 
 let adminApp: App | undefined;
 

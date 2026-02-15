@@ -12,7 +12,7 @@ import { getAdminFirestore, getAdminAuth } from '@/lib/firebase-admin';
 import type { PlatformUser, PlatformRole } from '@/lib/platform/types';
 import { ROLE_HIERARCHY, hasPermission } from '@/lib/platform/types';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
-import { withQuotaGuard, isQuotaError } from '@/lib/firebase-admin';
+import { withQuotaGuard, isQuotaError, logFirestoreError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { filterVisibleUsers } from '@super-platform/core';
 import { emitPermissionDenialEvent } from '@/lib/audit/emit';
@@ -96,36 +96,55 @@ export async function GET() {
             return ApiErrorResponse.unauthorized();
         }
 
-        // Check permission — this per-user check always reads 1 doc (not cached)
+        // ═══════════════════════════════════════════════════════════════════
+        // Phase 27C.8b: Permission check wrapped in quota-resilient try/catch
+        // If Firestore is down, skip permission check and proceed to cache.
+        // Auth context already provides role from token.
+        // ═══════════════════════════════════════════════════════════════════
         const db = getAdminFirestore();
-        const userDoc = await db.collection(COLLECTION_PLATFORM_USERS).doc(auth.uid).get();
+        let currentUserRole: PlatformRole = auth.role as PlatformRole || 'user';
+        let permissionCheckPassed = false;
 
-        if (!userDoc.exists) {
-            emitPermissionDenialEvent(
-                { uid: auth.uid, email: auth.email || '', role: 'user' },
-                'platform:users:read',
-                { method: 'GET', path: '/api/platform/users' },
-                { reason: 'not_platform_user' }
-            );
-            return ApiErrorResponse.forbidden('Not a platform user');
-        }
+        try {
+            const userDoc = await db.collection(COLLECTION_PLATFORM_USERS).doc(auth.uid).get();
 
-        const currentUser = userDoc.data() as PlatformUser;
+            if (!userDoc.exists) {
+                emitPermissionDenialEvent(
+                    { uid: auth.uid, email: auth.email || '', role: 'user' },
+                    'platform:users:read',
+                    { method: 'GET', path: '/api/platform/users' },
+                    { reason: 'not_platform_user' }
+                );
+                return ApiErrorResponse.forbidden('Not a platform user');
+            }
 
-        if (!hasPermission(currentUser, 'platform:users:read')) {
-            emitPermissionDenialEvent(
-                { uid: auth.uid, email: auth.email || '', role: currentUser.role },
-                'platform:users:read',
-                { method: 'GET', path: '/api/platform/users' },
-                { reason: 'insufficient_permission' }
-            );
-            return ApiErrorResponse.forbidden('Insufficient permissions');
+            const currentUser = userDoc.data() as PlatformUser;
+            currentUserRole = currentUser.role;
+
+            if (!hasPermission(currentUser, 'platform:users:read')) {
+                emitPermissionDenialEvent(
+                    { uid: auth.uid, email: auth.email || '', role: currentUser.role },
+                    'platform:users:read',
+                    { method: 'GET', path: '/api/platform/users' },
+                    { reason: 'insufficient_permission' }
+                );
+                return ApiErrorResponse.forbidden('Insufficient permissions');
+            }
+            permissionCheckPassed = true;
+        } catch (permError: any) {
+            // Phase 27C.8b: If permission check fails due to quota, proceed to cache
+            if (isQuotaError(permError)) {
+                logFirestoreError('Users:PermCheck', permError, auth.uid);
+                console.warn(`[API:Users] Permission check skipped (quota) — using token role: ${currentUserRole}`);
+                permissionCheckPassed = true; // Allow through — role from auth token
+            } else {
+                throw permError; // Non-quota error — re-throw
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════
         // Phase 27C.8: TTL Cache + Stale-While-Revalidate
-        // Fetcher reads Firestore only on MISS or background revalidate.
-        // On quota 503, stale data is served instead of error.
+        // Phase 27C.8b: + Persistent Snapshot fallback
         // ═══════════════════════════════════════════════════════════════════
 
         const fetcher = async (): Promise<PlatformUser[]> => {
@@ -150,24 +169,28 @@ export async function GET() {
             allUsers = result.value;
             cacheStatus = result.status;
             console.log(`[API:Users] Cache ${cacheStatus} — ${allUsers.length} users`);
-        } catch {
-            // cachedFetch threw = MISS + fetch failed + no stale
-            // Fall back to 503 (no data to serve)
-            return ApiErrorResponse.serviceUnavailable(
+        } catch (cacheError: any) {
+            // cachedFetch threw = MISS + fetch failed + no stale + no persistent snapshot
+            logFirestoreError('Users:CacheFetch', cacheError, auth.uid);
+            const errResp = ApiErrorResponse.serviceUnavailable(
                 'System is temporarily unavailable due to high traffic (Quota). Please try again later.',
                 60
             );
+            errResp.headers.set('X-Cache', 'MISS');
+            errResp.headers.set('X-Cache-Key', CACHE_KEY_USERS_LIST);
+            return errResp;
         }
 
         // Apply visibility scope filtering
-        const visibleUsers = filterVisibleUsers(allUsers, currentUser.role);
-        console.log(`[API:Users] Visible: ${visibleUsers.length} (role: ${currentUser.role})`);
+        const visibleUsers = filterVisibleUsers(allUsers, currentUserRole);
+        console.log(`[API:Users] Visible: ${visibleUsers.length} (role: ${currentUserRole})`);
 
         const response = ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
         return withCacheHeaders(response, cacheStatus);
 
-    } catch (error) {
+    } catch (error: any) {
         if (isQuotaError(error)) {
+            logFirestoreError('Users:Outer', error, 'no-auth');
             return ApiErrorResponse.serviceUnavailable(
                 'System is temporarily unavailable due to high traffic (Quota). Please try again later.',
                 60

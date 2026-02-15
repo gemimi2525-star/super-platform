@@ -699,7 +699,7 @@ export function OrganizationsPanel({
                 )}
 
                 {/* Phase 27C.8: Stale data notice */}
-                {!loading && !loadError && cacheStatus === 'STALE' && orgs.length > 0 && (
+                {!loading && !loadError && (cacheStatus === 'STALE' || cacheStatus === 'PERSISTENT_STALE') && orgs.length > 0 && (
                     <div style={{
                         padding: '8px 14px',
                         fontSize: 12,
