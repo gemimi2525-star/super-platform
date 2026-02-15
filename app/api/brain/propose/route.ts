@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
         try {
             const claims = await verifySessionCookie(sessionCookie);
             uid = claims.uid;
+        } catch (e) {
+            return NextResponse.json(
+                { error: 'Invalid session' },
+                { status: 401 },
+            );
         }
 
         // ─── Owner-only guard (Phase 26D) ───
