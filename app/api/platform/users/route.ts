@@ -170,7 +170,10 @@ export async function GET() {
         const visibleUsers = filterVisibleUsers(allUsers, currentUser.role);
         console.log(`[API:Users] Visible Users: ${visibleUsers.length}`);
 
-        return ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
+        // Phase 27C.5: Add Cache-Control to reduce Firestore reads
+        const response = ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
+        response.headers.set('Cache-Control', 'private, max-age=30');
+        return response;
 
     } catch (error) {
         // Handle Quota Error specifically

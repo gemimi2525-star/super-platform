@@ -81,10 +81,13 @@ export async function GET(request: NextRequest) {
                 organizations = [];
             }
 
-            return ApiSuccessResponse.ok({
+            // Phase 27C.5: Add Cache-Control to reduce Firestore reads
+            const response = ApiSuccessResponse.ok({
                 organizations,
                 authMode: 'REAL'
             });
+            response.headers.set('Cache-Control', 'private, max-age=30');
+            return response;
         } catch (dbError: any) {
 
             // Handle Quota Error specifically with 503

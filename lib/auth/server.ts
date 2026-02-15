@@ -244,7 +244,18 @@ export async function getAuthContext(req?: NextRequest): Promise<AuthContext | n
 
         return null;
 
-    } catch (error) {
+    } catch (error: any) {
+        // Phase 27C.5: Detect quota/infra errors — return null (→ 401) instead of throwing (→ 500)
+        const isInfraError = error?.code === 8 || error?.code === 14 ||
+            error?.message?.includes('RESOURCE_EXHAUSTED') ||
+            error?.message?.includes('Quota exceeded') ||
+            error?.message?.includes('UNAVAILABLE');
+
+        if (isInfraError) {
+            console.warn(`[AUTH] ⚠️ Infrastructure error during auth (quota/unavailable): ${error?.message}. Returning null → 401.`);
+            return null;
+        }
+
         const appError = handleError(error as Error);
         console.error(`[AUTH] Failed to get auth context [${appError.errorId}]:`, (error as Error).message || String(error));
         return null;

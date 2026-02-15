@@ -136,8 +136,13 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
             setUsers(data);
         } catch (error: any) {
             console.error('[UsersPanel] Failed to load:', error);
-            // UX Fix: Show error instead of infinite loading
-            setLoadError(error.message || 'Failed to load users');
+            // Phase 27C.5: Detect quota-specific errors for user-friendly message
+            const msg = error.message || 'Failed to load users';
+            if (msg.includes('503') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('unavailable')) {
+                setLoadError('Service Temporarily Unavailable (Quota Exceeded). Please retry later.');
+            } else {
+                setLoadError(msg);
+            }
         } finally {
             setLoading(false);
         }

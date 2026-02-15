@@ -78,10 +78,13 @@ export async function GET(request: NextRequest) {
                 }));
             }
 
-            return ApiSuccessResponse.ok({
+            // Phase 27C.5: Add Cache-Control to reduce Firestore reads
+            const auditResponse = ApiSuccessResponse.ok({
                 logs,
                 authMode: 'REAL'
             });
+            auditResponse.headers.set('Cache-Control', 'private, max-age=30');
+            return auditResponse;
 
         } catch (dbError: any) {
             if (isQuotaError(dbError) || dbError?.code === 'SERVICE_UNAVAILABLE') {
