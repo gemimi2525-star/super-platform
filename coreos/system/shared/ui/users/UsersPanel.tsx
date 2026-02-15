@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { UserRecord, UserFormData } from '../../types';
 import type { UsersDataSource } from '../../datasources/users-datasource';
 import { usersApiDataSource } from '../../datasources/users-api';
+import { getLastUsersCacheStatus } from '../../datasources/users-api';
 import { usersMockDataSource } from '../../datasources/users-mock';
 import { useGovernedMutation } from '../../hooks/useGovernedMutation';
 import { PermissionBanner } from '../PermissionBanner';
@@ -123,6 +124,8 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
     const [editingUser, setEditingUser] = useState<UserRecord | undefined>();
     const [permissionError, setPermissionError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
+    // Phase 27C.8: Track stale data status
+    const [cacheStatus, setCacheStatus] = useState<string | null>(null);
 
     // Phase 27C-stab: Quota backoff guard — skip auto-refresh after 503
     const quotaBackoffRef = useRef(false);
@@ -145,6 +148,7 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
         try {
             const data = await ds.list();
             setUsers(data);
+            setCacheStatus(getLastUsersCacheStatus());
             quotaBackoffRef.current = false; // Reset backoff on success
         } catch (error: any) {
             console.error('[UsersPanel] Failed to load:', error);
@@ -228,6 +232,20 @@ export function UsersPanel({ variant = 'light', dataSourceMode = 'api', compact 
                         variant={variant}
                         action={{ label: 'Retry', onClick: retryLoadUsers }}
                     />
+                </div>
+            )}
+
+            {/* Phase 27C.8: Stale data notice */}
+            {!loading && !loadError && cacheStatus === 'STALE' && users.length > 0 && (
+                <div style={{
+                    padding: '8px 14px',
+                    fontSize: 12,
+                    background: isDark ? 'rgba(255,179,0,0.12)' : 'rgba(255,179,0,0.08)',
+                    color: isDark ? '#FFB300' : '#B8860B',
+                    borderRadius: 6,
+                    marginBottom: 12,
+                }}>
+                    ⚠ Showing last known data (cache). Live refresh in background.
                 </div>
             )}
 

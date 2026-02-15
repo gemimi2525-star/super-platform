@@ -16,12 +16,14 @@ import { withQuotaGuard, isQuotaError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { filterVisibleUsers } from '@super-platform/core';
 import { emitPermissionDenialEvent } from '@/lib/audit/emit';
+import { cachedFetch, cacheInvalidate, type CacheStatus } from '@/lib/cache/ttl-cache';
 
 export const runtime = 'nodejs';
 
 // Inline collection constant to avoid webpack path resolution issues
 const COLLECTION_PLATFORM_USERS = 'platform_users';
 const COLLECTION_AUDIT_LOGS = 'platform_audit_logs';
+const CACHE_KEY_USERS_LIST = 'users:list';
 
 // Validation schema for POST
 const createUserSchema = z.object({
@@ -32,14 +34,23 @@ const createUserSchema = z.object({
     permissions: z.array(z.string()).optional(),
 });
 
+/**
+ * Helper: add cache-related headers to response
+ */
+function withCacheHeaders(response: Response, cacheStatus: CacheStatus): Response {
+    response.headers.set('Cache-Control', 'private, max-age=30');
+    response.headers.set('X-Cache', cacheStatus);
+    response.headers.set('X-Cache-Key', CACHE_KEY_USERS_LIST);
+    return response;
+}
+
 // =============================================================================
-// GET - List all platform users
+// GET - List all platform users (with TTL cache + stale-while-revalidate)
 // =============================================================================
 
 export async function GET() {
     try {
         // Phase 9.4: Dev Mode check FIRST (before auth)
-        // This allows OSShell to work without real session in local dev
         if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
             console.log('[API:Users] Dev bypass mode - returning mock users');
             const mockUsers: PlatformUser[] = [
@@ -85,7 +96,7 @@ export async function GET() {
             return ApiErrorResponse.unauthorized();
         }
 
-        // Check permission
+        // Check permission — this per-user check always reads 1 doc (not cached)
         const db = getAdminFirestore();
         const userDoc = await db.collection(COLLECTION_PLATFORM_USERS).doc(auth.uid).get();
 
@@ -111,76 +122,55 @@ export async function GET() {
             return ApiErrorResponse.forbidden('Insufficient permissions');
         }
 
-        // MOCK DATA for Quota Bypass
-        const MOCK_USERS_FALLBACK: PlatformUser[] = [
-            {
-                uid: 'mock-owner-quota-bypass',
-                email: 'owner@apicoredata.mock',
-                displayName: 'Mock Owner (Quota Bypass)',
-                role: 'owner',
-                permissions: [],
-                enabled: true,
-                createdBy: 'system',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            },
-            {
-                uid: 'mock-user-quota-bypass',
-                email: 'user@apicoredata.mock',
-                displayName: 'Mock User (Quota Bypass)',
-                role: 'user',
-                permissions: [],
-                enabled: true,
-                createdBy: 'system',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            }
-        ];
+        // ═══════════════════════════════════════════════════════════════════
+        // Phase 27C.8: TTL Cache + Stale-While-Revalidate
+        // Fetcher reads Firestore only on MISS or background revalidate.
+        // On quota 503, stale data is served instead of error.
+        // ═══════════════════════════════════════════════════════════════════
 
-        // Get all platform users with Quota Guard
-        const usersSnap = await withQuotaGuard(
-            () => db.collection(COLLECTION_PLATFORM_USERS)
+        const fetcher = async (): Promise<PlatformUser[]> => {
+            const snap = await db.collection(COLLECTION_PLATFORM_USERS)
                 .orderBy('createdAt', 'desc')
-                .get(),
-            // @ts-ignore - Mocking QuerySnapshot for fallback
-            { docs: MOCK_USERS_FALLBACK.map(u => ({ id: u.uid, data: () => u })) }
-        );
+                .get();
 
-        let allUsers: PlatformUser[];
-
-        // Handle real snapshot vs mock fallback
-        if ('docs' in usersSnap) {
-            allUsers = usersSnap.docs.map((doc: any) => ({
+            return snap.docs.map((doc: any) => ({
                 uid: doc.id,
                 ...doc.data(),
                 createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt,
                 updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : doc.data().updatedAt,
                 lastLogin: doc.data().lastLogin?.toDate ? doc.data().lastLogin.toDate() : doc.data().lastLogin,
             })) as PlatformUser[];
-        } else {
-            // Should not happen with current mock structure but safe fallback
-            allUsers = [];
+        };
+
+        let allUsers: PlatformUser[];
+        let cacheStatus: CacheStatus;
+
+        try {
+            const result = await cachedFetch<PlatformUser[]>(CACHE_KEY_USERS_LIST, fetcher);
+            allUsers = result.value;
+            cacheStatus = result.status;
+            console.log(`[API:Users] Cache ${cacheStatus} — ${allUsers.length} users`);
+        } catch {
+            // cachedFetch threw = MISS + fetch failed + no stale
+            // Fall back to 503 (no data to serve)
+            return ApiErrorResponse.serviceUnavailable(
+                'System is temporarily unavailable due to high traffic (Quota). Please try again later.',
+                60
+            );
         }
 
         // Apply visibility scope filtering
-        // Policy: owner sees all, non-owner cannot see owner users
-        console.log(`[API:Users] Current User: ${currentUser.uid} (${currentUser.role})`);
-        console.log(`[API:Users] Total Users (before filter): ${allUsers.length}`);
-
         const visibleUsers = filterVisibleUsers(allUsers, currentUser.role);
-        console.log(`[API:Users] Visible Users: ${visibleUsers.length}`);
+        console.log(`[API:Users] Visible: ${visibleUsers.length} (role: ${currentUser.role})`);
 
-        // Phase 27C.5: Add Cache-Control to reduce Firestore reads
         const response = ApiSuccessResponse.ok({ users: visibleUsers, authMode: 'REAL' });
-        response.headers.set('Cache-Control', 'private, max-age=30');
-        return response;
+        return withCacheHeaders(response, cacheStatus);
 
     } catch (error) {
-        // Handle Quota Error specifically
         if (isQuotaError(error)) {
             return ApiErrorResponse.serviceUnavailable(
                 'System is temporarily unavailable due to high traffic (Quota). Please try again later.',
-                60 // Retry after 60 seconds
+                60
             );
         }
 
@@ -274,6 +264,9 @@ export async function POST(request: NextRequest) {
         };
 
         await db.collection(COLLECTION_PLATFORM_USERS).doc(firebaseUser.uid).set(newUser);
+
+        // Phase 27C.8: Invalidate users list cache after mutation
+        cacheInvalidate(CACHE_KEY_USERS_LIST);
 
         // Log audit
         await db.collection(COLLECTION_AUDIT_LOGS).add({

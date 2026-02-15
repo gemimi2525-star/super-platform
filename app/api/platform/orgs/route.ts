@@ -2,12 +2,14 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server';
 import { ApiSuccessResponse, ApiErrorResponse, validateRequest } from '@/lib/api';
-import { withQuotaGuard, isQuotaError } from '@/lib/firebase-admin';
+import { isQuotaError } from '@/lib/firebase-admin';
 import { handleError } from '@super-platform/core';
 import { emitSuccessEvent } from '@/lib/audit/emit';
+import { cachedFetch, cacheInvalidate, type CacheStatus } from '@/lib/cache/ttl-cache';
 
 // Canonical collection name (Phase 12)
 const COLLECTION_ORGANIZATIONS = 'platform_organizations';
+const CACHE_KEY_ORGS_LIST = 'orgs:list';
 
 export const runtime = 'nodejs';
 
@@ -20,10 +22,32 @@ const createOrgSchema = z.object({
     modules: z.array(z.string()).optional(),
 });
 
+// Org shape returned from cache
+interface CachedOrg {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+    domain?: string | null;
+    status?: string;
+    createdAt: string | null;
+    [key: string]: unknown;
+}
+
+/**
+ * Helper: add cache-related headers to response
+ */
+function withCacheHeaders(response: Response, cacheStatus: CacheStatus): Response {
+    response.headers.set('Cache-Control', 'private, max-age=30');
+    response.headers.set('X-Cache', cacheStatus);
+    response.headers.set('X-Cache-Key', CACHE_KEY_ORGS_LIST);
+    return response;
+}
+
 export async function GET(request: NextRequest) {
     try {
         // ═══════════════════════════════════════════════════════════════════════════
-        // PHASE 9.9: DEV BYPASS — Check FIRST before auth (same pattern as Users API)
+        // PHASE 9.9: DEV BYPASS — Check FIRST before auth
         // ═══════════════════════════════════════════════════════════════════════════
         if (process.env.NODE_ENV === 'development' && process.env.AUTH_DEV_BYPASS === 'true') {
             console.log('[API:Orgs] Dev bypass mode - returning mock orgs');
@@ -36,88 +60,56 @@ export async function GET(request: NextRequest) {
             return ApiErrorResponse.unauthorized('Session expired or invalid');
         }
 
-        // PRODUCTION: Use Firebase Admin with Quota Guard
-        try {
+        // ═══════════════════════════════════════════════════════════════════
+        // Phase 27C.8: TTL Cache + Stale-While-Revalidate
+        // ═══════════════════════════════════════════════════════════════════
+
+        const fetcher = async (): Promise<CachedOrg[]> => {
             const { getAdminFirestore } = await import('@/lib/firebase-admin');
             const db = getAdminFirestore();
 
-            // Mock Data for Quota Bypass
-            const MOCK_ORGS_FALLBACK = [
-                {
-                    id: 'org-fallback-quota-001',
-                    name: 'Acme Corp (Quota Bypass)',
-                    slug: 'acme-corp',
-                    plan: 'pro',
-                    domain: 'acme.example.com',
-                    status: 'active',
-                    createdAt: { toDate: () => new Date('2025-12-01T10:00:00.000Z') },
-                },
-                {
-                    id: 'org-fallback-quota-002',
-                    name: 'System Demo Org (Quota Bypass)',
-                    slug: 'system-demo',
-                    plan: 'enterprise',
-                    domain: 'demo.apicoredata.local',
-                    status: 'active',
-                    createdAt: { toDate: () => new Date() },
-                }
-            ];
+            const snapshot = await db.collection(COLLECTION_ORGANIZATIONS)
+                .orderBy('createdAt', 'desc')
+                .limit(50)
+                .get();
 
-            const snapshot = await withQuotaGuard(
-                () => db.collection(COLLECTION_ORGANIZATIONS).orderBy('createdAt', 'desc').limit(50).get(),
-                // @ts-ignore - Mocking QuerySnapshot for fallback
-                { docs: MOCK_ORGS_FALLBACK.map(o => ({ id: o.id, data: () => o })) }
+            return snapshot.docs.map((doc: any) => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
+            }));
+        };
+
+        let organizations: CachedOrg[];
+        let cacheStatus: CacheStatus;
+
+        try {
+            const result = await cachedFetch<CachedOrg[]>(CACHE_KEY_ORGS_LIST, fetcher);
+            organizations = result.value;
+            cacheStatus = result.status;
+            console.log(`[API:Orgs] Cache ${cacheStatus} — ${organizations.length} orgs`);
+        } catch {
+            // cachedFetch threw = MISS + fetch failed + no stale data
+            return ApiErrorResponse.serviceUnavailable(
+                'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
+                60
             );
-
-            let organizations;
-
-            if ('docs' in snapshot) {
-                organizations = snapshot.docs.map((doc: any) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
-                }));
-            } else {
-                organizations = [];
-            }
-
-            // Phase 27C.5: Add Cache-Control to reduce Firestore reads
-            const response = ApiSuccessResponse.ok({
-                organizations,
-                authMode: 'REAL'
-            });
-            response.headers.set('Cache-Control', 'private, max-age=30');
-            return response;
-        } catch (dbError: any) {
-
-            // Handle Quota Error specifically with 503
-            if (isQuotaError(dbError) || dbError?.code === 'SERVICE_UNAVAILABLE') {
-                return ApiErrorResponse.serviceUnavailable(
-                    'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
-                    60
-                );
-            }
-
-            console.error('[API] Database connection failed:', dbError?.message || dbError);
-
-            if (process.env.NODE_ENV === 'development') {
-                return getMockOrgs();
-            }
-
-            return new Response(JSON.stringify({
-                success: false,
-                error: {
-                    code: 'SERVICE_UNAVAILABLE',
-                    message: 'Database service is currently unavailable. Please try again later.',
-                    degraded: true
-                }
-            }), {
-                status: 503,
-                headers: { 'Content-Type': 'application/json' }
-            });
         }
 
+        const response = ApiSuccessResponse.ok({
+            organizations,
+            authMode: 'REAL',
+        });
+        return withCacheHeaders(response, cacheStatus);
+
     } catch (error: any) {
+        if (isQuotaError(error)) {
+            return ApiErrorResponse.serviceUnavailable(
+                'Database service is currently unavailable due to high traffic (Quota). Please try again later.',
+                60
+            );
+        }
+
         if (error?.digest?.startsWith('NEXT_REDIRECT')) {
             console.error('[API] Prevented Redirect in API Route');
             return ApiErrorResponse.internalError('Server attempted redirect, blocked by JSON-only policy');
@@ -220,6 +212,9 @@ export async function POST(request: NextRequest) {
         };
 
         await orgRef.set(newOrgData);
+
+        // Phase 27C.8: Invalidate orgs list cache after mutation
+        cacheInvalidate(CACHE_KEY_ORGS_LIST);
 
         // Fetch the created document to get actual timestamps
         const createdDoc = await orgRef.get();

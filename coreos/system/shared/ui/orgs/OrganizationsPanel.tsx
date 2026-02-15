@@ -332,9 +332,14 @@ async function parseApiError(res: Response, fallback: string): Promise<string> {
     }
 }
 
+// Phase 27C.8: Track last X-Cache header from API response
+let _lastOrgsCacheStatus: string | null = null;
+export function getLastOrgsCacheStatus() { return _lastOrgsCacheStatus; }
+
 const orgsApiDataSource: OrgsDataSource = {
     async list() {
         const res = await fetch(`${API_BASE}`, { method: 'GET' });
+        _lastOrgsCacheStatus = res.headers.get('X-Cache');
         if (!res.ok) throw new Error(await parseApiError(res, `Failed to load organizations (${res.status})`));
         const data = (await res.json()) as { organizations?: OrgRecord[]; items?: OrgRecord[] } | OrgRecord[];
         if (Array.isArray(data)) return data;
@@ -460,6 +465,8 @@ export function OrganizationsPanel({
     const [orgs, setOrgs] = useState<OrgRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
+    // Phase 27C.8: Track stale data status
+    const [cacheStatus, setCacheStatus] = useState<string | null>(null);
 
     const [search, setSearch] = useState('');
     const filtered = useMemo(() => {
@@ -511,6 +518,7 @@ export function OrganizationsPanel({
             const data = await ds.list();
             if (!mountedRef.current) return;
             setOrgs(data);
+            setCacheStatus(getLastOrgsCacheStatus());
             quotaBackoffRef.current = false; // Reset backoff on success
         } catch (err: any) {
             if (!mountedRef.current) return;
@@ -688,6 +696,20 @@ export function OrganizationsPanel({
 
                 {loading && (
                     <div style={{ padding: 14, fontSize: 13, opacity: 0.8 }}>Loading…</div>
+                )}
+
+                {/* Phase 27C.8: Stale data notice */}
+                {!loading && !loadError && cacheStatus === 'STALE' && orgs.length > 0 && (
+                    <div style={{
+                        padding: '8px 14px',
+                        fontSize: 12,
+                        background: isDark ? 'rgba(255,179,0,0.12)' : 'rgba(255,179,0,0.08)',
+                        color: isDark ? '#FFB300' : '#B8860B',
+                        borderRadius: 6,
+                        margin: '0 14px 8px',
+                    }}>
+                        ⚠ Showing last known data (cache). Live refresh in background.
+                    </div>
                 )}
 
                 {!loading && loadError && (

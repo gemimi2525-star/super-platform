@@ -44,10 +44,15 @@ function mapPlatformUser(pu: PlatformUser): UserRecord {
 // API DATA SOURCE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Phase 27C.8: Track last X-Cache header from API response
+let _lastUsersCacheStatus: string | null = null;
+export function getLastUsersCacheStatus() { return _lastUsersCacheStatus; }
+
 export const usersApiDataSource: UsersDataSource = {
     async list(): Promise<UserRecord[]> {
         try {
             const res = await fetch(USERS_ENDPOINT, { credentials: 'include' });
+            _lastUsersCacheStatus = res.headers.get('X-Cache');
             if (!res.ok) {
                 const error = await res.json().catch(() => ({}));
                 throw new Error(error.message || `Failed to fetch: ${res.status} ${res.statusText}`);
