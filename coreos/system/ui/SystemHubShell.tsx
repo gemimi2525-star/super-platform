@@ -19,6 +19,7 @@ import { SecurityView } from './SecurityView';
 import { UsersView } from './UsersView';
 import { OrganizationView } from './OrganizationView';
 import { AppsView } from './AppsView';
+import { AboutView } from './AboutView';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -30,7 +31,8 @@ export type SystemHubTab =
     | 'security'
     | 'users'
     | 'organization'
-    | 'apps';
+    | 'apps'
+    | 'about';
 
 const TAB_DEFINITIONS: { id: SystemHubTab; label: string; icon: string }[] = [
     { id: 'general', label: 'General', icon: '⚙️' },
@@ -39,6 +41,7 @@ const TAB_DEFINITIONS: { id: SystemHubTab; label: string; icon: string }[] = [
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'organization', label: 'Organization', icon: '🏢' },
     { id: 'apps', label: 'Apps', icon: '🛍️' },
+    { id: 'about', label: 'About', icon: 'ℹ️' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -60,6 +63,7 @@ export function SystemHubShell({ initialTab = 'general' }: SystemHubShellProps) 
             case 'users': return <UsersView />;
             case 'organization': return <OrganizationView />;
             case 'apps': return <AppsView />;
+            case 'about': return <AboutView />;
             default: return <GeneralSettingsView />;
         }
     };
