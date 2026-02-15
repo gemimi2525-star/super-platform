@@ -174,9 +174,14 @@ function Button({
     );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children, isDark = false }: { children: React.ReactNode; isDark?: boolean }) {
     return (
-        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, opacity: 0.85 }}>
+        <div style={{
+            fontSize: 12,
+            fontWeight: 700,
+            marginBottom: 6,
+            color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+        }}>
             {children}
         </div>
     );
@@ -187,25 +192,33 @@ function Modal({
     title,
     children,
     onClose,
+    isDark = false,
 }: {
     open: boolean;
     title: string;
     children: React.ReactNode;
     onClose: () => void;
+    isDark?: boolean;
 }) {
     if (!open) return null;
+
+    // Phase 27C.6: Theme-aware modal styles
+    const modalBg = isDark ? '#1C1F26' : '#fff';
+    const modalText = isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.88)';
+    const headerBorder = isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)';
+    const closeBtnColor = isDark ? 'rgba(255,255,255,0.7)' : undefined;
+
     return (
         <div
             role="dialog"
             aria-modal="true"
             onMouseDown={(e) => {
-                // click outside to close
                 if (e.target === e.currentTarget) onClose();
             }}
             style={{
                 position: 'fixed',
                 inset: 0,
-                background: 'rgba(0,0,0,0.35)',
+                background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -217,26 +230,42 @@ function Modal({
                 style={{
                     width: 520,
                     maxWidth: '100%',
-                    background: '#fff',
+                    background: modalBg,
+                    color: modalText,
                     borderRadius: 16,
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                    boxShadow: isDark
+                        ? '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)'
+                        : '0 10px 30px rgba(0,0,0,0.2)',
                     overflow: 'hidden',
                 }}
             >
                 <div
                     style={{
                         padding: '14px 16px',
-                        borderBottom: '1px solid rgba(0,0,0,0.08)',
+                        borderBottom: headerBorder,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         gap: 12,
                     }}
                 >
-                    <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-                    <Button variant="ghost" onClick={onClose}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: modalText }}>{title}</div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            fontSize: 18,
+                            cursor: 'pointer',
+                            color: closeBtnColor,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            lineHeight: 1,
+                        }}
+                    >
                         ✕
-                    </Button>
+                    </button>
                 </div>
                 <div style={{ padding: 16 }}>{children}</div>
             </div>
@@ -683,86 +712,91 @@ export function OrganizationsPanel({
                 open={modal.open}
                 title={modal.mode === 'create' ? 'Create Organization' : 'Edit Organization'}
                 onClose={closeModal}
+                isDark={isDark}
             >
-                <div style={{ display: 'grid', gap: 12 }}>
-                    <div>
-                        <FieldLabel>Name</FieldLabel>
-                        <input
-                            value={form.name}
-                            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                            placeholder="Organization name"
-                            style={{
-                                width: '100%',
-                                padding: '10px 12px',
-                                borderRadius: 12,
-                                border: '1px solid rgba(0,0,0,0.18)',
-                                fontSize: 13,
-                            }}
-                        />
-                    </div>
+                {/* Phase 27C.6: Variant-aware modal form */}
+                {(() => {
+                    // Shared input/select styles for dark/light
+                    const inputStyle: React.CSSProperties = {
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(0,0,0,0.18)',
+                        fontSize: 13,
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
+                        color: isDark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.88)',
+                        outline: 'none',
+                    };
+                    const selectStyle: React.CSSProperties = {
+                        ...inputStyle,
+                        appearance: 'auto' as const,
+                    };
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <div>
-                            <FieldLabel>Plan</FieldLabel>
-                            <select
-                                value={form.plan}
-                                onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value as OrgPlan }))}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    borderRadius: 12,
-                                    border: '1px solid rgba(0,0,0,0.18)',
-                                    fontSize: 13,
-                                    background: '#fff',
-                                }}
-                            >
-                                <option value="free">free</option>
-                                <option value="pro">pro</option>
-                                <option value="enterprise">enterprise</option>
-                            </select>
+                    return (
+                        <div style={{ display: 'grid', gap: 14 }}>
+                            {/* Name field */}
+                            <div>
+                                <FieldLabel isDark={isDark}>Name</FieldLabel>
+                                <input
+                                    value={form.name}
+                                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                                    placeholder="Organization name"
+                                    style={inputStyle}
+                                />
+                            </div>
+
+                            {/* Plan + Status row */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <div>
+                                    <FieldLabel isDark={isDark}>Plan</FieldLabel>
+                                    <select
+                                        value={form.plan}
+                                        onChange={(e) => setForm((p) => ({ ...p, plan: e.target.value as OrgPlan }))}
+                                        style={selectStyle}
+                                    >
+                                        <option value="free">free</option>
+                                        <option value="pro">pro</option>
+                                        <option value="enterprise">enterprise</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <FieldLabel isDark={isDark}>Status</FieldLabel>
+                                    <select
+                                        value={form.status}
+                                        onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as OrgStatus }))}
+                                        style={selectStyle}
+                                    >
+                                        <option value="active">active</option>
+                                        <option value="pending">pending</option>
+                                        <option value="suspended">suspended</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Edit info */}
+                            {modal.mode === 'edit' && editingOrg && (
+                                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                                    Editing: <b>{editingOrg.id}</b>
+                                </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                                <Button variant="ghost" onClick={closeModal} disabled={saving}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={onSubmit} disabled={saving}>
+                                    {saving ? 'Saving…' : 'Save'}
+                                </Button>
+                            </div>
+
+                            {/* Tip */}
+                            <div style={{ fontSize: 12, opacity: 0.55, marginTop: 2 }}>
+                                Tip: API endpoint is <b>{API_BASE}</b> (GET/POST/PUT/DELETE)
+                            </div>
                         </div>
-
-                        <div>
-                            <FieldLabel>Status</FieldLabel>
-                            <select
-                                value={form.status}
-                                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as OrgStatus }))}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    borderRadius: 12,
-                                    border: '1px solid rgba(0,0,0,0.18)',
-                                    fontSize: 13,
-                                    background: '#fff',
-                                }}
-                            >
-                                <option value="active">active</option>
-                                <option value="pending">pending</option>
-                                <option value="suspended">suspended</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {modal.mode === 'edit' && editingOrg && (
-                        <div style={{ fontSize: 12, opacity: 0.7 }}>
-                            Editing: <b>{editingOrg.id}</b>
-                        </div>
-                    )}
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
-                        <Button variant="ghost" onClick={closeModal} disabled={saving}>
-                            Cancel
-                        </Button>
-                        <Button onClick={onSubmit} disabled={saving}>
-                            {saving ? 'Saving…' : 'Save'}
-                        </Button>
-                    </div>
-
-                    <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4 }}>
-                        Tip: ถ้าอยากให้ “API mode” ใช้ของจริง ให้ทำ endpoint ให้ตรงกับ <b>{API_BASE}</b>
-                        (GET/POST/PUT/DELETE) หรือแก้ค่า <b>API_BASE</b> ในไฟล์นี้
-                    </div>
-                </div>
+                    );
+                })()}
             </Modal>
         </div>
     );
