@@ -97,28 +97,12 @@ export async function GET(request: NextRequest) {
             .collection(COLLECTION)
             .orderBy('timestamp', 'desc');
 
-        // Apply filters (index-friendly: equality filters before range)
+        // Apply Firestore-safe filters (only fields with guaranteed indexes)
         if (params.traceId) {
             query = query.where('traceId', '==', params.traceId);
         }
-        if (params.severity) {
-            query = query.where('severity', '==', params.severity);
-        }
-        if (params.actorId) {
-            query = query.where('actor.id', '==', params.actorId);
-        }
-        if (params.since) {
-            const sinceTs = new Date(params.since).getTime();
-            if (!isNaN(sinceTs)) {
-                query = query.where('timestamp', '>=', sinceTs);
-            }
-        }
-        if (params.until) {
-            const untilTs = new Date(params.until).getTime();
-            if (!isNaN(untilTs)) {
-                query = query.where('timestamp', '<=', untilTs);
-            }
-        }
+        // NOTE: severity, actorId, eventPrefix are filtered post-query
+        // to avoid composite index requirements on legacy data
 
         // Cursor pagination
         if (params.cursor) {
@@ -132,11 +116,37 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Limit + 1 to detect if there are more results
-        query = query.limit(params.limit + 1);
+        // Fetch extra docs to allow for post-query filtering
+        const fetchLimit = params.severity || params.actorId || params.eventPrefix
+            ? Math.min((params.limit + 1) * 3, 300)
+            : params.limit + 1;
+        query = query.limit(fetchLimit);
 
         const snapshot = await query.get();
-        const docs = snapshot.docs;
+        let docs = snapshot.docs;
+
+        // ── Post-query filters (for fields without composite indexes) ───
+        if (params.severity) {
+            docs = docs.filter(doc => {
+                const data = doc.data();
+                const sev = data.severity || 'INFO';
+                return sev === params.severity;
+            });
+        }
+        if (params.actorId) {
+            docs = docs.filter(doc => {
+                const data = doc.data();
+                return data.actor?.uid === params.actorId || data.actor?.id === params.actorId;
+            });
+        }
+        if (params.eventPrefix) {
+            docs = docs.filter(doc => {
+                const data = doc.data();
+                const event = data.event || data.action || '';
+                return event.startsWith(params.eventPrefix!);
+            });
+        }
+
         const hasMore = docs.length > params.limit;
         const resultDocs = hasMore ? docs.slice(0, params.limit) : docs;
 
