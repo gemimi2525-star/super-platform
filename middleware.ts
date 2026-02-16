@@ -542,7 +542,9 @@ export function middleware(request: NextRequest) {
     }
 
     // 7. SECURITY HEADERS (CSP, HSTS)
-    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+    // Edge-safe nonce: crypto.randomUUID() is available in Edge Runtime
+    // NOTE: Buffer is NOT available in Edge Runtime — do NOT use Buffer here
+    const nonce = crypto.randomUUID();
 
     const scriptSrc = isDev
         ? "'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com"
@@ -597,8 +599,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // PHASE 6.3.9: Match ALL paths except static files
-        // API routes ARE matched for rate limiting, handled in early-exit section
-        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+        // PHASE 6.3.9: Match ALL paths except static files and worker/job/ops APIs
+        // API routes for jobs/worker/ops are excluded to prevent middleware interference
+        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/jobs|api/worker|api/ops).*)",
     ]
 };
