@@ -15,11 +15,11 @@ import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export async function GET() {
-    try {
-        // ─── Admin Gate (Mini Phase 34) ───
-        const guard = await requireAdmin();
-        if (guard.error) return guard.error;
+    // ─── Admin Gate (Mini Phase 34) — runs BEFORE try/catch ───
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
 
+    try {
         const db = getAdminFirestore();
         const now = Date.now();
 

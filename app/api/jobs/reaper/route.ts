@@ -13,11 +13,11 @@ import { jobLogger } from '@/coreos/jobs/job-logger';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export async function POST() {
-    try {
-        // ─── Admin Gate (Mini Phase 34) ───
-        const guard = await requireAdmin();
-        if (guard.error) return guard.error;
+    // ─── Admin Gate (Mini Phase 34) — runs BEFORE try/catch ───
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
 
+    try {
         const result = await reapStuckJobs();
 
         return NextResponse.json({
