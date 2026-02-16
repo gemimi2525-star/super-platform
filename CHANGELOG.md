@@ -14,6 +14,22 @@ All notable changes to the APICOREDATA Platform will be documented in this file.
 - Commit: TBD
 - Tag: `v0.29`
 
+## [Phase 28B — v0.28b] — 2026-02-16
+
+### Added
+- **Automated Alert Runner** — `GET /api/ops/alerts/run` (CRON_SECRET guarded, 5-min Pro cron)
+- **Alert Senders** — Slack, Email (Resend), Webhook modules (`lib/ops/alerting/`)
+- **Dedup Engine** — Firestore-backed fingerprinting, 15m TTL, 30m/2h escalation tiers
+- **Alerting Status Card** — Ops Center UI shows cron, guard, dedup, and escalation config
+
+### Changed
+- **Vercel Pro Upgrade** — Cron schedule upgraded from `0 */12 * * *` to `*/5 * * * *`
+
+### Production
+- Commit: `7a18de5`
+- Tag: `v0.28b`
+- Gates: G28B-1 ✅ G28B-7 ✅ (G28B-2→6 config-dependent)
+
 ## [Phase 28A — v0.28a] — 2026-02-16
 
 ### Added
