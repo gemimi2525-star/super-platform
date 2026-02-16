@@ -273,7 +273,9 @@ export function AuditView() {
                                     {fmtTrace(item.traceId)}
                                 </td>
                                 <td style={{ ...s.td, fontSize: 12, color: '#94a3b8' }}>
-                                    {item.actor ? `${item.actor.type}` : '—'}
+                                    {item.actor
+                                        ? ((item.actor as any).email || item.actor.id || item.actor.type)
+                                        : '—'}
                                 </td>
                             </tr>
                         ))}

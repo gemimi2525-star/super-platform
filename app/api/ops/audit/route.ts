@@ -144,17 +144,40 @@ export async function GET(request: NextRequest) {
         const items = resultDocs.map(doc => {
             const data = doc.data();
 
+            // Normalize timestamp: Firestore Timestamp → epoch ms
+            let ts = data.timestamp || 0;
+            if (ts && typeof ts === 'object') {
+                if (typeof ts.toDate === 'function') {
+                    ts = ts.toDate().getTime();
+                } else if (ts._seconds) {
+                    ts = ts._seconds * 1000;
+                }
+            } else if (typeof ts === 'string') {
+                ts = new Date(ts).getTime();
+            }
+
+            // Normalize actor: legacy {uid, email, role} → {type, id}
+            let actor = data.actor;
+            if (actor && !actor.type && actor.uid) {
+                actor = {
+                    type: actor.role || 'user',
+                    id: actor.uid,
+                    email: actor.email,
+                };
+            }
+
             // Normalize to AuditEventEnvelope shape for redaction
             const envelope = {
                 version: data.version || '1.0.1',
                 event: data.event || data.action || 'unknown',
                 traceId: data.traceId || '',
-                timestamp: data.timestamp || 0,
-                severity: data.severity || 'INFO',
-                ...(data.actor && { actor: data.actor }),
+                timestamp: ts,
+                severity: data.severity || data.status === 'error' ? 'ERROR' : 'INFO',
+                ...(actor && { actor }),
                 ...(data.context && { context: data.context }),
                 // Preserve extra fields as context for legacy logs
                 ...(!data.context && data.details && { context: data.details }),
+                ...(!data.context && data.metadata && { context: data.metadata }),
             };
 
             const redacted = getRedactedAuditEvent(envelope as any, role);
