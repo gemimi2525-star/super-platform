@@ -11,8 +11,10 @@ All notable changes to the APICOREDATA Platform will be documented in this file.
 - **Phase 29 Docs** — `docs/phase-29-integrity.md` (uptime vs integrity, error codes, UptimeRobot guide)
 
 ### Production
-- Commit: TBD
+- Commit: `1d62ed1` (integrity code via `57fa1b3`)
 - Tag: `v0.29`
+- Gates: G29-1→5 ✅ (DEGRADED expected — governance unknown, build SHA server-only)
+- Evidence: `docs/phase-29-evidence.md`
 
 ## [Phase 28B — v0.28b] — 2026-02-16
 
