@@ -2,6 +2,26 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 30 — v0.30] — 2026-02-16
+
+### Added
+- **Signed Integrity Response** — HMAC SHA-256 signature on integrity payload
+- **Canonical JSON** — Deterministic sorted-key serialization for stable signatures
+- **Signing Helper** — `lib/ops/integrity/signIntegrity.ts` (sign + verify + canonical)
+- **Verification Script** — `scripts/verify-integrity.sh` (curl + openssl + tamper test)
+- **Phase 30 Docs** — `docs/phase-30-signed-integrity.md`
+
+### Changed
+- **Integrity API** — Added `signature` field (backward compatible)
+- **Version** — Bumped to phase 30, v0.30, lockedTag v0.30
+
+### Production
+- Commit: `0cea8a7`
+- Tag: `v0.30`
+- Gates: G30-1→5 ✅
+- Evidence: `docs/phase-30-evidence.md`
+- Signature: `unsigned` (activate by setting `INTEGRITY_HMAC_SECRET` on Vercel)
+
 ## [Phase 29 — v0.29] — 2026-02-16
 
 ### Added
