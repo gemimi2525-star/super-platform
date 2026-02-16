@@ -2,6 +2,18 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 28A — v0.28a] — 2026-02-16
+
+### Added
+- **Public Health Summary** — `GET /api/ops/health/summary` (read-only, single Firestore read, <300ms)
+- **Incident Card** — Ops Center UI shows cause analysis, next actions, and Copy Report button when DEGRADED
+- **Monitoring Runbook** — `docs/phase-28-monitoring.md` with threshold table, 3-endpoint check, CRON_SECRET guide
+
+### Production
+- Commit: `dc433a8`
+- Tag: `v0.28a`
+- 5 verification gates PASS
+
 ## [Phase 27C — v0.27c-hotfix] — 2026-02-15
 
 ### Fixed
