@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -142,6 +142,11 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
                 </div>
             )}
 
+            {/* Incident Card — Phase 28A */}
+            {isDegraded && summary && (
+                <IncidentCard summary={summary} generatedAt={summary.generatedAt} />
+            )}
+
             {/* Health Info + Quick Stats */}
             <div style={s.panelGrid}>
                 <div style={s.panel}>
@@ -166,6 +171,156 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
         </div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INCIDENT CARD — Phase 28A
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CAUSE_MAP: Record<string, string> = {
+    WORKER_DEAD_RATE_HIGH: 'Worker dead letter rate exceeds safety threshold — jobs are failing permanently.',
+    WORKER_RETRY_SPIKE: 'Retry rate is unusually high — workers are failing and retrying excessively.',
+    WORKER_HEARTBEAT_LOST: 'All worker heartbeats lost — workers may be down or unreachable.',
+};
+
+const ACTION_MAP: Record<string, string[]> = {
+    WORKER_DEAD_RATE_HIGH: [
+        'Check /api/ops/metrics/summary for dead rate details',
+        'Review Vercel function logs for errors',
+        'Consider pausing job submission until resolved',
+    ],
+    WORKER_RETRY_SPIKE: [
+        'Check /api/ops/metrics/summary for retry rate',
+        'Look for Firestore quota or rate limit errors',
+        'Monitor retry rate trend over 10 minutes',
+    ],
+    WORKER_HEARTBEAT_LOST: [
+        'Try manual heartbeat: curl /api/worker/tick with Bearer token',
+        'Check Vercel cron job status and CRON_SECRET',
+        'Verify Firestore connectivity via /api/ops/diag/firestore',
+    ],
+};
+
+function IncidentCard({ summary, generatedAt }: { summary: MetricsSummary; generatedAt: string }) {
+    const [copied, setCopied] = useState(false);
+    const correlationId = useMemo(() => crypto.randomUUID().slice(0, 8), []);
+
+    const causes = summary.violations.map(v => CAUSE_MAP[v.type] ?? v.message);
+    const actions = summary.violations.flatMap(v => ACTION_MAP[v.type] ?? []);
+    // Deduplicate actions
+    const uniqueActions = [...new Set(actions)];
+
+    const handleCopyReport = async () => {
+        const report = {
+            incident: {
+                correlationId,
+                systemStatus: summary.systemStatus,
+                violationsCount: summary.violations.length,
+                violations: summary.violations.map(v => ({
+                    type: v.type,
+                    value: v.value,
+                    threshold: v.threshold,
+                    message: v.message,
+                })),
+                activeWorkers: summary.activeWorkers.length,
+                unresolvedAlerts: summary.unresolvedAlerts,
+                generatedAt,
+                copiedAt: new Date().toISOString(),
+            },
+        };
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Fallback: select text
+            console.warn('[IncidentCard] Clipboard write failed');
+        }
+    };
+
+    return (
+        <div style={ic.card}>
+            <div style={ic.header}>
+                <span style={ic.headerIcon}>🚨</span>
+                <span style={ic.headerTitle}>Incident Report</span>
+                <span style={ic.correlationBadge}>#{correlationId}</span>
+            </div>
+
+            {/* What happened */}
+            <div style={ic.section}>
+                <h4 style={ic.sectionTitle}>What happened</h4>
+                {causes.map((c, i) => (
+                    <p key={i} style={ic.causeText}>• {c}</p>
+                ))}
+            </div>
+
+            {/* Next actions */}
+            <div style={ic.section}>
+                <h4 style={ic.sectionTitle}>Next actions</h4>
+                <ol style={ic.actionList}>
+                    {uniqueActions.map((a, i) => (
+                        <li key={i} style={ic.actionItem}>{a}</li>
+                    ))}
+                </ol>
+            </div>
+
+            {/* Footer: correlation + copy button */}
+            <div style={ic.footer}>
+                <div style={ic.footerMeta}>
+                    <span style={ic.metaLabel}>Generated: {new Date(generatedAt).toLocaleTimeString()}</span>
+                    <span style={ic.metaLabel}>Workers: {summary.activeWorkers.length}</span>
+                </div>
+                <button onClick={handleCopyReport} style={ic.copyBtn}>
+                    {copied ? '✓ Copied' : '📋 Copy Incident Report'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+const ic: Record<string, React.CSSProperties> = {
+    card: {
+        background: 'rgba(239, 68, 68, 0.04)',
+        border: '1px solid rgba(239, 68, 68, 0.25)',
+        borderRadius: 12,
+        padding: '20px 24px',
+        marginBottom: 20,
+        backdropFilter: 'blur(8px)',
+    },
+    header: {
+        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+        paddingBottom: 12, borderBottom: '1px solid rgba(239, 68, 68, 0.15)',
+    },
+    headerIcon: { fontSize: 18 },
+    headerTitle: { fontSize: 16, fontWeight: 700, color: '#fca5a5', flex: 1 },
+    correlationBadge: {
+        fontSize: 11, fontFamily: 'monospace', color: '#94a3b8',
+        background: 'rgba(148, 163, 184, 0.1)', borderRadius: 4, padding: '2px 8px',
+    },
+    section: { marginBottom: 14 },
+    sectionTitle: {
+        fontSize: 13, fontWeight: 600, color: '#f87171',
+        margin: '0 0 6px', textTransform: 'uppercase' as const, letterSpacing: 0.8,
+    },
+    causeText: { fontSize: 13, color: '#e2e8f0', margin: '4px 0', lineHeight: 1.5 },
+    actionList: {
+        margin: 0, paddingLeft: 20, display: 'flex',
+        flexDirection: 'column' as const, gap: 4,
+    },
+    actionItem: { fontSize: 13, color: '#cbd5e1', lineHeight: 1.5 },
+    footer: {
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        paddingTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+        marginTop: 4,
+    },
+    footerMeta: { display: 'flex', flexDirection: 'column' as const, gap: 2 },
+    metaLabel: { fontSize: 11, color: '#64748b', fontFamily: 'monospace' },
+    copyBtn: {
+        background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5',
+        border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8,
+        padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        transition: 'all 0.2s ease',
+    },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
