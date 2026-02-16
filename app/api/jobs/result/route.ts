@@ -24,6 +24,7 @@ import { updateJobStatus, retryJob, deadLetterJob } from '@/coreos/jobs/queue';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { incrementCounter, recordTimeseries } from '@/coreos/ops/metrics';
 import { jobLogger } from '@/coreos/jobs/job-logger';
+import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
         // ─── PRODUCTION GUARD (Phase 31.8) ───
         // Fatal misconfig: dev-mode MUST NOT be active in production
         if (process.env.NODE_ENV === 'production' && devMode) {
-            jobLogger.error('job.failed', {
+            jobLogger.error(AUDIT_EVENTS.SECURITY_DEV_MODE_FATAL, {
                 jobId: result.jobId ?? 'unknown',
                 error: {
                     code: 'FATAL_MISCONFIG',
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         if (existingResult.exists) {
             const existing = existingResult.data();
             if (existing?.status === 'COMPLETED' || existing?.status === 'SUCCEEDED') {
-                jobLogger.log('job.result_idempotent', {
+                jobLogger.log(AUDIT_EVENTS.JOB_RESULT_IDEMPOTENT, {
                     jobId: result.jobId,
                     traceId: result.traceId,
                     workerId: result.workerId,
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
                     const { signature: _sig, ...resultWithoutSig } = result;
                     const expectedHMAC = computeResultHMAC(resultWithoutSig, hmacSecret);
                     // Dedicated audit event (Phase 31.8)
-                    jobLogger.warn('worker_signature_bypassed_dev_mode', {
+                    jobLogger.warn(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV, {
                         jobId: result.jobId,
                         traceId: result.traceId,
                         workerId: result.workerId,
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
             // No HMAC secret + dev mode = bypass entirely
             signatureBypass = true;
             // Dedicated audit event (Phase 31.8)
-            jobLogger.warn('worker_signature_bypassed_dev_mode', {
+            jobLogger.warn(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV, {
                 jobId: result.jobId,
                 traceId: result.traceId,
                 workerId: result.workerId,
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
             await updateJobStatus(result.jobId, 'COMPLETED', result);
             incrementCounter('jobs_completed', { jobType });
             recordTimeseries('job_latency', result.metrics.latencyMs, { jobType });
-            jobLogger.log('job.completed', {
+            jobLogger.log(AUDIT_EVENTS.JOB_COMPLETED, {
                 jobId: result.jobId,
                 traceId: result.traceId,
                 workerId: result.workerId,
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
                 newStatus = 'FAILED_RETRYABLE';
                 await retryJob(result.jobId, lastError, attempts);
                 incrementCounter('jobs_failed_retryable', { jobType });
-                jobLogger.log('job.retried', {
+                jobLogger.log(AUDIT_EVENTS.JOB_RETRIED, {
                     jobId: result.jobId,
                     traceId: result.traceId,
                     workerId: result.workerId,
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
                 await deadLetterJob(result.jobId, lastError);
                 await updateJobStatus(result.jobId, 'DEAD', result);
                 incrementCounter('jobs_dead', { jobType });
-                jobLogger.log('job.dead', {
+                jobLogger.log(AUDIT_EVENTS.JOB_DEAD, {
                     jobId: result.jobId,
                     traceId: result.traceId,
                     workerId: result.workerId,

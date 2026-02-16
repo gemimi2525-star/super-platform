@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { reapStuckJobs } from '@/coreos/jobs/reaper';
 import { jobLogger } from '@/coreos/jobs/job-logger';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
 
 export async function POST() {
     // ─── Admin Gate (Mini Phase 34) — runs BEFORE try/catch ───
@@ -29,7 +30,7 @@ export async function POST() {
             timestamp: Date.now(),
         });
     } catch (error: any) {
-        jobLogger.error('job.reaper_run', {
+        jobLogger.error(AUDIT_EVENTS.JOB_REAPER_RUN, {
             error: { code: 'REAPER_ERROR', message: error.message },
         });
         return NextResponse.json(

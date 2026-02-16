@@ -19,6 +19,7 @@ import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import type { JobQueueRecord } from '@/coreos/jobs/types';
 import { jobLogger } from '@/coreos/jobs/job-logger';
+import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
 
 export async function POST(request: NextRequest) {
     try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         if (!existingQuery.empty) {
             const existing = existingQuery.docs[0].data() as JobQueueRecord;
-            jobLogger.log('job.claim_idempotent', {
+            jobLogger.log(AUDIT_EVENTS.JOB_CLAIM_IDEMPOTENT, {
                 jobId: existingQuery.docs[0].id,
                 traceId: existing.ticket?.traceId,
                 workerId,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ job: null }, { status: 200 });
         }
 
-        jobLogger.log('job.claimed', {
+        jobLogger.log(AUDIT_EVENTS.JOB_CLAIMED, {
             jobId: envelope.ticket.jobId,
             traceId: envelope.ticket.traceId,
             workerId,

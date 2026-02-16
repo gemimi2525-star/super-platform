@@ -14,6 +14,7 @@ import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { incrementCounter } from '@/coreos/ops/metrics';
 import { jobLogger } from '@/coreos/jobs/job-logger';
+import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
 
 const LEASE_EXTENSION_MS = 30_000; // 30 seconds
 
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
 
         incrementCounter('worker_heartbeat_total', { workerId });
 
-        jobLogger.log('job.heartbeat', {
+        jobLogger.log(AUDIT_EVENTS.JOB_HEARTBEAT, {
             jobId,
             workerId,
             jobType: data.ticket?.jobType,

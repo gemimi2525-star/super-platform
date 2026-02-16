@@ -26,6 +26,7 @@ import { incrementCounter } from '@/coreos/ops/metrics';
 import { validateNonceUnique } from '@/coreos/jobs/validator';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { jobLogger } from '@/coreos/jobs/job-logger';
+import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
 
 export async function POST(request: NextRequest) {
     try {
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         incrementCounter('jobs_total', { jobType: jobType as string });
 
-        jobLogger.log('job.enqueued', {
+        jobLogger.log(AUDIT_EVENTS.JOB_ENQUEUED, {
             jobId,
             traceId: jobTraceId,
             jobType: jobType as string,

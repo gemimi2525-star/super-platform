@@ -1,34 +1,32 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Structured Job Lifecycle Logger (Phase 31.7)
+ * CORE OS — Structured Job Lifecycle Logger (Phase 31.7 → 32.1)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Centralized structured logger for all job system events.
  * Every log entry has a deterministic shape for observability.
  *
+ * Phase 32.1: Events are now typed via the frozen Audit Taxonomy.
+ * Use AUDIT_EVENTS constants instead of string literals.
+ *
  * @module coreos/jobs/job-logger
- * @version 1.0.0 (Phase 31)
+ * @version 2.0.0 (Phase 32.1)
  */
 
+import type { AuditEventType } from '../audit/taxonomy';
+import { AUDIT_EVENTS } from '../audit/taxonomy';
+
 // ═══════════════════════════════════════════════════════════════════════════
-// EVENT TYPES
+// EVENT TYPES (now sourced from taxonomy)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type JobEvent =
-    | 'job.enqueued'
-    | 'job.claimed'
-    | 'job.heartbeat'
-    | 'job.completed'
-    | 'job.failed'
-    | 'job.retried'
-    | 'job.dead'
-    | 'job.stuck'
-    | 'job.reaped'
-    | 'job.signature_bypass'
-    | 'job.result_idempotent'
-    | 'job.claim_idempotent'
-    | 'job.reaper_run'
-    | 'worker_signature_bypassed_dev_mode';
+/**
+ * JobEvent — Legacy alias for backward compatibility.
+ * New code should use AuditEventType directly.
+ *
+ * @deprecated Use AUDIT_EVENTS.* constants instead of string literals
+ */
+export type JobEvent = AuditEventType;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LOG ENTRY

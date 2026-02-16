@@ -28,6 +28,7 @@ import {
     RETRY_BASE_DELAY_MS, RETRY_MAX_DELAY_MS,
 } from './types';
 import { jobLogger } from './job-logger';
+import { AUDIT_EVENTS } from '../audit/taxonomy';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENQUEUE
@@ -59,7 +60,7 @@ export async function enqueueJob(envelope: JobEnvelope, maxAttempts?: number): P
 
     await db.collection(COLLECTION_JOB_QUEUE).doc(envelope.ticket.jobId).set(record);
 
-    jobLogger.log('job.enqueued', {
+    jobLogger.log(AUDIT_EVENTS.JOB_ENQUEUED, {
         jobId: envelope.ticket.jobId,
         traceId: envelope.ticket.traceId,
         jobType: envelope.ticket.jobType,
@@ -218,7 +219,7 @@ export async function retryJob(
         workerId: null,
     });
 
-    jobLogger.log('job.retried', {
+    jobLogger.log(AUDIT_EVENTS.JOB_RETRIED, {
         jobId,
         attempt: attempts,
         note: `Retry scheduled in ${Math.round(delayMs / 1000)}s (deterministic)`,
@@ -266,7 +267,7 @@ export async function deadLetterJob(
         traceId: jobRecord?.ticket?.traceId ?? null,
     });
 
-    jobLogger.log('job.dead', {
+    jobLogger.log(AUDIT_EVENTS.JOB_DEAD, {
         jobId,
         traceId: jobRecord?.ticket?.traceId,
         jobType: jobRecord?.ticket?.jobType,

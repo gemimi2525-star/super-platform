@@ -15,6 +15,7 @@ import type { JobQueueRecord } from './types';
 import { COLLECTION_JOB_QUEUE, DEFAULT_MAX_ATTEMPTS } from './types';
 import { retryJob, deadLetterJob } from './queue';
 import { jobLogger } from './job-logger';
+import { AUDIT_EVENTS } from '../audit/taxonomy';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REAPER RESULT
@@ -73,7 +74,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
 
     const snapshot = await query.get();
     if (snapshot.empty) {
-        jobLogger.log('job.reaper_run', {
+        jobLogger.log(AUDIT_EVENTS.JOB_REAPER_RUN, {
             note: 'No stuck jobs found',
         });
         return result;
@@ -96,7 +97,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
         };
 
         // Log stuck detection
-        jobLogger.warn('job.stuck', {
+        jobLogger.warn(AUDIT_EVENTS.JOB_STUCK, {
             jobId,
             traceId: record.ticket?.traceId,
             workerId: record.workerId ?? undefined,
@@ -132,7 +133,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
                 workerId: record.workerId,
             });
 
-            jobLogger.log('job.reaped', {
+            jobLogger.log(AUDIT_EVENTS.JOB_REAPED, {
                 jobId,
                 traceId: record.ticket?.traceId,
                 note: `Retried (attempt ${attempts}/${maxAttempts})`,
@@ -150,7 +151,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
                 workerId: record.workerId,
             });
 
-            jobLogger.log('job.reaped', {
+            jobLogger.log(AUDIT_EVENTS.JOB_REAPED, {
                 jobId,
                 traceId: record.ticket?.traceId,
                 note: `Dead-lettered (attempt ${attempts}/${maxAttempts} exhausted)`,
@@ -158,7 +159,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
         }
     }
 
-    jobLogger.log('job.reaper_run', {
+    jobLogger.log(AUDIT_EVENTS.JOB_REAPER_RUN, {
         note: `Reaped ${result.found} stuck jobs: ${result.retried} retried, ${result.deadLettered} dead-lettered`,
     });
 

@@ -17,6 +17,7 @@ vi.mock('@/lib/firebase-admin', () => ({
 
 import { computeBackoff } from './queue';
 import { jobLogger, type JobEvent, type JobLogEntry } from './job-logger';
+import { AUDIT_EVENTS } from '../audit/taxonomy';
 import { RETRY_MAX_DELAY_MS } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -79,7 +80,7 @@ describe('Phase 31 — Structured Job Logger', () => {
     });
 
     it('T2 — log outputs JSON with required fields', () => {
-        jobLogger.log('job.enqueued', {
+        jobLogger.log(AUDIT_EVENTS.JOB_ENQUEUED, {
             jobId: 'test-job-001',
             traceId: 'trace-001',
         });
@@ -94,7 +95,7 @@ describe('Phase 31 — Structured Job Logger', () => {
         const jsonStr = output.replace('[JobSystem] ', '');
         const entry = JSON.parse(jsonStr) as JobLogEntry;
 
-        expect(entry.event).toBe('job.enqueued');
+        expect(entry.event).toBe(AUDIT_EVENTS.JOB_ENQUEUED);
         expect(entry.jobId).toBe('test-job-001');
         expect(entry.traceId).toBe('trace-001');
         expect(entry.timestamp).toBeDefined();
@@ -105,21 +106,21 @@ describe('Phase 31 — Structured Job Logger', () => {
     it('T2b — warn outputs to console.warn', () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
-        jobLogger.warn('job.stuck', {
+        jobLogger.warn(AUDIT_EVENTS.JOB_STUCK, {
             jobId: 'stuck-001',
             workerId: 'worker-001',
         });
 
         expect(warnSpy).toHaveBeenCalledOnce();
         const output = warnSpy.mock.calls[0][0] as string;
-        expect(output).toContain('job.stuck');
+        expect(output).toContain(AUDIT_EVENTS.JOB_STUCK);
         warnSpy.mockRestore();
     });
 
     it('T2c — error outputs to console.error', () => {
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
-        jobLogger.error('job.failed', {
+        jobLogger.error(AUDIT_EVENTS.JOB_FAILED, {
             jobId: 'fail-001',
             error: { code: 'EXEC_ERROR', message: 'boom' },
         });
@@ -133,12 +134,12 @@ describe('Phase 31 — Structured Job Logger', () => {
 
     it('T2d — all event types are valid strings (incl. Phase 31.8)', () => {
         const validEvents: JobEvent[] = [
-            'job.enqueued', 'job.claimed', 'job.heartbeat',
-            'job.completed', 'job.failed', 'job.retried',
-            'job.dead', 'job.stuck', 'job.reaped',
-            'job.signature_bypass', 'job.result_idempotent',
-            'job.claim_idempotent', 'job.reaper_run',
-            'worker_signature_bypassed_dev_mode',
+            AUDIT_EVENTS.JOB_ENQUEUED, AUDIT_EVENTS.JOB_CLAIMED, AUDIT_EVENTS.JOB_HEARTBEAT,
+            AUDIT_EVENTS.JOB_COMPLETED, AUDIT_EVENTS.JOB_FAILED, AUDIT_EVENTS.JOB_RETRIED,
+            AUDIT_EVENTS.JOB_DEAD, AUDIT_EVENTS.JOB_STUCK, AUDIT_EVENTS.JOB_REAPED,
+            AUDIT_EVENTS.WORKER_SIGNATURE_BYPASS, AUDIT_EVENTS.JOB_RESULT_IDEMPOTENT,
+            AUDIT_EVENTS.JOB_CLAIM_IDEMPOTENT, AUDIT_EVENTS.JOB_REAPER_RUN,
+            AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV,
         ];
 
         for (const event of validEvents) {
@@ -159,7 +160,7 @@ describe('Phase 31.8 — Security Hardening', () => {
     it('T3a — worker_signature_bypassed_dev_mode is a valid JobEvent', () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
-        jobLogger.warn('worker_signature_bypassed_dev_mode', {
+        jobLogger.warn(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV, {
             jobId: 'guard-test-001',
             traceId: 'trace-guard',
             workerId: 'worker-guard',
@@ -168,7 +169,7 @@ describe('Phase 31.8 — Security Hardening', () => {
         expect(warnSpy).toHaveBeenCalledOnce();
         const output = warnSpy.mock.calls[0][0] as string;
         const json = JSON.parse(output.replace('[JobSystem] ', ''));
-        expect(json.event).toBe('worker_signature_bypassed_dev_mode');
+        expect(json.event).toBe(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV);
         expect(json.jobId).toBe('guard-test-001');
         expect(json.traceId).toBe('trace-guard');
         expect(json.workerId).toBe('worker-guard');
