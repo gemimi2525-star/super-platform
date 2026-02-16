@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Integrity Helper — getIntegrity() (Phase 29)
+ * Integrity Helper — getIntegrity() (Phase 29 → 30)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Pure function assembling all integrity checks into a single response.
@@ -152,7 +152,7 @@ function checkBuild(): {
         null;
 
     // Locked tag — hard-coded from the latest release
-    const lockedTag = 'v0.29';
+    const lockedTag = 'v0.30';
 
     if (!sha) {
         return { sha: null, lockedTag, ok: false, errorCode: 'BUILD_SHA_MISSING' };
@@ -211,7 +211,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '29',
-        version: 'v0.29',
+        phase: '30',
+        version: 'v0.30',
     };
 }

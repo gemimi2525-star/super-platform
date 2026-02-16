@@ -1,25 +1,37 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API — GET /api/platform/integrity (Phase 29)
+ * API — GET /api/platform/integrity (Phase 30 — Signed Integrity)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * OS-level integrity endpoint. Returns JSON-only system integrity status.
+ * OS-level integrity endpoint. Returns JSON-only system integrity status
+ * with HMAC SHA-256 signature for tamper detection.
  *
  * - No redirects, no sensitive data, no PII, no stack traces.
  * - Always 200 with status field (OK / DEGRADED) for monitoring tools.
  * - Cache-Control: no-store
+ * - Signature field added in Phase 30 (backward compatible)
  *
  * Response schema: see IntegrityResult in lib/ops/integrity/getIntegrity.ts
  */
 
 import { NextResponse } from 'next/server';
 import { getIntegrity } from '@/lib/ops/integrity/getIntegrity';
+import { signPayload } from '@/lib/ops/integrity/signIntegrity';
 
 export async function GET() {
     try {
         const result = await getIntegrity();
 
-        return NextResponse.json(result, {
+        // Sign the payload with HMAC SHA-256
+        const signature = signPayload(result as unknown as Record<string, unknown>);
+
+        // Compose final response with signature
+        const signedResult = {
+            ...result,
+            signature: signature ?? 'unsigned',
+        };
+
+        return NextResponse.json(signedResult, {
             status: 200,
             headers: {
                 'Cache-Control': 'no-store',
@@ -41,8 +53,9 @@ export async function GET() {
                 },
                 errorCodes: ['INTERNAL_ERROR'],
                 ts: new Date().toISOString(),
-                phase: '29',
-                version: 'v0.29',
+                phase: '30',
+                version: 'v0.30',
+                signature: 'unsigned',
             },
             {
                 status: 200,
