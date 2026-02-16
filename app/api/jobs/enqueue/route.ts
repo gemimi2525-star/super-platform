@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API — POST /api/jobs/enqueue (Phase 21C)
+ * API — POST /api/jobs/enqueue (Phase 31)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Creates a signed JobTicket and enqueues it to Firestore.
@@ -25,6 +25,7 @@ import { enqueueJob } from '@/coreos/jobs/queue';
 import { incrementCounter } from '@/coreos/ops/metrics';
 import { validateNonceUnique } from '@/coreos/jobs/validator';
 import { getAdminFirestore } from '@/lib/firebase-admin';
+import { jobLogger } from '@/coreos/jobs/job-logger';
 
 export async function POST(request: NextRequest) {
     try {
@@ -97,16 +98,11 @@ export async function POST(request: NextRequest) {
 
         incrementCounter('jobs_total', { jobType: jobType as string });
 
-        console.log(`[API/jobs/enqueue] Job enqueued: ${jobId} (${jobType}) trace=${jobTraceId}`);
-
-        // DEBUG: log public key for cross-verification with Go worker
-        try {
-            const { exportPublicKeyBase64 } = await import('@/coreos/jobs/signer');
-            const pubKeyB64 = exportPublicKeyBase64();
-            console.log(`[API/jobs/enqueue] DEBUG — Public key (base64): ${pubKeyB64}`);
-        } catch (e) {
-            console.log('[API/jobs/enqueue] DEBUG — Could not export public key');
-        }
+        jobLogger.log('job.enqueued', {
+            jobId,
+            traceId: jobTraceId,
+            jobType: jobType as string,
+        });
 
         return NextResponse.json({
             jobId,

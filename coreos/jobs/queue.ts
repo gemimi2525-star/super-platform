@@ -1,24 +1,33 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Firestore Job Queue (Phase 22A)
+ * CORE OS — Firestore Job Queue (Phase 31)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Firestore-based job queue with lease, heartbeat, retry, and dead-letter.
  * Supports: enqueue, claim (lease-based), heartbeat, retry, dead-letter.
  *
+ * Phase 31 additions:
+ * - Deterministic retry backoff (no random jitter)
+ * - Enhanced DLQ with full context
+ * - Structured lifecycle logging
+ *
  * @module coreos/jobs/queue
- * @version 2.0.0 (Phase 22A)
+ * @version 3.0.0 (Phase 31)
  */
 
 import { getAdminFirestore } from '@/lib/firebase-admin';
+import { createHash } from 'crypto';
 import type {
     JobTicket, JobEnvelope, JobQueueRecord, JobStatus,
     JobResult, JobLastError,
 } from './types';
 import {
     COLLECTION_JOB_QUEUE, COLLECTION_JOB_RESULTS,
+    COLLECTION_JOB_DEAD_LETTERS,
     DEFAULT_MAX_ATTEMPTS, LEASE_DURATION_MS,
+    RETRY_BASE_DELAY_MS, RETRY_MAX_DELAY_MS,
 } from './types';
+import { jobLogger } from './job-logger';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENQUEUE
@@ -50,7 +59,12 @@ export async function enqueueJob(envelope: JobEnvelope, maxAttempts?: number): P
 
     await db.collection(COLLECTION_JOB_QUEUE).doc(envelope.ticket.jobId).set(record);
 
-    console.log(`[JobQueue] Enqueued: ${envelope.ticket.jobId} (${envelope.ticket.jobType}) maxAttempts=${record.maxAttempts}`);
+    jobLogger.log('job.enqueued', {
+        jobId: envelope.ticket.jobId,
+        traceId: envelope.ticket.traceId,
+        jobType: envelope.ticket.jobType,
+        maxAttempts: record.maxAttempts,
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -152,12 +166,35 @@ export async function heartbeatJob(jobId: string, workerId: string): Promise<voi
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RETRY (FAILED_RETRYABLE)
+// DETERMINISTIC BACKOFF (Phase 31.3)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Mark job for retry with exponential backoff.
- * Sets status to FAILED_RETRYABLE and computes nextRunAt.
+ * Compute deterministic backoff delay for retry.
+ * Same jobId + same attempt = same delay (no randomness).
+ *
+ * Uses hash(jobId + attempt) to produce a deterministic "jitter"
+ * that varies per-job but is reproducible.
+ */
+export function computeBackoff(jobId: string, attempt: number): number {
+    // Exponential base: min(2^attempt, 60) seconds
+    const backoffSec = Math.min(Math.pow(2, attempt), RETRY_MAX_DELAY_MS / 1000);
+    const baseMs = backoffSec * 1000;
+
+    // Deterministic jitter: 0–3000ms based on hash
+    const hash = createHash('sha256').update(`${jobId}:${attempt}`).digest();
+    const jitterMs = (hash.readUInt16BE(0) % 3000);
+
+    return Math.min(baseMs + jitterMs, RETRY_MAX_DELAY_MS);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RETRY (FAILED_RETRYABLE) — Phase 31.3 Updated
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Mark job for retry with deterministic exponential backoff.
+ * Sets status to FAILED_RETRYABLE and computes deterministic nextRunAt.
  */
 export async function retryJob(
     jobId: string,
@@ -167,10 +204,9 @@ export async function retryJob(
     const db = getAdminFirestore();
     const now = Date.now();
 
-    // Backoff: min(2^attempts, 60) seconds + jitter 0-3s
-    const backoffSec = Math.min(Math.pow(2, attempts), 60);
-    const jitterMs = Math.floor(Math.random() * 3000);
-    const nextRunAt = now + (backoffSec * 1000) + jitterMs;
+    // Deterministic backoff (Phase 31.3)
+    const delayMs = computeBackoff(jobId, attempts);
+    const nextRunAt = now + delayMs;
 
     await db.collection(COLLECTION_JOB_QUEUE).doc(jobId).update({
         status: 'FAILED_RETRYABLE' as JobStatus,
@@ -182,7 +218,11 @@ export async function retryJob(
         workerId: null,
     });
 
-    console.log(`[JobQueue] ${jobId} → FAILED_RETRYABLE (attempt ${attempts}, nextRun in ${backoffSec}s + ${jitterMs}ms jitter)`);
+    jobLogger.log('job.retried', {
+        jobId,
+        attempt: attempts,
+        note: `Retry scheduled in ${Math.round(delayMs / 1000)}s (deterministic)`,
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -191,6 +231,7 @@ export async function retryJob(
 
 /**
  * Mark job as permanently failed (dead-letter).
+ * Writes full context to job_dead_letters collection for Ops visibility.
  */
 export async function deadLetterJob(
     jobId: string,
@@ -199,6 +240,10 @@ export async function deadLetterJob(
     const db = getAdminFirestore();
     const now = Date.now();
 
+    // Read full job record for DLQ context
+    const jobDoc = await db.collection(COLLECTION_JOB_QUEUE).doc(jobId).get();
+    const jobRecord = jobDoc.exists ? jobDoc.data() as JobQueueRecord : null;
+
     await db.collection(COLLECTION_JOB_QUEUE).doc(jobId).update({
         status: 'DEAD' as JobStatus,
         lastError,
@@ -206,7 +251,29 @@ export async function deadLetterJob(
         lease: null,
     });
 
-    console.log(`[JobQueue] ${jobId} → DEAD (permanent failure)`);
+    // Write full context to DLQ collection (Phase 31.4)
+    await db.collection(COLLECTION_JOB_DEAD_LETTERS).doc(jobId).set({
+        jobId,
+        originalTicket: jobRecord?.ticket ?? null,
+        payload: jobRecord?.payload ?? null,
+        lastError,
+        totalAttempts: jobRecord?.attempts ?? 0,
+        maxAttempts: jobRecord?.maxAttempts ?? 3,
+        lastWorkerId: jobRecord?.workerId ?? null,
+        deadAt: now,
+        createdAt: jobRecord?.createdAt ?? null,
+        jobType: jobRecord?.ticket?.jobType ?? 'unknown',
+        traceId: jobRecord?.ticket?.traceId ?? null,
+    });
+
+    jobLogger.log('job.dead', {
+        jobId,
+        traceId: jobRecord?.ticket?.traceId,
+        jobType: jobRecord?.ticket?.jobType,
+        attempt: jobRecord?.attempts ?? 0,
+        maxAttempts: jobRecord?.maxAttempts ?? 3,
+        error: lastError,
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

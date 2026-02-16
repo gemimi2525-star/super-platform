@@ -35,3 +35,4 @@ coverage
 dev_server.log
 .vercel
 .env*.local
+.keys/

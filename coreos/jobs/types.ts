@@ -1,13 +1,13 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Job System Types (Phase 22A)
+ * CORE OS — Job System Types (Phase 31)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Contracts for the Background Execution Layer.
  * TS is authoritative — Go is non-authoritative executor.
  *
  * @module coreos/jobs/types
- * @version 2.0.0 (Phase 22A — Retry/Lease/Heartbeat)
+ * @version 3.0.0 (Phase 31 — DLQ/Retry/Backoff)
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -206,6 +206,12 @@ export const DEFAULT_MAX_ATTEMPTS = 3;
 /** Lease duration in ms (30 seconds) */
 export const LEASE_DURATION_MS = 30_000;
 
+/** Retry base delay in ms (Phase 31.3) */
+export const RETRY_BASE_DELAY_MS = 2_000;
+
+/** Retry max delay in ms (Phase 31.3) */
+export const RETRY_MAX_DELAY_MS = 60_000;
+
 /** Job queue Firestore collection */
 export const COLLECTION_JOB_QUEUE = 'job_queue';
 
@@ -214,3 +220,28 @@ export const COLLECTION_JOB_RESULTS = 'job_results';
 
 /** Used nonces Firestore collection (replay prevention) */
 export const COLLECTION_JOB_NONCES = 'job_nonces';
+
+/** Dead-letter queue Firestore collection (Phase 31.4) */
+export const COLLECTION_JOB_DEAD_LETTERS = 'job_dead_letters';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DLQ RECORD (Phase 31.4)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * DLQRecord — Dead Letter Queue entry with full context.
+ * Written when a job exhausts all retry attempts.
+ */
+export interface DLQRecord {
+    jobId: string;
+    originalTicket: JobTicket | null;
+    payload: string | null;
+    lastError: JobLastError;
+    totalAttempts: number;
+    maxAttempts: number;
+    lastWorkerId: string | null;
+    deadAt: number;
+    createdAt: number | null;
+    jobType: string;
+    traceId: string | null;
+}

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API — POST /api/jobs/heartbeat (Phase 22A)
+ * API — POST /api/jobs/heartbeat (Phase 31)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Extends a job's lease and records heartbeat timestamp.
@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { incrementCounter } from '@/coreos/ops/metrics';
+import { jobLogger } from '@/coreos/jobs/job-logger';
 
 const LEASE_EXTENSION_MS = 30_000; // 30 seconds
 
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
         });
 
         incrementCounter('worker_heartbeat_total', { workerId });
+
+        jobLogger.log('job.heartbeat', {
+            jobId,
+            workerId,
+            jobType: data.ticket?.jobType,
+            traceId: data.ticket?.traceId,
+        });
 
         return NextResponse.json({
             jobId,
