@@ -3,6 +3,10 @@
         {
             "path": "/api/worker/tick",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/ops/alerts/run",
+            "schedule": "0 */12 * * *"
         }
     ],
     "redirects": [
