@@ -57,6 +57,7 @@ export interface ReaperResult {
 export async function reapStuckJobs(): Promise<ReaperResult> {
     const db = getAdminFirestore();
     const now = Date.now();
+    const reaperTraceId = `reaper-${crypto.randomUUID()}`;
 
     const result: ReaperResult = {
         found: 0,
@@ -97,9 +98,10 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
         };
 
         // Log stuck detection
+        const jobTraceId = record.ticket?.traceId ?? reaperTraceId;
         jobLogger.warn(AUDIT_EVENTS.JOB_STUCK, {
             jobId,
-            traceId: record.ticket?.traceId,
+            traceId: jobTraceId,
             workerId: record.workerId ?? undefined,
             jobType: record.ticket?.jobType,
             attempt: attempts,
@@ -122,7 +124,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
 
         if (attempts < maxAttempts) {
             // Retry
-            await retryJob(jobId, lastError, attempts);
+            await retryJob(jobId, lastError, attempts, jobTraceId);
             result.retried++;
             result.jobs.push({
                 jobId,
@@ -135,7 +137,7 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
 
             jobLogger.log(AUDIT_EVENTS.JOB_REAPED, {
                 jobId,
-                traceId: record.ticket?.traceId,
+                traceId: jobTraceId,
                 note: `Retried (attempt ${attempts}/${maxAttempts})`,
             });
         } else {
@@ -153,13 +155,14 @@ export async function reapStuckJobs(): Promise<ReaperResult> {
 
             jobLogger.log(AUDIT_EVENTS.JOB_REAPED, {
                 jobId,
-                traceId: record.ticket?.traceId,
+                traceId: jobTraceId,
                 note: `Dead-lettered (attempt ${attempts}/${maxAttempts} exhausted)`,
             });
         }
     }
 
     jobLogger.log(AUDIT_EVENTS.JOB_REAPER_RUN, {
+        traceId: reaperTraceId,
         note: `Reaped ${result.found} stuck jobs: ${result.retried} retried, ${result.deadLettered} dead-lettered`,
     });
 

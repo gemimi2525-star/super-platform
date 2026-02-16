@@ -25,18 +25,22 @@ import { getAdminFirestore } from '@/lib/firebase-admin';
 import { incrementCounter, recordTimeseries } from '@/coreos/ops/metrics';
 import { jobLogger } from '@/coreos/jobs/job-logger';
 import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
+import { extractOrGenerateTraceId } from '@/lib/platform/trace/server';
 
 export async function POST(request: NextRequest) {
     try {
         const result: JobResult = await request.json();
         const db = getAdminFirestore();
         const devMode = process.env.JOB_WORKER_DEV_MODE === 'true';
+        // Phase 32.2: traceId from body (worker) or request header, always guaranteed
+        const traceId = result.traceId || extractOrGenerateTraceId(request);
 
         // ─── PRODUCTION GUARD (Phase 31.8) ───
         // Fatal misconfig: dev-mode MUST NOT be active in production
         if (process.env.NODE_ENV === 'production' && devMode) {
             jobLogger.error(AUDIT_EVENTS.SECURITY_DEV_MODE_FATAL, {
                 jobId: result.jobId ?? 'unknown',
+                traceId,
                 error: {
                     code: 'FATAL_MISCONFIG',
                     message: 'JOB_WORKER_DEV_MODE=true is forbidden in production. This is a critical security violation.',
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
             if (existing?.status === 'COMPLETED' || existing?.status === 'SUCCEEDED') {
                 jobLogger.log(AUDIT_EVENTS.JOB_RESULT_IDEMPOTENT, {
                     jobId: result.jobId,
-                    traceId: result.traceId,
+                    traceId,
                     workerId: result.workerId,
                     note: 'Duplicate result submission — returning existing',
                 });
@@ -100,7 +104,7 @@ export async function POST(request: NextRequest) {
                     // Dedicated audit event (Phase 31.8)
                     jobLogger.warn(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV, {
                         jobId: result.jobId,
-                        traceId: result.traceId,
+                        traceId,
                         workerId: result.workerId,
                         receivedSigPrefix: result.signature?.substring(0, 16) ?? 'MISSING',
                         expectedSigPrefix: expectedHMAC.substring(0, 16),
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
             // Dedicated audit event (Phase 31.8)
             jobLogger.warn(AUDIT_EVENTS.WORKER_SIGNATURE_BYPASSED_DEV, {
                 jobId: result.jobId,
-                traceId: result.traceId,
+                traceId,
                 workerId: result.workerId,
                 receivedSigPrefix: 'N/A',
                 expectedSigPrefix: 'N/A (no HMAC secret configured)',
@@ -164,7 +168,7 @@ export async function POST(request: NextRequest) {
             recordTimeseries('job_latency', result.metrics.latencyMs, { jobType });
             jobLogger.log(AUDIT_EVENTS.JOB_COMPLETED, {
                 jobId: result.jobId,
-                traceId: result.traceId,
+                traceId,
                 workerId: result.workerId,
                 jobType,
                 attempt: attempts,
@@ -187,7 +191,7 @@ export async function POST(request: NextRequest) {
                 incrementCounter('jobs_failed_retryable', { jobType });
                 jobLogger.log(AUDIT_EVENTS.JOB_RETRIED, {
                     jobId: result.jobId,
-                    traceId: result.traceId,
+                    traceId,
                     workerId: result.workerId,
                     jobType,
                     attempt: attempts,
@@ -207,7 +211,7 @@ export async function POST(request: NextRequest) {
                 incrementCounter('jobs_dead', { jobType });
                 jobLogger.log(AUDIT_EVENTS.JOB_DEAD, {
                     jobId: result.jobId,
-                    traceId: result.traceId,
+                    traceId,
                     workerId: result.workerId,
                     jobType,
                     attempt: attempts,

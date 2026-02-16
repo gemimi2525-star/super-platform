@@ -108,6 +108,7 @@ describe('Phase 31 — Structured Job Logger', () => {
 
         jobLogger.warn(AUDIT_EVENTS.JOB_STUCK, {
             jobId: 'stuck-001',
+            traceId: 'trace-stuck-001',
             workerId: 'worker-001',
         });
 
@@ -122,6 +123,7 @@ describe('Phase 31 — Structured Job Logger', () => {
 
         jobLogger.error(AUDIT_EVENTS.JOB_FAILED, {
             jobId: 'fail-001',
+            traceId: 'trace-fail-001',
             error: { code: 'EXEC_ERROR', message: 'boom' },
         });
 
@@ -143,7 +145,7 @@ describe('Phase 31 — Structured Job Logger', () => {
         ];
 
         for (const event of validEvents) {
-            jobLogger.log(event, { jobId: 'test' });
+            jobLogger.log(event, { jobId: 'test', traceId: 'trace-test' });
         }
 
         // Should have logged each event type

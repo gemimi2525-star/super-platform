@@ -37,8 +37,8 @@ export interface JobLogEntry {
     event: JobEvent;
     /** Job ID */
     jobId?: string;
-    /** Trace ID for distributed correlation */
-    traceId?: string;
+    /** Trace ID for distributed correlation (Phase 32.2: REQUIRED) */
+    traceId: string;
     /** Worker instance ID */
     workerId?: string;
     /** Job type */
@@ -67,10 +67,10 @@ class JobLogger {
      * Outputs to stdout in JSON format for observability pipelines.
      */
     log(event: JobEvent, data: Omit<JobLogEntry, 'event' | 'timestamp'>): void {
-        const entry: JobLogEntry = {
+        const entry = {
+            ...data,
             event,
             timestamp: new Date().toISOString(),
-            ...data,
         };
 
         // Structured JSON output for log aggregators
@@ -81,10 +81,10 @@ class JobLogger {
      * Log a warning-level job event.
      */
     warn(event: JobEvent, data: Omit<JobLogEntry, 'event' | 'timestamp'>): void {
-        const entry: JobLogEntry = {
+        const entry = {
+            ...data,
             event,
             timestamp: new Date().toISOString(),
-            ...data,
         };
 
         console.warn(`[JobSystem] ${JSON.stringify(entry)}`);
@@ -94,10 +94,10 @@ class JobLogger {
      * Log an error-level job event.
      */
     error(event: JobEvent, data: Omit<JobLogEntry, 'event' | 'timestamp'>): void {
-        const entry: JobLogEntry = {
+        const entry = {
+            ...data,
             event,
             timestamp: new Date().toISOString(),
-            ...data,
         };
 
         console.error(`[JobSystem] ${JSON.stringify(entry)}`);

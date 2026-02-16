@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Audit Taxonomy (Phase 32.1)
+ * CORE OS — Audit Taxonomy (Phase 32.1 → 32.2)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Versioned, immutable, type-safe event classification for all Core OS
@@ -11,9 +11,10 @@
  *   2. No string-literal event types elsewhere — import from this module
  *   3. Adding events requires a version bump
  *   4. Removing events is FORBIDDEN (append-only)
+ *   5. traceId is MANDATORY — no event without trace correlation (Phase 32.2)
  *
  * @module coreos/audit/taxonomy
- * @version 1.0.0 (Phase 32.1)
+ * @version 1.0.1 (Phase 32.2)
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -21,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Taxonomy schema version — bump on event additions */
-export const AUDIT_VERSION = '1.0.0' as const;
+export const AUDIT_VERSION = '1.0.1' as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EVENT TYPE ENUM (FROZEN)
@@ -228,6 +229,16 @@ export function createAuditEnvelope(
         timestamp?: number;
     },
 ): AuditEventEnvelope {
+    // ── Phase 32.2: Trace Invariant ──────────────────────────────────
+    // traceId is the "DNA of every event" — it MUST never be absent.
+    if (!opts.traceId) {
+        throw new TypeError(
+            `[AuditTaxonomy] traceId is required for event '${event}'. ` +
+            'Every audit event must be traceable. Pass a valid traceId or ' +
+            'use extractOrGenerateTraceId() from lib/platform/trace/server.',
+        );
+    }
+
     return {
         version: AUDIT_VERSION,
         event,

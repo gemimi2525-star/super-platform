@@ -15,12 +15,14 @@ import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import { incrementCounter } from '@/coreos/ops/metrics';
 import { jobLogger } from '@/coreos/jobs/job-logger';
 import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
+import { extractOrGenerateTraceId } from '@/lib/platform/trace/server';
 
 const LEASE_EXTENSION_MS = 30_000; // 30 seconds
 
 export async function POST(request: NextRequest) {
     try {
         const { jobId, workerId } = await request.json();
+        const traceId = extractOrGenerateTraceId(request);
 
         if (!jobId || !workerId) {
             return NextResponse.json(
@@ -68,9 +70,9 @@ export async function POST(request: NextRequest) {
 
         jobLogger.log(AUDIT_EVENTS.JOB_HEARTBEAT, {
             jobId,
+            traceId,
             workerId,
             jobType: data.ticket?.jobType,
-            traceId: data.ticket?.traceId,
         });
 
         return NextResponse.json({

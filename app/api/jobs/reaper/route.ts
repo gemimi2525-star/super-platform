@@ -31,6 +31,7 @@ export async function POST() {
         });
     } catch (error: any) {
         jobLogger.error(AUDIT_EVENTS.JOB_REAPER_RUN, {
+            traceId: `reaper-err-${crypto.randomUUID()}`,
             error: { code: 'REAPER_ERROR', message: error.message },
         });
         return NextResponse.json(

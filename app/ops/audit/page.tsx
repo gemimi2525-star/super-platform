@@ -23,7 +23,7 @@ export default function AuditPage() {
                 <header style={s.header}>
                     <div>
                         <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Audit</p>
+                        <p style={s.subtitle}>Phase 32.4 — Audit Log Explorer</p>
                     </div>
                 </header>
 

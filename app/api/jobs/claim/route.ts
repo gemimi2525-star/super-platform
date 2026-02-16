@@ -20,11 +20,13 @@ import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
 import type { JobQueueRecord } from '@/coreos/jobs/types';
 import { jobLogger } from '@/coreos/jobs/job-logger';
 import { AUDIT_EVENTS } from '@/coreos/audit/taxonomy';
+import { extractOrGenerateTraceId } from '@/lib/platform/trace/server';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { workerId } = body;
+        const traceId = extractOrGenerateTraceId(request);
 
         if (!workerId || typeof workerId !== 'string') {
             return NextResponse.json(
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
             const existing = existingQuery.docs[0].data() as JobQueueRecord;
             jobLogger.log(AUDIT_EVENTS.JOB_CLAIM_IDEMPOTENT, {
                 jobId: existingQuery.docs[0].id,
-                traceId: existing.ticket?.traceId,
+                traceId,
                 workerId,
                 note: 'Worker already has an active job — returning existing',
             });

@@ -201,6 +201,7 @@ export async function retryJob(
     jobId: string,
     lastError: JobLastError,
     attempts: number,
+    traceId: string = `reaper-${jobId}`,
 ): Promise<void> {
     const db = getAdminFirestore();
     const now = Date.now();
@@ -221,6 +222,7 @@ export async function retryJob(
 
     jobLogger.log(AUDIT_EVENTS.JOB_RETRIED, {
         jobId,
+        traceId,
         attempt: attempts,
         note: `Retry scheduled in ${Math.round(delayMs / 1000)}s (deterministic)`,
     });
@@ -269,7 +271,7 @@ export async function deadLetterJob(
 
     jobLogger.log(AUDIT_EVENTS.JOB_DEAD, {
         jobId,
-        traceId: jobRecord?.ticket?.traceId,
+        traceId: jobRecord?.ticket?.traceId ?? `dead-${jobId}`,
         jobType: jobRecord?.ticket?.jobType,
         attempt: jobRecord?.attempts ?? 0,
         maxAttempts: jobRecord?.maxAttempts ?? 3,
