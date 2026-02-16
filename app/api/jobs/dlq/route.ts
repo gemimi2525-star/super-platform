@@ -10,9 +10,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { COLLECTION_JOB_QUEUE } from '@/coreos/jobs/types';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export async function GET(request: NextRequest) {
     try {
+        // ─── Admin Gate (Mini Phase 34) ───
+        const guard = await requireAdmin();
+        if (guard.error) return guard.error;
+
         const db = getAdminFirestore();
         const url = new URL(request.url);
         const limit = Math.min(Number(url.searchParams.get('limit') ?? '20'), 100);

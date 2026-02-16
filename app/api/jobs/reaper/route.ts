@@ -10,9 +10,14 @@
 import { NextResponse } from 'next/server';
 import { reapStuckJobs } from '@/coreos/jobs/reaper';
 import { jobLogger } from '@/coreos/jobs/job-logger';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export async function POST() {
     try {
+        // ─── Admin Gate (Mini Phase 34) ───
+        const guard = await requireAdmin();
+        if (guard.error) return guard.error;
+
         const result = await reapStuckJobs();
 
         return NextResponse.json({
