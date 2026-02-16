@@ -2,6 +2,18 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 29 — v0.29] — 2026-02-16
+
+### Added
+- **Firebase Integrity API** — `GET /api/platform/integrity` (JSON-only, no PII, safe Firestore probe)
+- **Integrity Helper** — `lib/ops/integrity/getIntegrity.ts` with 4 checks (firebase, auth, governance, build)
+- **Smoke Script** — `scripts/smoke-integrity.sh` for schema validation
+- **Phase 29 Docs** — `docs/phase-29-integrity.md` (uptime vs integrity, error codes, UptimeRobot guide)
+
+### Production
+- Commit: TBD
+- Tag: `v0.29`
+
 ## [Phase 28A — v0.28a] — 2026-02-16
 
 ### Added
