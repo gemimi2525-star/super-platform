@@ -189,6 +189,72 @@ export async function getFreshHeartbeatCount(thresholdMs = 120_000): Promise<num
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HEALTH SUMMARY — Single-read snapshot for public monitoring (Phase 28A)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get a lightweight health snapshot with a single Firestore read.
+ * Used by GET /api/ops/health/summary — no sensitive data exposed.
+ */
+export async function getHealthSummary(): Promise<{
+    systemStatus: 'HEALTHY' | 'DEGRADED';
+    violationsCount: number;
+    lastHeartbeatAt: string | null;
+    activeWorkerCount: number;
+}> {
+    const db = getAdminFirestore();
+    const now = Date.now();
+    const heartbeatThreshold = 60_000;
+    const freshThreshold = 120_000;
+
+    // Single Firestore read — derive everything from this snapshot
+    const snapshot = await db.collection(COLLECTION_CORE_METRICS).get();
+
+    let lastHeartbeatMs = 0;
+    let freshCount = 0;
+    const activeWorkers: string[] = [];
+    let total = 0;
+    let dead = 0;
+    let retryable = 0;
+
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        // Aggregate job counters
+        if (doc.id.startsWith('jobs_total')) total += data.value ?? 0;
+        if (doc.id.startsWith('jobs_dead')) dead += data.value ?? 0;
+        if (doc.id.startsWith('jobs_failed_retryable')) retryable += data.value ?? 0;
+
+        // Process heartbeat entries
+        if (data.name === 'worker_heartbeat_total') {
+            const updatedAt = data.updatedAt ?? 0;
+            if (updatedAt > lastHeartbeatMs) lastHeartbeatMs = updatedAt;
+            if (updatedAt >= now - freshThreshold) freshCount++;
+            if (updatedAt >= now - heartbeatThreshold && data.labels?.workerId) {
+                activeWorkers.push(data.labels.workerId);
+            }
+        }
+    });
+
+    // Evaluate thresholds inline (no alert persistence for this read-only path)
+    const deadRate = total > 0 ? (dead / total) * 100 : 0;
+    const retryRate = total > 0 ? (retryable / total) * 100 : 0;
+    let violationsCount = 0;
+    if (deadRate > 10) violationsCount++;
+    if (retryRate > 20) violationsCount++;
+    if (freshCount > 0 && activeWorkers.length === 0) violationsCount++;
+
+    const systemStatus = violationsCount > 0 ? 'DEGRADED' as const : 'HEALTHY' as const;
+
+    return {
+        systemStatus,
+        violationsCount,
+        lastHeartbeatAt: lastHeartbeatMs > 0 ? new Date(lastHeartbeatMs).toISOString() : null,
+        activeWorkerCount: activeWorkers.length,
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INTERNAL HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
 
