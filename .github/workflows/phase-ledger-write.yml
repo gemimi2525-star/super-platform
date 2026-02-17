@@ -36,7 +36,9 @@ jobs:
 
       - name: Write snapshot to Firestore
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           GITHUB_SHA_FULL: ${{ github.sha }}
           GITHUB_REF_NAME_VAL: ${{ github.ref_name }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -49,15 +51,24 @@ jobs:
 
           async function main() {
             // ── Validate required secrets ───────────────────────────────────
-            if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-              console.error("::error::FIREBASE_SERVICE_ACCOUNT secret not set");
+            const projectId = process.env.FIREBASE_PROJECT_ID;
+            const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+            const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+
+            if (!projectId || !clientEmail || !privateKeyRaw) {
+              console.error("::error::Missing Firebase secrets. Need: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY");
               process.exit(1);
             }
 
+            // ── Handle private key newlines ────────────────────────────────
+            let privateKey = privateKeyRaw.replace(/\\\\n/g, "\\n");
+            if (privateKey.startsWith(String.fromCharCode(34)) && privateKey.endsWith(String.fromCharCode(34))) {
+              privateKey = privateKey.slice(1, -1);
+            }
+
             // ── Init Firebase Admin ────────────────────────────────────────
-            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
             admin.initializeApp({
-              credential: admin.credential.cert(serviceAccount),
+              credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
             });
             const db = admin.firestore();
 
