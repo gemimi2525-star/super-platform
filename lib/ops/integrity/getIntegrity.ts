@@ -174,7 +174,7 @@ function checkBuild(): {
     const lockedTag = `v${getPackageVersion()}`;
 
     if (!sha) {
-        return { sha: null, lockedTag, ok: false, errorCode: 'BUILD_SHA_MISSING' };
+        return { sha: null, lockedTag, ok: false, errorCode: 'ENV_SHA_NOT_EXPOSED' };
     }
 
     return { sha, lockedTag, ok: true };

@@ -27,13 +27,24 @@ export async function GET() {
         // Ignore
     }
 
-    return NextResponse.json({
-        commit: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
-        branch: process.env.VERCEL_GIT_COMMIT_REF || 'local',
+    const commit = process.env.VERCEL_GIT_COMMIT_SHA || null;
+    const branch = process.env.VERCEL_GIT_COMMIT_REF || null;
+    const shaResolved = !!commit;
+
+    const response: Record<string, unknown> = {
+        commit: commit ?? 'local',
+        branch: branch ?? 'local',
         buildTime: BUILD_TIME,
         environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
         version,
-    }, {
+        shaResolved,
+    };
+
+    if (!shaResolved) {
+        response._warning = 'ENV_SHA_NOT_EXPOSED: Enable "Automatically expose System Environment Variables" in Vercel Settings and redeploy.';
+    }
+
+    return NextResponse.json(response, {
         headers: {
             'Cache-Control': 'public, max-age=60, s-maxage=300',
         },
