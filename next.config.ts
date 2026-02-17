@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
   // (Payload CMS 2.x requires webpack — see TC-1.2)
   turbopack: {},
 
+  // Phase 32.5: Include SYNAPSE governance files in serverless bundle
+  // Required for checkGovernance() to read CORE_FREEZE.md via fs
+  outputFileTracingIncludes: {
+    '/api/platform/integrity': ['./vendor/synapse-core/CORE_FREEZE.md'],
+  },
+
   // ═══════════════════════════════════════════════════════════════════════
   // WEBPACK FORCED (TC-1.2 FIX)
   // 
