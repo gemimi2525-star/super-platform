@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import IntegrityTransparencyCard from './IntegrityTransparencyCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -174,6 +175,9 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Parity Baseline Card — Phase 32.5-lock */}
             <ParityBaselineCard />
+
+            {/* Integrity Transparency Card — Phase 34 */}
+            <IntegrityTransparencyCard />
         </div>
     );
 }

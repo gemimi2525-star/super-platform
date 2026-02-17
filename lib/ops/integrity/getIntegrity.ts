@@ -241,7 +241,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '33A',
+        phase: '34',
         version: `v${getPackageVersion()}`,
     };
 }
