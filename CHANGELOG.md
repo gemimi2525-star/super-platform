@@ -2,6 +2,39 @@
 
 All notable changes to the APICOREDATA Platform will be documented in this file.
 
+## [Phase 32.5-lock — v0.32.5] — 2026-02-17
+
+### Added
+- **Parity Regression Gate** — `scripts/verify-parity.sh` asserts 6 baseline invariants (status=OK, governance.ok, errorCodes=[], SHA parity)
+- **GitHub Actions CI** — `.github/workflows/parity-gate.yml` (push-to-main + 30min scheduled + manual)
+- **Baseline Release Note** — `docs/releases/v0.32.4-phase32.5.md` with invariant contract
+- **Parity Baseline Card** — Ops Center shows commit, version, integrity status, governance at-a-glance
+
+### Changed
+- **build-info Cache** — `Cache-Control: no-store` replaces `public, max-age=60, s-maxage=300` (prevents stale edge cache confusion)
+- **integrity route** — Added `Pragma: no-cache` + `Surrogate-Control: no-store` headers
+
+### Production
+- Commit: see deploy
+- Tag: `v0.32.5`
+
+## [Phase 32.5 — v0.32.4] — 2026-02-17
+
+### Added
+- **SYNAPSE Governance Wiring** — `checkGovernance.ts` reads `CORE_FREEZE.md` for kernel freeze + `AuditLedger.verifyChain()` for hash chain
+- **Governance Tests** — 12 test cases in `integrity-governance.test.ts` (all pass)
+- **Vercel File Tracing** — `outputFileTracingIncludes` bundles `CORE_FREEZE.md` in serverless
+
+### Changed
+- **Integrity API** — Removed `GOVERNANCE_UNKNOWN` stub; governance now returns deterministic booleans
+- **Type System** — `kernelFrozen` and `hashValid` changed from `boolean | 'unknown'` to `boolean`
+- **Phase** — Updated to `32.5` across integrity and about endpoints
+
+### Production
+- Commit: `3159a7c`
+- Tag: `v0.32.4`
+- Status: `OK`, errorCodes: `[]`, governance.ok: `true`
+
 ## [Phase 30 — v0.30] — 2026-02-16
 
 ### Added

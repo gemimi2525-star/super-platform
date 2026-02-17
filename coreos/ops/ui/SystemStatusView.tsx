@@ -171,9 +171,134 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Alerting Status Card — Phase 28B */}
             <AlertingStatusCard />
+
+            {/* Parity Baseline Card — Phase 32.5-lock */}
+            <ParityBaselineCard />
         </div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PARITY BASELINE CARD — Phase 32.5-lock
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface IntegrityData {
+    status: string;
+    checks: {
+        governance: { kernelFrozen: boolean; hashValid: boolean; ok: boolean };
+        build: { sha: string; lockedTag: string; ok: boolean };
+    };
+    errorCodes: string[];
+    phase: string;
+    version: string;
+}
+
+function ParityBaselineCard() {
+    const [data, setData] = useState<IntegrityData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchIntegrity() {
+            try {
+                const res = await fetch(`/api/platform/integrity?cb=${Date.now()}`);
+                if (res.ok) {
+                    setData(await res.json());
+                } else {
+                    setFetchError(`HTTP ${res.status}`);
+                }
+            } catch (err: any) {
+                setFetchError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchIntegrity();
+    }, []);
+
+    const isOK = data?.status === 'OK' && data?.checks?.governance?.ok === true;
+    const dotColor = isOK ? '#4ade80' : '#ef4444';
+    const bgColor = isOK ? 'rgba(74, 222, 128, 0.04)' : 'rgba(239, 68, 68, 0.04)';
+    const borderColor = isOK ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.25)';
+    const titleColor = isOK ? '#86efac' : '#fca5a5';
+
+    return (
+        <div style={{
+            background: bgColor,
+            border: `1px solid ${borderColor}`,
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginTop: 16,
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: loading ? '#94a3b8' : dotColor,
+                    boxShadow: loading ? 'none' : `0 0 8px ${dotColor}40`,
+                    display: 'inline-block',
+                }} />
+                <h3 style={{
+                    fontSize: 14, fontWeight: 600, color: loading ? '#94a3b8' : titleColor,
+                    margin: 0,
+                }}>
+                    🔒 Parity Baseline: {loading ? 'Loading…' : data ? `Phase ${data.phase}` : 'Error'}
+                </h3>
+                <span style={{
+                    marginLeft: 'auto',
+                    fontSize: 11, fontWeight: 700,
+                    color: loading ? '#64748b' : isOK ? '#4ade80' : '#ef4444',
+                    background: loading ? 'rgba(148, 163, 184, 0.1)' : isOK ? 'rgba(74, 222, 128, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                    borderRadius: 6, padding: '2px 10px',
+                    fontFamily: 'monospace',
+                }}>
+                    {loading ? '…' : isOK ? 'OK' : data?.status ?? 'ERR'}
+                </span>
+            </div>
+            {!loading && data && (
+                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 12 }}>
+                    <span style={pbc.meta}>
+                        Commit: <code style={pbc.code}>{data.checks.build.sha}</code>
+                    </span>
+                    <span style={pbc.meta}>
+                        Version: <code style={pbc.code}>{data.version}</code>
+                    </span>
+                    <span style={pbc.meta}>
+                        Tag: <code style={pbc.code}>{data.checks.build.lockedTag}</code>
+                    </span>
+                    <span style={pbc.meta}>
+                        Frozen: <code style={{
+                            ...pbc.code,
+                            color: data.checks.governance.kernelFrozen ? '#4ade80' : '#ef4444',
+                        }}>{data.checks.governance.kernelFrozen ? '✓' : '✗'}</code>
+                    </span>
+                    <span style={pbc.meta}>
+                        Hash: <code style={{
+                            ...pbc.code,
+                            color: data.checks.governance.hashValid ? '#4ade80' : '#ef4444',
+                        }}>{data.checks.governance.hashValid ? '✓' : '✗'}</code>
+                    </span>
+                    {data.errorCodes.length > 0 && (
+                        <span style={{ ...pbc.meta, color: '#fca5a5' }}>
+                            Errors: <code style={{ ...pbc.code, color: '#ef4444' }}>{data.errorCodes.join(', ')}</code>
+                        </span>
+                    )}
+                </div>
+            )}
+            {!loading && fetchError && (
+                <span style={{ fontSize: 12, color: '#fca5a5' }}>⚠ {fetchError}</span>
+            )}
+        </div>
+    );
+}
+
+const pbc: Record<string, React.CSSProperties> = {
+    meta: { fontSize: 11, color: '#64748b' },
+    code: {
+        fontFamily: 'monospace', fontSize: 11, color: '#94a3b8',
+        background: 'rgba(148, 163, 184, 0.1)',
+        borderRadius: 3, padding: '1px 5px',
+    },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INCIDENT CARD — Phase 28A
