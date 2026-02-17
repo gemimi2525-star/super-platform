@@ -33,6 +33,9 @@ import { classifyTool } from './policy/policyMatrix';
 import type { PolicyInput } from './policy/policyTypes';
 import { randomUUID } from 'crypto';
 
+// Phase 35D: Autonomous Governance Enforcement
+import { governanceReactionEngine } from './policy/governanceReactionEngine';
+
 /**
  * Phase 21B: Provider resolution — returns LLMProvider interface.
  * Orchestrator NEVER touches vendor SDK directly.
@@ -263,6 +266,22 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
 
             // 4. Handle Tool Calls (if any)
             if (response.tool_calls && response.tool_calls.length > 0) {
+                // ═══════════════════════════════════════════════════════
+                // PHASE 35D: PRE-FLIGHT GOVERNANCE CHECK
+                // ═══════════════════════════════════════════════════════
+                const govCheck = governanceReactionEngine.isExecutionAllowed();
+                if (!govCheck.allowed) {
+                    console.warn(`[Brain] 🧊 Phase 35D Governance Block: ${govCheck.reason}`);
+                    this.auditLog(request.correlationId, 'brain.phase35d_governance_block', {
+                        reason: govCheck.reason,
+                        mode: governanceReactionEngine.getState().mode,
+                    });
+                    response.content = (response.content || '') +
+                        `\n[System]: All tool execution suspended — Governance enforcement: ${govCheck.reason}`;
+                    // Skip ALL tool calls
+                    response.tool_calls = [];
+                }
+
                 for (const toolCall of response.tool_calls) {
                     const toolName = toolCall.function.name;
 
@@ -360,6 +379,10 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
 
                     if (policyDecision.decision !== 'ALLOW') {
                         console.warn(`[Brain] 🛑 Phase 35C Policy: ${toolName} → ${policyDecision.decision}`);
+
+                        // Phase 35D: Feed violation into governance reaction engine
+                        governanceReactionEngine.recordPolicyDeny();
+
                         response.content = (response.content || '') +
                             `\n[System]: Tool '${toolName}' ${policyDecision.decision} by Runtime Policy Engine` +
                             ` (${policyDecision.reasons.filter(r => r.blocking).map(r => r.message).join('; ')})`;

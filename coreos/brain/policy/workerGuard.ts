@@ -13,6 +13,7 @@
 import type { GuardInput, GuardResult } from './policyTypes';
 import { NONCE_TTL_MS } from './policyMatrix';
 import { policyAuditLogger } from './policyAudit';
+import { governanceReactionEngine } from './governanceReactionEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WORKER-LEVEL NONCE TRACKING (independent from gateway)
@@ -48,6 +49,36 @@ export class WorkerGuard {
      */
     verify(input: GuardInput): GuardResult {
         const checks: { name: string; passed: boolean; detail?: string }[] = [];
+
+        // ─────────────────────────────────────────────────────────────────
+        // Check 0: GOVERNANCE STATE (Phase 35D — defense-in-depth)
+        // ─────────────────────────────────────────────────────────────────
+        const govCheck = governanceReactionEngine.isExecutionAllowed();
+        checks.push({
+            name: 'GOVERNANCE_STATE',
+            passed: govCheck.allowed,
+            detail: govCheck.allowed
+                ? `Governance mode permits execution`
+                : `Governance block: ${govCheck.reason}`,
+        });
+
+        if (!govCheck.allowed) {
+            policyAuditLogger.record({
+                eventType: 'GUARD_BLOCKED',
+                timestamp: Date.now(),
+                correlationId: input.correlationId,
+                toolName: input.toolName,
+                appScope: input.scopeToken,
+                actorRole: 'unknown',
+                metadata: { reason: 'GOVERNANCE_FREEZE_AT_WORKER', detail: govCheck.reason },
+            });
+
+            return {
+                permitted: false,
+                blockReason: `Governance enforcement: ${govCheck.reason}`,
+                checks,
+            };
+        }
 
         // ─────────────────────────────────────────────────────────────────
         // Check 1: POLICY DECISION

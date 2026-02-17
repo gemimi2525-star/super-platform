@@ -146,7 +146,12 @@ export type PolicyAuditEventType =
     | 'ARGS_HASH_MISMATCH'
     | 'RATE_LIMIT_HIT'
     | 'FIREWALL_BLOCKED'
-    | 'GUARD_BLOCKED';
+    | 'GUARD_BLOCKED'
+    | 'GOVERNANCE_FREEZE'
+    | 'GOVERNANCE_THROTTLE'
+    | 'GOVERNANCE_LOCK'
+    | 'GOVERNANCE_OVERRIDE'
+    | 'GOVERNANCE_BLOCK_PROMOTION';
 
 /** Structured audit event for policy decisions */
 export interface PolicyAuditEvent {

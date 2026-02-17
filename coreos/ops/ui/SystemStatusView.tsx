@@ -21,6 +21,7 @@ import PhaseLedgerDrawer from './PhaseLedgerDrawer';
 import DeployTimelineCard from './DeployTimelineCard';
 import SnapshotDiffCard from './SnapshotDiffCard';
 import RuntimeIsolationCard from './RuntimeIsolationCard';
+import GovernanceStatusCard from './GovernanceStatusCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -194,6 +195,9 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Runtime Isolation — Phase 35C */}
             <RuntimeIsolationCard />
+
+            {/* Governance Enforcement — Phase 35D */}
+            <GovernanceStatusCard />
         </div>
     );
 }

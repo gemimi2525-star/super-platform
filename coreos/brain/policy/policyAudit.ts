@@ -154,6 +154,11 @@ export class PolicyAuditLogger {
             case 'ARGS_HASH_MISMATCH': return '⚠️ HASH';
             case 'RATE_LIMIT_HIT': return '⏱️ RATE';
             case 'POLICY_EVAL': return '📋 EVAL';
+            case 'GOVERNANCE_FREEZE': return '🧊 FREEZE';
+            case 'GOVERNANCE_THROTTLE': return '🟡 THROTTLE';
+            case 'GOVERNANCE_LOCK': return '🔒 LOCK';
+            case 'GOVERNANCE_OVERRIDE': return '🔓 OVERRIDE';
+            case 'GOVERNANCE_BLOCK_PROMOTION': return '🚫 BLOCK_PROMO';
             default: return '❓ UNKNOWN';
         }
     }
