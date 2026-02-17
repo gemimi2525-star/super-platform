@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Firestore Security Rules — Phase 35A (Enterprise Control)
+// ═══════════════════════════════════════════════════════════════════════════
+// 
+// Defense-in-depth: These rules control CLIENT-side access only.
+// Server-side access via Firebase Admin SDK bypasses all rules.
+//
+// Policy: coreos_phase_ledger is server-only (no client reads).
+// All other collections require authentication.
+// ═══════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Ledger: Server-Only (Admin SDK bypasses rules) ────────────────────
+    match /coreos_phase_ledger/{doc} {
+      allow read, write: if false;
+    }
+
+    // ── Default: Authenticated users only ─────────────────────────────────
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

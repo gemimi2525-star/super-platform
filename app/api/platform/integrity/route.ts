@@ -1,10 +1,11 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API — GET /api/platform/integrity (Phase 30 — Signed Integrity)
+ * API — GET /api/platform/integrity (Phase 35A — Access Controlled)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * OS-level integrity endpoint. Returns JSON-only system integrity status
- * with HMAC SHA-256 signature for tamper detection.
+ * OS-level integrity endpoint with enterprise access control.
+ *   - Owner/Admin: full response with checks, signature, governance details
+ *   - Public: redacted response (status + errorCodes only)
  *
  * - No redirects, no sensitive data, no PII, no stack traces.
  * - Always 200 with status field (OK / DEGRADED) for monitoring tools.
@@ -17,57 +18,65 @@
 import { NextResponse } from 'next/server';
 import { getIntegrity } from '@/lib/ops/integrity/getIntegrity';
 import { signPayload } from '@/lib/ops/integrity/signIntegrity';
+import { checkOpsAccess } from '@/lib/auth/opsAccessPolicy';
+
+const NO_STORE_HEADERS = {
+    'Cache-Control': 'no-store',
+    'Pragma': 'no-cache',
+    'Surrogate-Control': 'no-store',
+    'Content-Type': 'application/json',
+};
 
 export async function GET() {
     try {
+        // ── Access Check ──────────────────────────────────────────────────
+        const access = await checkOpsAccess();
         const result = await getIntegrity();
 
-        // Sign the payload with HMAC SHA-256
-        const signature = signPayload(result as unknown as Record<string, unknown>);
+        // ── Owner: Full Response with Signature ───────────────────────────
+        if (access.isOwner) {
+            const signature = signPayload(result as unknown as Record<string, unknown>);
+            const signedResult = {
+                ...result,
+                signature: signature ?? 'unsigned',
+            };
+            return NextResponse.json(signedResult, {
+                status: 200,
+                headers: NO_STORE_HEADERS,
+            });
+        }
 
-        // Compose final response with signature
-        const signedResult = {
-            ...result,
-            signature: signature ?? 'unsigned',
-        };
-
-        return NextResponse.json(signedResult, {
-            status: 200,
-            headers: {
-                'Cache-Control': 'no-store',
-                'Pragma': 'no-cache',
-                'Surrogate-Control': 'no-store',
-                'Content-Type': 'application/json',
+        // ── Public: Redacted Response ─────────────────────────────────────
+        return NextResponse.json(
+            {
+                status: result.status,
+                errorCodes: result.errorCodes,
+                ts: result.ts,
+                phase: result.phase,
+                _notice: 'Authenticate as owner for full integrity details.',
             },
-        });
-    } catch (error: any) {
+            {
+                status: 200,
+                headers: NO_STORE_HEADERS,
+            },
+        );
+    } catch (error: unknown) {
         // Internal error — do NOT expose stack trace
-        console.error('[API/platform/integrity] Unhandled error:', error.message);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[API/platform/integrity] Unhandled error:', message);
 
         return NextResponse.json(
             {
                 status: 'DEGRADED',
-                checks: {
-                    firebase: { ok: false, latencyMs: 0, mode: 'unknown' as const },
-                    auth: { mode: 'unknown' as const, ok: false },
-                    governance: { kernelFrozen: 'unknown' as const, hashValid: 'unknown' as const, ok: false },
-                    build: { sha: null, lockedTag: null, ok: false },
-                },
                 errorCodes: ['INTERNAL_ERROR'],
                 ts: new Date().toISOString(),
-                phase: '30',
-                version: 'v0.30',
-                signature: 'unsigned',
+                _notice: 'System integrity check encountered an error.',
             },
             {
                 status: 200,
-                headers: {
-                    'Cache-Control': 'no-store',
-                    'Pragma': 'no-cache',
-                    'Surrogate-Control': 'no-store',
-                    'Content-Type': 'application/json',
-                },
+                headers: NO_STORE_HEADERS,
             },
         );
     }
 }
+
