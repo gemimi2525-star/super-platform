@@ -34,6 +34,19 @@ import {
 } from '@/coreos/integrity/IntegrityContract';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TYPES — Firestore Snapshot (for drilldown)
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface FirestoreSnapshotItem {
+    id: string;
+    phaseId: string;
+    commitShort: string;
+    environment: string;
+    createdAt: { _seconds?: number; seconds?: number } | null;
+    evidence?: { ciRunUrl?: string };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TYPES (internal endpoint shapes)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -170,6 +183,13 @@ export default function IntegrityTransparencyCard() {
     const [pasteError, setPasteError] = useState('');
     const [copied, setCopied] = useState(false);
 
+    // ── Firestore Snapshot drilldown state ──────────────────────────────
+    const [fsSnapshots, setFsSnapshots] = useState<FirestoreSnapshotItem[]>([]);
+    const [fsCount, setFsCount] = useState<number | null>(null);
+    const [fsWarning, setFsWarning] = useState<string | null>(null);
+    const [showDrilldown, setShowDrilldown] = useState(false);
+    const [fsLoading, setFsLoading] = useState(false);
+
     const fetchAll = useCallback(async () => {
         setLoading(true);
         const [prod, ledger] = await Promise.all([
@@ -197,6 +217,33 @@ export default function IntegrityTransparencyCard() {
     }, [localInput]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // ── Fetch Firestore Snapshots (for drilldown) ──────────────────────
+    const fetchFirestoreSnapshots = useCallback(async () => {
+        setFsLoading(true);
+        setFsWarning(null);
+        try {
+            const res = await fetch(`/api/ops/phase-ledger?limit=10&cb=${Date.now()}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            if (!json.ok && json.warning) {
+                setFsWarning(json.warning);
+                setFsSnapshots([]);
+                setFsCount(0);
+                return;
+            }
+            if (json.ok && json.data) {
+                setFsSnapshots(json.data.items || []);
+                setFsCount(json.data.total ?? json.data.items?.length ?? 0);
+            }
+        } catch (err: any) {
+            setFsWarning(err.message);
+        } finally {
+            setFsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchFirestoreSnapshots(); }, [fetchFirestoreSnapshots]);
 
     // ── Paste Handler ──────────────────────────────────────────────────
     const handlePaste = () => {
@@ -300,7 +347,17 @@ export default function IntegrityTransparencyCard() {
                                         {boolIcon(row.governance?.hashValid)}
                                     </td>
                                     <td style={st.tdMono}>
-                                        {row.ledger
+                                        {row.layer === 'ledger' && fsCount !== null ? (
+                                            <span>
+                                                <strong style={{ color: '#e2e8f0' }}>{fsCount}</strong> docs
+                                                {row.ledger?.ok && ' ✓'}
+                                                {fsSnapshots.length > 0 && (
+                                                    <span style={{ color: '#64748b', marginLeft: '6px' }}>
+                                                        (latest: {fsSnapshots[0].commitShort})
+                                                    </span>
+                                                )}
+                                            </span>
+                                        ) : row.ledger
                                             ? `${row.ledger.chainLength} entries ${row.ledger.ok ? '✓' : '✗'}`
                                             : '—'}
                                     </td>
@@ -364,6 +421,126 @@ export default function IntegrityTransparencyCard() {
                     ))}
                 </div>
             )}
+
+            {/* ── Ledger Drilldown ──────────────────────────────── */}
+            <div style={{
+                marginTop: 12,
+                background: 'rgba(99, 102, 241, 0.03)',
+                border: '1px solid rgba(99, 102, 241, 0.1)',
+                borderRadius: 8,
+                overflow: 'hidden',
+            }}>
+                <div
+                    style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px', cursor: 'pointer',
+                        transition: 'background 0.2s',
+                    }}
+                    onClick={() => {
+                        if (!showDrilldown) fetchFirestoreSnapshots();
+                        setShowDrilldown(!showDrilldown);
+                    }}
+                >
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#c4b5fd' }}>
+                        🗄️ Ledger / Firestore Drilldown
+                        {fsCount !== null && (
+                            <span style={{
+                                marginLeft: 8, fontSize: 10, fontWeight: 700,
+                                background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80',
+                                borderRadius: 10, padding: '2px 8px',
+                            }}>{fsCount} docs</span>
+                        )}
+                    </span>
+                    <span style={{
+                        fontSize: 12, color: '#64748b',
+                        transform: showDrilldown ? 'rotate(180deg)' : 'rotate(0)',
+                        transition: 'transform 0.2s',
+                    }}>▼</span>
+                </div>
+                {showDrilldown && (
+                    <div style={{ padding: '0 14px 14px' }}>
+                        {fsWarning && (
+                            <div style={{
+                                padding: '8px 12px', marginBottom: 8,
+                                background: 'rgba(245, 158, 11, 0.08)',
+                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                borderRadius: 6, fontSize: 11, color: '#fbbf24',
+                            }}>⚠️ {fsWarning}</div>
+                        )}
+                        {fsLoading && <div style={{ color: '#64748b', fontSize: 12 }}>Loading…</div>}
+                        {!fsLoading && fsSnapshots.length === 0 && !fsWarning && (
+                            <div style={{ color: '#64748b', fontSize: 12 }}>No snapshots found</div>
+                        )}
+                        {fsSnapshots.length > 0 && (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                                <thead>
+                                    <tr>
+                                        {['Doc ID', 'Phase', 'Commit', 'Env', 'Created', 'CI Run'].map(h => (
+                                            <th key={h} style={{
+                                                textAlign: 'left', padding: '6px 8px', fontSize: 10,
+                                                fontWeight: 600, color: '#64748b',
+                                                textTransform: 'uppercase', letterSpacing: 0.5,
+                                                borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                                                background: 'rgba(15, 23, 42, 0.3)',
+                                            }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fsSnapshots.map(snap => {
+                                        const ts = snap.createdAt;
+                                        const secs = ts?._seconds ?? ts?.seconds;
+                                        const timeStr = secs
+                                            ? new Date(secs * 1000).toLocaleString('en-US', {
+                                                month: 'short', day: 'numeric',
+                                                hour: '2-digit', minute: '2-digit',
+                                            }) : '—';
+                                        return (
+                                            <tr key={snap.id} style={{
+                                                borderBottom: '1px solid rgba(148, 163, 184, 0.06)',
+                                            }}>
+                                                <td style={{ padding: '6px 8px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                    {snap.id}
+                                                </td>
+                                                <td style={{ padding: '6px 8px', fontWeight: 600, color: '#e2e8f0' }}>
+                                                    {snap.phaseId}
+                                                </td>
+                                                <td style={{ padding: '6px 8px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                    {snap.commitShort}
+                                                </td>
+                                                <td style={{ padding: '6px 8px' }}>
+                                                    <span style={{
+                                                        fontSize: 10, fontWeight: 600, padding: '1px 6px',
+                                                        borderRadius: 8,
+                                                        background: snap.environment === 'production'
+                                                            ? 'rgba(34, 197, 94, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                                                        color: snap.environment === 'production'
+                                                            ? '#4ade80' : '#60a5fa',
+                                                    }}>
+                                                        {snap.environment === 'production' ? '🟢' : '🔵'} {snap.environment}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '6px 8px', fontSize: 10, color: '#64748b' }}>
+                                                    {timeStr}
+                                                </td>
+                                                <td style={{ padding: '6px 8px' }}>
+                                                    {snap.evidence?.ciRunUrl ? (
+                                                        <a href={snap.evidence.ciRunUrl} target="_blank" rel="noopener"
+                                                            style={{ color: '#60a5fa', fontSize: 10 }}>
+                                                            🔗 View
+                                                        </a>
+                                                    ) : <span style={{ color: '#475569', fontSize: 10 }}>—</span>}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
+
 
             {/* ── Paste Modal ─────────────────────────────────────── */}
             {showPasteModal && (

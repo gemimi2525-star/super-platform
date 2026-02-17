@@ -282,6 +282,8 @@ export default function PhaseLedgerDrawer() {
     const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [selected, setSelected] = useState<SnapshotItem | null>(null);
     const [headerHover, setHeaderHover] = useState(false);
+    const [apiWarning, setApiWarning] = useState<string | null>(null);
+    const [totalDocs, setTotalDocs] = useState<number | null>(null);
 
     // ── Last Write-back state ────────────────────────────────────────────
     const [lastWrite, setLastWrite] = useState<{
@@ -309,6 +311,12 @@ export default function PhaseLedgerDrawer() {
                         return;
                     }
                     const json = await res.json();
+                    // Handle graceful degradation (ok: false + warning)
+                    if (!json.ok && json.warning) {
+                        setLastWrite({ status: 'error', label: `⚠ ${json.warning}` });
+                        setApiWarning(json.warning);
+                        return;
+                    }
                     if (json.ok && json.data?.items?.length > 0) {
                         const snap = json.data.items[0] as SnapshotItem;
                         const ts = formatTimestamp(snap.createdAt as { _seconds?: number; seconds?: number } | null);
@@ -340,6 +348,7 @@ export default function PhaseLedgerDrawer() {
         append = false,
     ) => {
         setLoading(true);
+        setApiWarning(null);
         try {
             const params = new URLSearchParams();
             if (searchQuery) params.set('query', searchQuery);
@@ -352,9 +361,16 @@ export default function PhaseLedgerDrawer() {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const json = await res.json();
+            // Handle graceful degradation
+            if (!json.ok && json.warning) {
+                setApiWarning(json.warning);
+                if (!append) setItems([]);
+                return;
+            }
             if (json.ok && json.data) {
                 setItems(prev => append ? [...prev, ...json.data.items] : json.data.items);
                 setNextCursor(json.data.nextCursor);
+                if (json.data.total !== undefined) setTotalDocs(json.data.total);
             }
         } catch (err) {
             console.error('[PhaseLedgerDrawer] Fetch error:', err);
@@ -483,8 +499,24 @@ export default function PhaseLedgerDrawer() {
                             <div style={styles.emptyState}>Loading…</div>
                         )}
 
+                        {/* Warning state */}
+                        {apiWarning && (
+                            <div style={{
+                                padding: '12px 16px',
+                                background: 'rgba(245, 158, 11, 0.08)',
+                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                borderRadius: '8px',
+                                marginBottom: '12px',
+                                fontSize: '12px',
+                                color: '#fbbf24',
+                                lineHeight: 1.5,
+                            }}>
+                                ⚠️ {apiWarning}
+                            </div>
+                        )}
+
                         {/* Empty state */}
-                        {!loading && items.length === 0 && (
+                        {!loading && items.length === 0 && !apiWarning && (
                             <div style={styles.emptyState}>
                                 <div style={{ fontSize: '24px', marginBottom: '8px' }}>📭</div>
                                 No snapshots yet — they will appear after CI writes deployments

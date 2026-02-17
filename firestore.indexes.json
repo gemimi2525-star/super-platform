@@ -41,6 +41,20 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "coreos_phase_ledger",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "environment",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

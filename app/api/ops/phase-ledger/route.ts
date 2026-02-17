@@ -108,9 +108,15 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(response);
     } catch (err: unknown) {
         console.error('[API/ops/phase-ledger] Error:', err);
-        return NextResponse.json(
-            { ok: false, error: 'Internal server error' },
-            { status: 500 },
-        );
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const isIndexError = message.includes('FAILED_PRECONDITION') || message.includes('requires an index');
+        return NextResponse.json({
+            ok: false,
+            data: { items: [], nextCursor: null, total: 0 },
+            warning: isIndexError
+                ? 'Firestore composite index not yet created. Deploy indexes with: firebase deploy --only firestore:indexes'
+                : `Query failed: ${message.slice(0, 200)}`,
+            ts: new Date().toISOString(),
+        });
     }
 }
