@@ -43,7 +43,30 @@ jobs:
       - name: Fetch build-info
         id: build
         run: |
-          RESPONSE=$(curl -sf "${{ steps.target.outputs.url }}/api/build-info?cb=$(date +%s)" || echo '{}')
+          TARGET_URL="${{ steps.target.outputs.url }}/api/build-info?cb=$(date +%s)"
+          echo "🔗 Fetching: $TARGET_URL"
+          RESPONSE=""
+          for ATTEMPT in 1 2 3; do
+            echo "📡 Attempt $ATTEMPT/3..."
+            HTTP_RESP=$(curl -sL -w "\n%{http_code}" \
+              -H "User-Agent: GitHub-Actions-PhaseLedger/1.0" \
+              --connect-timeout 10 \
+              --max-time 30 \
+              "$TARGET_URL" 2>&1) || true
+            HTTP_CODE=$(echo "$HTTP_RESP" | tail -1)
+            BODY=$(echo "$HTTP_RESP" | sed '$d')
+            echo "📬 HTTP $HTTP_CODE (${#BODY} bytes)"
+            if [ "$HTTP_CODE" = "200" ] && echo "$BODY" | jq . > /dev/null 2>&1; then
+              RESPONSE="$BODY"
+              break
+            fi
+            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting 10s..."
+            [ "$ATTEMPT" -lt 3 ] && sleep 10
+          done
+          if [ -z "$RESPONSE" ]; then
+            echo "::warning::build-info fetch failed after 3 attempts, using empty object"
+            RESPONSE='{}'
+          fi
           echo "json=$RESPONSE" >> $GITHUB_OUTPUT
           echo "commit=$(echo $RESPONSE | jq -r '.commit // empty')" >> $GITHUB_OUTPUT
           echo "version=$(echo $RESPONSE | jq -r '.version // empty')" >> $GITHUB_OUTPUT
@@ -53,7 +76,30 @@ jobs:
       - name: Fetch integrity
         id: integrity
         run: |
-          RESPONSE=$(curl -sf "${{ steps.target.outputs.url }}/api/platform/integrity?cb=$(date +%s)" || echo '{}')
+          TARGET_URL="${{ steps.target.outputs.url }}/api/platform/integrity?cb=$(date +%s)"
+          echo "🔗 Fetching: $TARGET_URL"
+          RESPONSE=""
+          for ATTEMPT in 1 2 3; do
+            echo "📡 Attempt $ATTEMPT/3..."
+            HTTP_RESP=$(curl -sL -w "\n%{http_code}" \
+              -H "User-Agent: GitHub-Actions-PhaseLedger/1.0" \
+              --connect-timeout 10 \
+              --max-time 30 \
+              "$TARGET_URL" 2>&1) || true
+            HTTP_CODE=$(echo "$HTTP_RESP" | tail -1)
+            BODY=$(echo "$HTTP_RESP" | sed '$d')
+            echo "📬 HTTP $HTTP_CODE (${#BODY} bytes)"
+            if [ "$HTTP_CODE" = "200" ] && echo "$BODY" | jq . > /dev/null 2>&1; then
+              RESPONSE="$BODY"
+              break
+            fi
+            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting 10s..."
+            [ "$ATTEMPT" -lt 3 ] && sleep 10
+          done
+          if [ -z "$RESPONSE" ]; then
+            echo "::warning::integrity fetch failed after 3 attempts, using empty object"
+            RESPONSE='{}'
+          fi
           echo "json=$RESPONSE" >> $GITHUB_OUTPUT
           echo "status=$(echo $RESPONSE | jq -r '.status // empty')" >> $GITHUB_OUTPUT
           echo "phase=$(echo $RESPONSE | jq -r '.phase // empty')" >> $GITHUB_OUTPUT
