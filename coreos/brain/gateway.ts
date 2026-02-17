@@ -21,9 +21,17 @@ import { safetyGate } from './shield';
 import { trustEngine, TrustTier } from './trust';
 import { SYSTEM_PROMPT } from './prompts';
 
-import { LLMProvider, LLMInput, LLMMessage, LLMToolDef } from './providers/types';
+import { LLMProvider, LLMInput, LLMMessage, LLMToolDef, hashArguments } from './providers/types';
 import { OpenAIAdapter } from './providers/openai';
 import { MockAdapter } from './providers/mock';
+
+// Phase 35C: Runtime Isolation Level 2
+import { evaluateExecutionPolicy } from './policy/policyEngine';
+import { toolFirewall } from './policy/toolFirewall';
+import { workerGuard } from './policy/workerGuard';
+import { classifyTool } from './policy/policyMatrix';
+import type { PolicyInput } from './policy/policyTypes';
+import { randomUUID } from 'crypto';
 
 /**
  * Phase 21B: Provider resolution — returns LLMProvider interface.
@@ -298,7 +306,7 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         continue;
                     }
 
-                    let toolArgs = {};
+                    let toolArgs: Record<string, any> = {};
                     try {
                         toolArgs = JSON.parse(toolCall.function.arguments);
                     } catch (e) {
@@ -306,7 +314,79 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         continue;
                     }
 
-                    console.log(`[Brain] Tool Call: ${toolName}`);
+                    // ═══════════════════════════════════════════════════════
+                    // PHASE 35C: RUNTIME POLICY ENGINE (Layer 1 — Gateway)
+                    // ═══════════════════════════════════════════════════════
+
+                    // 35C-1: Tool Firewall (normalize + hash + allowlist)
+                    const firewallResult = toolFirewall.check(toolName, toolArgs, appScope);
+                    if (!firewallResult.allowed) {
+                        console.warn(`[Brain] 🔥 Phase 35C Firewall Blocked: ${toolName} — ${firewallResult.blockReason}`);
+                        this.auditLog(request.correlationId, 'brain.phase35c_firewall_blocked', {
+                            tool: toolName, reason: firewallResult.blockReason, checks: firewallResult.checks,
+                        });
+                        response.content = (response.content || '') + `\n[System]: Tool '${toolName}' blocked by Runtime Firewall — ${firewallResult.blockReason}`;
+                        continue;
+                    }
+
+                    // 35C-2: Policy Engine (9-rule chain)
+                    const nonce = randomUUID();
+                    const { actionType } = classifyTool(toolName);
+                    const isProduction = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+
+                    const policyInput: PolicyInput = {
+                        toolName: firewallResult.normalizedToolName,
+                        actionType,
+                        appScope,
+                        actorRole: (request as any).actorRole || 'owner',
+                        environment: isProduction ? 'production' : 'preview',
+                        requestSource: 'browser',
+                        nonce,
+                        argsHash: firewallResult.computedArgsHash,
+                        approvalArgsHash: (request as any).approvalArgsHash,
+                        correlationId: request.correlationId,
+                        timestamp: Date.now(),
+                    };
+
+                    const policyDecision = evaluateExecutionPolicy(policyInput);
+
+                    this.auditLog(request.correlationId, 'brain.phase35c_policy_eval', {
+                        tool: toolName,
+                        decision: policyDecision.decision,
+                        riskLevel: policyDecision.riskLevel,
+                        reasons: policyDecision.reasons.filter(r => r.blocking),
+                        nonce: nonce.substring(0, 8),
+                    });
+
+                    if (policyDecision.decision !== 'ALLOW') {
+                        console.warn(`[Brain] 🛑 Phase 35C Policy: ${toolName} → ${policyDecision.decision}`);
+                        response.content = (response.content || '') +
+                            `\n[System]: Tool '${toolName}' ${policyDecision.decision} by Runtime Policy Engine` +
+                            ` (${policyDecision.reasons.filter(r => r.blocking).map(r => r.message).join('; ')})`;
+                        continue;
+                    }
+
+                    // 35C-3: Worker Guard (Layer 2 — defense-in-depth)
+                    const guardResult = workerGuard.verify({
+                        toolName: firewallResult.normalizedToolName,
+                        nonce,
+                        scopeToken: appScope,
+                        argsHash: firewallResult.computedArgsHash,
+                        approvalArgsHash: (request as any).approvalArgsHash,
+                        policyDecision: policyDecision.decision,
+                        correlationId: request.correlationId,
+                    });
+
+                    if (!guardResult.permitted) {
+                        console.warn(`[Brain] 🛡️ Phase 35C Guard Blocked: ${toolName} — ${guardResult.blockReason}`);
+                        this.auditLog(request.correlationId, 'brain.phase35c_guard_blocked', {
+                            tool: toolName, reason: guardResult.blockReason, checks: guardResult.checks,
+                        });
+                        response.content = (response.content || '') + `\n[System]: Tool '${toolName}' blocked by Worker Guard — ${guardResult.blockReason}`;
+                        continue;
+                    }
+
+                    console.log(`[Brain] ✅ Phase 35C ALLOW: ${toolName} (nonce=${nonce.substring(0, 8)})`);
 
                     // Audit Tool Call
                     if (toolName.startsWith('propose_')) {
@@ -316,7 +396,7 @@ Trust Score: ${trustScore} | Tier: ${effectiveTier}
                         this.auditLog(request.correlationId, 'brain.tool_called', { tool: toolName });
                     }
 
-                    // Execute Tool via Registry
+                    // Execute Tool via Registry (with policy context)
                     const result = await toolRegistry.executeTool(toolName, toolArgs, {
                         appId: request.appId,
                         userId: request.userId || 'system',

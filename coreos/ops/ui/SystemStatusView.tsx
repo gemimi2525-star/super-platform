@@ -20,6 +20,7 @@ import IntegrityTransparencyCard from './IntegrityTransparencyCard';
 import PhaseLedgerDrawer from './PhaseLedgerDrawer';
 import DeployTimelineCard from './DeployTimelineCard';
 import SnapshotDiffCard from './SnapshotDiffCard';
+import RuntimeIsolationCard from './RuntimeIsolationCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -190,6 +191,9 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Snapshot Diff & Evidence Pack — Phase 35B */}
             <SnapshotDiffCard />
+
+            {/* Runtime Isolation — Phase 35C */}
+            <RuntimeIsolationCard />
         </div>
     );
 }
