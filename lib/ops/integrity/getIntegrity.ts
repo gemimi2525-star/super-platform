@@ -16,6 +16,7 @@
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { checkGovernance } from './checkGovernance';
+import { getFailInjection } from './failInjection';
 import fs from 'fs';
 import path from 'path';
 
@@ -172,6 +173,7 @@ function checkBuild(): {
 
 export async function getIntegrity(): Promise<IntegrityResult> {
     const errorCodes: string[] = [];
+    const injection = getFailInjection();
 
     // Run all checks (Firebase is async, rest are sync)
     const [firebaseResult, authResult, govResult, buildResult] = await Promise.all([
@@ -181,6 +183,20 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         Promise.resolve(checkBuild()),
     ]);
 
+    // ── Phase 33A: Fail Injection Overrides ───────────────────────────
+    if (injection.active) {
+        if (injection.failKernelFrozen) {
+            govResult.kernelFrozen = false;
+            govResult.ok = false;
+            govResult.errorCode = 'INJECTED_KERNEL_NOT_FROZEN';
+        }
+        if (injection.failHashChain) {
+            govResult.hashValid = false;
+            govResult.ok = false;
+            govResult.errorCode = 'INJECTED_HASH_CHAIN_BROKEN';
+        }
+    }
+
     // Collect error codes
     if (firebaseResult.errorCode) errorCodes.push(firebaseResult.errorCode);
     if (authResult.errorCode) errorCodes.push(authResult.errorCode);
@@ -188,7 +204,16 @@ export async function getIntegrity(): Promise<IntegrityResult> {
     if (buildResult.errorCode) errorCodes.push(buildResult.errorCode);
 
     // Overall status — OK only if ALL checks pass
-    const allOk = firebaseResult.ok && authResult.ok && govResult.ok && buildResult.ok;
+    let allOk = firebaseResult.ok && authResult.ok && govResult.ok && buildResult.ok;
+
+    // Phase 33A: FAIL_INTEGRITY=1 forces DEGRADED regardless
+    if (injection.failIntegrity) {
+        allOk = false;
+        if (!errorCodes.includes('INJECTED_INTEGRITY_FAIL')) {
+            errorCodes.push('INJECTED_INTEGRITY_FAIL');
+        }
+    }
+
     const status = allOk ? 'OK' : 'DEGRADED';
 
     return {
@@ -216,7 +241,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '32.5',
+        phase: '33A',
         version: `v${getPackageVersion()}`,
     };
 }

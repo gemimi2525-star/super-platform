@@ -21,6 +21,8 @@ import { ToastProvider } from "@super-platform/ui";
 import { Toaster } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { AppearanceProvider } from '@/contexts/AppearanceContext';
+import { checkEnforcementGate } from '@/lib/ops/integrity/enforcementGate';
+import { IntegrityFatalScreen } from '@/components/os-shell/IntegrityFatalScreen';
 import fs from 'fs';
 import path from 'path';
 import { cookies } from 'next/headers';
@@ -75,6 +77,12 @@ export default async function OSLayout({
 }: {
     children: React.ReactNode;
 }) {
+    // ── Phase 33A: Enforcement Gate ──────────────────────────────────
+    const gate = await checkEnforcementGate();
+    if (!gate.allowed) {
+        return <IntegrityFatalScreen gate={gate} />;
+    }
+
     const cookieStore = await cookies();
     const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
 

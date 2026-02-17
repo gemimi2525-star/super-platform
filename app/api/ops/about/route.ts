@@ -36,7 +36,7 @@ export async function GET() {
     const response = NextResponse.json({
         product: 'APICOREDATA Client OS',
         version,
-        phase: '32.5',
+        phase: '33A',
         commit,
         architecture: {
             shell: { name: 'NEXUS', desc: 'Desktop, Dock, Menu Bar' },
