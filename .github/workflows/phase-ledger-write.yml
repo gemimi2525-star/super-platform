@@ -60,8 +60,9 @@ jobs:
               RESPONSE="$BODY"
               break
             fi
-            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting 10s..."
-            [ "$ATTEMPT" -lt 3 ] && sleep 10
+            WAIT=$((ATTEMPT * 15))
+            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting ${WAIT}s..."
+            [ "$ATTEMPT" -lt 3 ] && sleep $WAIT
           done
           if [ -z "$RESPONSE" ]; then
             echo "::warning::build-info fetch failed after 3 attempts, using empty object"
@@ -93,8 +94,9 @@ jobs:
               RESPONSE="$BODY"
               break
             fi
-            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting 10s..."
-            [ "$ATTEMPT" -lt 3 ] && sleep 10
+            WAIT=$((ATTEMPT * 15))
+            echo "⚠️ Attempt $ATTEMPT failed (HTTP $HTTP_CODE), waiting ${WAIT}s..."
+            [ "$ATTEMPT" -lt 3 ] && sleep $WAIT
           done
           if [ -z "$RESPONSE" ]; then
             echo "::warning::integrity fetch failed after 3 attempts, using empty object"

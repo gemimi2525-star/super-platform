@@ -601,6 +601,6 @@ export const config = {
     matcher: [
         // PHASE 6.3.9: Match ALL paths except static files and worker/job/ops APIs
         // API routes for jobs/worker/ops are excluded to prevent middleware interference
-        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/jobs|api/worker|api/ops).*)",
+        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/jobs|api/worker|api/ops|api/build-info|api/platform).*)",
     ]
 };
