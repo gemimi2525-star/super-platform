@@ -116,6 +116,64 @@ export interface PhaseLedgerDetailResponse {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TIMELINE (Phase 35B)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Slim projection for timeline display */
+export interface TimelineEntry {
+    id: string;
+    phaseId: string;
+    commitShort: string;
+    version: string;
+    tag: string;
+    environment: DeployEnvironment;
+    integrityStatus: IntegrityStatus;
+    governanceOk: boolean;
+    hashValid: boolean;
+    createdAt: unknown;
+}
+
+export interface TimelineResponse {
+    ok: boolean;
+    data: {
+        items: TimelineEntry[];
+        total: number;
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DIFF (Phase 35B)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface DiffChange {
+    field: string;
+    from: string;
+    to: string;
+}
+
+export interface DiffSnapshotSummary {
+    id: string;
+    phaseId: string;
+    commitShort: string;
+    version: string;
+    tag: string;
+    integrityStatus: string;
+    governanceOk: boolean;
+    hashValid: boolean;
+    createdAt: unknown;
+}
+
+export interface DiffResponse {
+    ok: boolean;
+    data: {
+        latest: DiffSnapshotSummary;
+        previous: DiffSnapshotSummary | null;
+        changes: DiffChange[];
+        driftDetected: boolean;
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
 

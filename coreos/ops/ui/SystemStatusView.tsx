@@ -18,6 +18,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import IntegrityTransparencyCard from './IntegrityTransparencyCard';
 import PhaseLedgerDrawer from './PhaseLedgerDrawer';
+import DeployTimelineCard from './DeployTimelineCard';
+import SnapshotDiffCard from './SnapshotDiffCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -182,6 +184,12 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Phase Ledger History — Phase 34.1 */}
             <PhaseLedgerDrawer />
+
+            {/* Deploy Timeline — Phase 35B */}
+            <DeployTimelineCard />
+
+            {/* Snapshot Diff & Evidence Pack — Phase 35B */}
+            <SnapshotDiffCard />
         </div>
     );
 }
