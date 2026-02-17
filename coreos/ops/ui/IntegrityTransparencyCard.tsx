@@ -308,19 +308,31 @@ export default function IntegrityTransparencyCard() {
                                         {row.signature ? row.signature.slice(0, 8) + '…' : '—'}
                                     </td>
                                     <td style={st.td}>
-                                        <span style={{
-                                            ...st.matchBadge,
-                                            background: row.match === 'OK'
-                                                ? 'rgba(74, 222, 128, 0.12)'
-                                                : row.match === 'MISMATCH'
-                                                    ? 'rgba(239, 68, 68, 0.12)'
-                                                    : 'rgba(148, 163, 184, 0.1)',
-                                            color: row.match === 'OK'
-                                                ? '#4ade80'
-                                                : row.match === 'MISMATCH'
-                                                    ? '#ef4444'
-                                                    : '#64748b',
-                                        }}>
+                                        <span
+                                            title={
+                                                row.match === 'N/A'
+                                                    ? row.layer === 'preview'
+                                                        ? 'No snapshot yet (CI write-back not run or OPS_PHASE_LEDGER_SECRET not set). Snapshots available in History after first CI write.'
+                                                        : row.layer === 'github'
+                                                            ? 'Not collected in runtime (no GitHub token by policy). Provided via CI write-back only.'
+                                                            : 'N/A — no snapshot written yet. Enable CI write-back.'
+                                                    : undefined
+                                            }
+                                            style={{
+                                                ...st.matchBadge,
+                                                background: row.match === 'OK'
+                                                    ? 'rgba(74, 222, 128, 0.12)'
+                                                    : row.match === 'MISMATCH'
+                                                        ? 'rgba(239, 68, 68, 0.12)'
+                                                        : 'rgba(148, 163, 184, 0.1)',
+                                                color: row.match === 'OK'
+                                                    ? '#4ade80'
+                                                    : row.match === 'MISMATCH'
+                                                        ? '#ef4444'
+                                                        : '#64748b',
+                                                cursor: row.match === 'N/A' ? 'help' : undefined,
+                                            }}
+                                        >
                                             {row.match}
                                         </span>
                                     </td>
@@ -330,6 +342,13 @@ export default function IntegrityTransparencyCard() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Helper text for N/A layers */}
+            {rows.some(r => r.match === 'N/A') && (
+                <p style={{ fontSize: 11, color: '#64748b', margin: '8px 0 0', lineHeight: 1.5 }}>
+                    ℹ Hover N/A badges for details — Preview & GitHub layers are populated via CI write-back.
+                </p>
+            )}
 
             {/* ── Mismatch Reasons ────────────────────────────────── */}
             {hasMismatch && (

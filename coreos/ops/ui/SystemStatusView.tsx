@@ -17,6 +17,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import IntegrityTransparencyCard from './IntegrityTransparencyCard';
+import PhaseLedgerDrawer from './PhaseLedgerDrawer';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -178,6 +179,9 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {/* Integrity Transparency Card — Phase 34 */}
             <IntegrityTransparencyCard />
+
+            {/* Phase Ledger History — Phase 34.1 */}
+            <PhaseLedgerDrawer />
         </div>
     );
 }
