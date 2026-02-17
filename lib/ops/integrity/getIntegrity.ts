@@ -9,12 +9,13 @@
  * Checks:
  *   1. Firebase (Firestore probe — read + write ops/integrity-probe)
  *   2. Auth mode (REAL required for production)
- *   3. Governance (SYNAPSE kernel freeze + hash — TODO)
+ *   3. Governance (SYNAPSE kernel freeze + hash chain — Phase 32.5)
  *   4. Build (commit SHA + locked tag)
  */
 
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { checkGovernance } from './checkGovernance';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,8 +53,8 @@ export interface IntegrityResult {
             ok: boolean;
         };
         governance: {
-            kernelFrozen: boolean | 'unknown';
-            hashValid: boolean | 'unknown';
+            kernelFrozen: boolean;
+            hashValid: boolean;
             ok: boolean;
         };
         build: {
@@ -137,22 +138,7 @@ function detectAuthMode(): { mode: 'REAL' | 'MOCK' | 'unknown'; ok: boolean; err
 // GOVERNANCE / SYNAPSE CHECK
 // ═══════════════════════════════════════════════════════════════════════════
 
-function checkGovernance(): {
-    kernelFrozen: boolean | 'unknown';
-    hashValid: boolean | 'unknown';
-    ok: boolean;
-    errorCode?: string;
-} {
-    // TODO: Wire into SYNAPSE governance module when kernel freeze
-    // and hash chain validation helpers become available.
-    // Currently no governance helpers exist in the codebase.
-    return {
-        kernelFrozen: 'unknown',
-        hashValid: 'unknown',
-        ok: false,
-        errorCode: 'GOVERNANCE_UNKNOWN',
-    };
-}
+// Governance check — see lib/ops/integrity/checkGovernance.ts (Phase 32.5)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BUILD SHA + RELEASE LOCK
