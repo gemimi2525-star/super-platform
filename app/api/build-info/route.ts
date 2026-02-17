@@ -46,7 +46,9 @@ export async function GET() {
 
     return NextResponse.json(response, {
         headers: {
-            'Cache-Control': 'public, max-age=60, s-maxage=300',
+            'Cache-Control': 'no-store',
+            'Pragma': 'no-cache',
+            'Surrogate-Control': 'no-store',
         },
     });
 }

@@ -35,6 +35,8 @@ export async function GET() {
             status: 200,
             headers: {
                 'Cache-Control': 'no-store',
+                'Pragma': 'no-cache',
+                'Surrogate-Control': 'no-store',
                 'Content-Type': 'application/json',
             },
         });
@@ -61,6 +63,8 @@ export async function GET() {
                 status: 200,
                 headers: {
                     'Cache-Control': 'no-store',
+                    'Pragma': 'no-cache',
+                    'Surrogate-Control': 'no-store',
                     'Content-Type': 'application/json',
                 },
             },
