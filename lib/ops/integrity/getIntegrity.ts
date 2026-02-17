@@ -15,6 +15,25 @@
 
 import { getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VERSION SOURCE (single source of truth from package.json)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _cachedVersion = '';
+function getPackageVersion(): string {
+    if (_cachedVersion) return _cachedVersion;
+    try {
+        const pkgPath = path.join(process.cwd(), 'package.json');
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        _cachedVersion = pkg.version || '0.32.1';
+    } catch {
+        _cachedVersion = '0.32.1';
+    }
+    return _cachedVersion;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -151,8 +170,8 @@ function checkBuild(): {
         process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
         null;
 
-    // Locked tag — hard-coded from the latest release
-    const lockedTag = 'v0.30';
+    // Locked tag — derived from package.json (single source of truth)
+    const lockedTag = `v${getPackageVersion()}`;
 
     if (!sha) {
         return { sha: null, lockedTag, ok: false, errorCode: 'BUILD_SHA_MISSING' };
@@ -211,7 +230,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '30',
-        version: 'v0.30',
+        phase: '32.4',
+        version: `v${getPackageVersion()}`,
     };
 }
