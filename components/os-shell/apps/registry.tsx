@@ -141,9 +141,8 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // ─────────────────────────────────────────────────────────────────────────
 
     'core.settings': createLazyApp(SettingsAppLazy),
-    'system.explorer': createLazyApp(ExplorerAppLazy),
-    'core.files': createLazyApp(ExplorerAppLazy), // Phase 15A M3: VFS Finder
-    'core.finder': createLazyApp(ExplorerAppLazy), // Phase 15A M3: VFS Finder (Fixed in 15A.1)
+    // Phase 38: Removed system.explorer + core.files (dead aliases → ExplorerApp)
+    'core.finder': createLazyApp(ExplorerAppLazy), // Phase 15A: VFS Finder (canonical)
     'core.notes': createLazyApp(NotesAppLazy), // Phase 16A: Notes (VFS Consumer)
     'brain.assist': createLazyApp(BrainAppLazy),
 

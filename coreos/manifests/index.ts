@@ -61,7 +61,7 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
     'core.files': CORE_FILES_MANIFEST, // Phase 26.1.x
     'core.settings': CORE_SETTINGS_MANIFEST,
     'user.manage': USER_MANAGE_MANIFEST,
-    // Phase 24B: App Store
+    // Phase 24B: App Store (placeholder — no component yet)
     'core.store': {
         id: 'core.store',
         title: 'App Store',
@@ -73,7 +73,7 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
         requiredPolicies: [],
         requiresStepUp: false,
         dependencies: [],
-        showInDock: true,
+        showInDock: false, // Phase 38: hidden — no component exists yet
         certificationTier: 'core'
     },
     'org.manage': ORG_MANAGE_MANIFEST,
@@ -132,20 +132,20 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
         requiredRole: 'admin',
     },
 
-    // Phase 25B: Brain Dashboard (Owner-only)
+    // Phase 25B → Phase 26A: brain.dashboard merged into Monitor Hub → Brain tab
+    // Phase 38: showInDock disabled — access via Monitor Hub internal tabs only
     'brain.dashboard': {
         id: 'brain.dashboard',
-        title: 'Brain Dashboard',
+        title: 'Brain Dashboard (Legacy)',
         icon: '🧠',
-        hasUI: true,
-        windowMode: 'single',
-        windowDisplay: 'window',
+        hasUI: false, // Phase 38: no standalone UI — merged into Monitor Hub
+        windowMode: 'backgroundOnly',
         contextsSupported: ['global'],
         requiredPolicies: ['owner.access'],
         requiresStepUp: true,
         stepUpMessage: 'Brain Dashboard requires owner verification',
         dependencies: [],
-        showInDock: true,
+        showInDock: false, // Phase 38: merged into Monitor Hub
         certificationTier: 'core',
         requiredRole: 'owner',
     },

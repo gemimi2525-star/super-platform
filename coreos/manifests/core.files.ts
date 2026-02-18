@@ -23,7 +23,7 @@ export const CORE_FILES_MANIFEST: CapabilityManifest = {
     requiresStepUp: false,
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true, // Visible in Dock
+    showInDock: false, // Phase 38: core.finder is canonical; core.files is VFS backend
 
     certificationTier: 'core',
 };

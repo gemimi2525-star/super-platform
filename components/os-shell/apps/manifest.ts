@@ -151,31 +151,8 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         showInFinder: true,
     },
 
-    'system.explorer': {
-        appId: 'system.explorer',
-        name: 'Files (Legacy)',
-        icon: '🗂️',
-        version: '1.0.0',
-        category: 'core',
-        requiredRole: 'user',
-        capabilities: [],
-        singleInstance: true,
-        showInDock: false,
-        showInFinder: false,
-    },
-
-    'core.files': { // Phase 15A M3: VFS Finder
-        appId: 'core.files',
-        name: 'Files (VFS BE)',
-        icon: '🗂️',
-        version: '3.0.0',
-        category: 'core',
-        requiredRole: 'user',
-        capabilities: [],
-        singleInstance: true,
-        showInDock: false,
-        showInFinder: false,
-    },
+    // Phase 38: Removed system.explorer (superseded by core.finder)
+    // Phase 38: Removed core.files (VFS backend, not user-facing)
 
     'brain.assist': {
         appId: 'brain.assist',
