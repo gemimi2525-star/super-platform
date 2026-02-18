@@ -11,6 +11,12 @@
  * - Only non-critical actions (intent events, audit ingestion)
  * - Tool execution ALWAYS requires online (governance engine is server-side)
  * - Idempotency keys prevent duplicate processing
+ * 
+ * VFS DUPLICATE-NAME SAFETY (Phase 37 / 37B):
+ * - Duplicate-name constraint is enforced SERVER-SIDE during replay
+ * - Server returns HTTP 409 for duplicate names → creates conflict record (Phase 37B)
+ * - Conflict is marked as completed but tracked in ConflictStore for owner resolution
+ * - No client-side re-validation needed; server is the authority
  */
 
 const QUEUE_KEY = 'coreos:syncQueue';
@@ -150,10 +156,30 @@ class SyncQueue {
                     });
 
                     if (response.ok || response.status === 409) {
-                        // 200 = success, 409 = duplicate (idempotent — treat as success)
+                        // 200 = success, 409 = duplicate (idempotent — completed but tracked)
                         item.status = 'completed';
                         processed++;
-                        console.log(`[SyncQueue] ✅ Synced: ${item.method} ${item.url}`);
+
+                        if (response.status === 409) {
+                            // Phase 37B: Track naming conflict for owner resolution
+                            item.lastError = 'NAMING_CONFLICT';
+                            try {
+                                const { getConflictStore } = await import('@/coreos/vfs/maintenance/conflictStore');
+                                getConflictStore().add({
+                                    type: 'SYNC_CONFLICT',
+                                    parentPath: item.url,
+                                    canonicalKey: item.idempotencyKey,
+                                    entries: [item.url],
+                                    source: 'sync-replay',
+                                });
+                            } catch {
+                                // ConflictStore unavailable — log only
+                                console.warn('[SyncQueue] Could not create conflict record for 409');
+                            }
+                            console.log(`[SyncQueue] ⚠️ Naming conflict (409): ${item.method} ${item.url}`);
+                        } else {
+                            console.log(`[SyncQueue] ✅ Synced: ${item.method} ${item.url}`);
+                        }
                     } else if (response.status >= 500) {
                         // Server error — retry later
                         item.retryCount++;

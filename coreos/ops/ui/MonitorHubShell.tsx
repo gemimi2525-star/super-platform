@@ -21,12 +21,13 @@ import { RuntimeMetricsView } from './RuntimeMetricsView';
 import { BrainDashboardView } from '@/coreos/brain/ui/BrainDashboardView';
 import { WorkersView } from './WorkersView';
 import { AuditView } from './AuditView';
+import { VFSMaintenanceView } from './VFSMaintenanceView';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ViewId = 'status' | 'metrics' | 'brain' | 'workers' | 'audit';
+type ViewId = 'status' | 'metrics' | 'brain' | 'workers' | 'audit' | 'vfs';
 
 const TABS: { id: ViewId; label: string; icon: string }[] = [
     { id: 'status', label: 'System Status', icon: '🟢' },
@@ -34,6 +35,7 @@ const TABS: { id: ViewId; label: string; icon: string }[] = [
     { id: 'brain', label: 'Brain', icon: '🧠' },
     { id: 'workers', label: 'Workers', icon: '⚙️' },
     { id: 'audit', label: 'Audit', icon: '📋' },
+    { id: 'vfs', label: 'VFS', icon: '📂' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -76,6 +78,7 @@ export function MonitorHubShell() {
                 {activeView === 'brain' && <BrainDashboardView compact />}
                 {activeView === 'workers' && <WorkersView />}
                 {activeView === 'audit' && <AuditView />}
+                {activeView === 'vfs' && <VFSMaintenanceView />}
             </div>
         </div>
     );

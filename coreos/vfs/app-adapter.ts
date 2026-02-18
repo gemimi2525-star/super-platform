@@ -126,6 +126,17 @@ export class AppVFSAdapter {
         return this.vfs.mkdir(path, this.context);
     }
 
+    async rename(path: string, newName: string): Promise<VFSMetadata> {
+        this.enforce('fs.write', path);  // rename requires write permission
+        return this.vfs.rename(path, newName, this.context);
+    }
+
+    async move(srcPath: string, dstPath: string): Promise<VFSMetadata> {
+        this.enforce('fs.write', srcPath);   // move requires write on source
+        this.enforce('fs.write', dstPath);   // and write on destination
+        return this.vfs.move(srcPath, dstPath, this.context);
+    }
+
     async delete(path: string): Promise<void> {
         this.enforce('fs.delete', path);
         return this.vfs.delete(path, this.context);

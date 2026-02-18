@@ -12,8 +12,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getConnectivityMonitor, type ConnectivityStatus } from '../connectivity';
 import { getSyncQueue, type QueueStatus } from './syncQueue';
+import { getConflictStore } from '../vfs/maintenance/conflictStore';
 
-type BannerState = 'hidden' | 'offline' | 'reconnecting' | 'syncing';
+type BannerState = 'hidden' | 'offline' | 'reconnecting' | 'syncing' | 'conflict';
 
 export function OfflineBanner() {
     const [bannerState, setBannerState] = useState<BannerState>('hidden');
@@ -51,7 +52,13 @@ export function OfflineBanner() {
                     // Show "back online" briefly
                     setBannerState('reconnecting');
                     hideTimer.current = setTimeout(() => {
-                        setBannerState('hidden');
+                        // Phase 37B: Check for conflicts before hiding
+                        const conflicts = getConflictStore().getOpenCount();
+                        if (conflicts > 0) {
+                            setBannerState('conflict');
+                        } else {
+                            setBannerState('hidden');
+                        }
                     }, 3000);
                 }
             }
@@ -134,6 +141,15 @@ const BANNER_CONFIG: Record<Exclude<BannerState, 'hidden'>, {
             background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08))',
             borderColor: 'rgba(59, 130, 246, 0.3)',
             color: '#60a5fa',
+        },
+    },
+    conflict: {
+        icon: '⚠️',
+        text: 'Sync needs attention: naming conflict detected — open Ops → VFS to resolve.',
+        style: {
+            background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))',
+            borderColor: 'rgba(234, 179, 8, 0.3)',
+            color: '#fbbf24',
         },
     },
 };

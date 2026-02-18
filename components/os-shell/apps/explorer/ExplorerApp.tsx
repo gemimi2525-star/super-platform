@@ -166,7 +166,10 @@ export function ExplorerApp({ capabilityId }: Partial<AppProps>) {
             showToast('success', `Created folder "${name}"`);
             handleRefresh();
         } catch (err: any) {
-            showToast('error', err?.message || 'Failed to create folder');
+            const msg = err?.code === 'VFS_DUPLICATE_NAME'
+                ? `ชื่อซ้ำในโฟลเดอร์เดียวกัน (Strict OS Mode)`
+                : err?.message || 'Failed to create folder';
+            showToast('error', msg);
         }
     }, [adapter, dialogInput, currentPath, showToast, handleRefresh]);
 
@@ -187,7 +190,10 @@ export function ExplorerApp({ capabilityId }: Partial<AppProps>) {
             showToast('success', `Created file "${name}"`);
             handleRefresh();
         } catch (err: any) {
-            showToast('error', err?.message || 'Failed to create file');
+            const msg = err?.code === 'VFS_DUPLICATE_NAME'
+                ? `ชื่อซ้ำในโฟลเดอร์เดียวกัน (Strict OS Mode)`
+                : err?.message || 'Failed to create file';
+            showToast('error', msg);
         }
     }, [adapter, dialogInput, dialogContent, currentPath, showToast, handleRefresh]);
 

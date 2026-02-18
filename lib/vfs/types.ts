@@ -24,6 +24,8 @@ export interface VFSMetadata {
     updatedAt: number;      // Timestamp
     mimeType?: string;      // Optional for files
     hash?: string;          // Optional (SHA-256 for integrity)
+    normalizedName?: string;  // Phase 37: lowercased/collapsed/NFKC
+    canonicalKey?: string;    // Phase 37: SHA-256(parentPath:normalizedName)
     flags?: {
         trashed?: boolean;
         pinned?: boolean;
@@ -77,7 +79,7 @@ export interface VFSAuditEvent {
 
 export class VFSError extends Error {
     constructor(
-        public code: 'NOT_FOUND' | 'ALREADY_EXISTS' | 'PERMISSION_DENIED' | 'INVALID_PATH' | 'STORAGE_ERROR' | 'GOVERNANCE_BLOCK' | 'INVALID_OP' | 'NOT_SUPPORTED',
+        public code: 'NOT_FOUND' | 'ALREADY_EXISTS' | 'PERMISSION_DENIED' | 'INVALID_PATH' | 'STORAGE_ERROR' | 'GOVERNANCE_BLOCK' | 'INVALID_OP' | 'NOT_SUPPORTED' | 'VFS_DUPLICATE_NAME',
         message: string
     ) {
         super(message);
