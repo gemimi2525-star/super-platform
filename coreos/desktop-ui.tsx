@@ -64,6 +64,9 @@ import { SystemStatusTray } from '@/components/SystemStatusTray';
 // Phase 23B: Conflict Resolution Window
 import { ConflictResolutionWindow } from '@/components/ConflictResolutionWindow';
 import { AppStoreWindow } from '@/components/AppStoreWindow'; // Phase 24B
+// Phase 36: Offline Kernel + Dev Clarity
+import { OfflineBanner } from './offline/OfflineBanner';
+import { DevBadge } from './ops/ui/DevBadge';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
@@ -1023,6 +1026,12 @@ export function CoreOSDesktop() {
 
             {/* B3: Menu Bar */}
             <MenuBar />
+
+            {/* Phase 36: Offline Mode Banner */}
+            <OfflineBanner />
+
+            {/* Phase 36A: Dev Badge */}
+            <DevBadge />
 
             {/* Windows Layer */}
             <div style={{

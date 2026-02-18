@@ -25,7 +25,7 @@
         .container {
             text-align: center;
             padding: 40px;
-            max-width: 400px;
+            max-width: 420px;
         }
 
         .icon {
@@ -44,28 +44,46 @@
         p {
             font-size: 14px;
             color: rgba(255, 255, 255, 0.7);
-            line-height: 1.5;
-            margin-bottom: 32px;
+            line-height: 1.6;
+            margin-bottom: 24px;
         }
 
         .status {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 12px;
-            background: rgba(239, 68, 68, 0.2);
+            padding: 6px 14px;
+            background: rgba(234, 179, 8, 0.2);
             border-radius: 20px;
             font-size: 12px;
-            color: #fca5a5;
+            color: #fbbf24;
             margin-bottom: 24px;
+            font-weight: 500;
         }
 
         .status::before {
             content: '';
             width: 8px;
             height: 8px;
-            background: #ef4444;
+            background: #eab308;
             border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.5;
+            margin-bottom: 32px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         button {
@@ -84,10 +102,16 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
+        .retry-info {
+            margin-top: 16px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
         .footer {
             margin-top: 48px;
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.3);
             font-family: "SF Mono", Monaco, monospace;
         }
     </style>
@@ -95,16 +119,52 @@
 
 <body>
     <div class="container">
-        <div class="icon">🔴</div>
-        <div class="status">Offline</div>
-        <h1>No Connection</h1>
+        <div class="icon">⚡</div>
+        <div class="status">Offline Mode</div>
+        <h1>Limited Connectivity</h1>
         <p>
-            NEXUS Shell requires a network connection to load securely.
-            Please check your internet connection and try again.
+            NEXUS Shell is running in offline mode.
+            Your data is safe — queued actions will sync automatically when
+            your connection is restored.
         </p>
+        <div class="info">
+            💡 If you've previously visited this app while online, 
+            cached content may still be available. Try navigating to 
+            <strong>/os</strong> or <strong>/ops</strong> directly.
+        </div>
         <button onclick="location.reload()">Retry Connection</button>
+        <div class="retry-info" id="retryInfo"></div>
         <div class="footer">NEXUS Shell • ORBIT • SYNAPSE</div>
     </div>
+
+    <script>
+        // Auto-retry when connectivity is restored
+        let retryCount = 0;
+        
+        window.addEventListener('online', () => {
+            document.getElementById('retryInfo').textContent = 'Connection detected — reloading...';
+            setTimeout(() => location.reload(), 1000);
+        });
+
+        // Check connectivity periodically
+        const checkInterval = setInterval(async () => {
+            try {
+                const res = await fetch('/api/platform/health', { 
+                    method: 'HEAD',
+                    cache: 'no-store' 
+                });
+                if (res.ok) {
+                    clearInterval(checkInterval);
+                    document.getElementById('retryInfo').textContent = 'Connection restored — reloading...';
+                    setTimeout(() => location.reload(), 500);
+                }
+            } catch {
+                retryCount++;
+                document.getElementById('retryInfo').textContent = 
+                    `Checking connectivity... (attempt ${retryCount})`;
+            }
+        }, 5000);
+    </script>
 </body>
 
 </html>

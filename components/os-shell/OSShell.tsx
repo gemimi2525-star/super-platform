@@ -44,6 +44,9 @@ import { runStartupValidation } from './apps/manifest-validation';
 import { BrainChatOverlay } from './BrainChatOverlay'; // Phase 18
 import { ContextMenu, type ContextMenuEntry } from './ContextMenu'; // Phase 13
 import { useContextMenu } from './hooks/useContextMenu'; // Phase 13
+// Phase 36: Offline Kernel + Dev Clarity
+import { DevBadge } from '@/coreos/ops/ui/DevBadge';
+import { OfflineBanner } from '@/coreos/offline/OfflineBanner';
 
 export function OSShell() {
     const windows = useWindows();
@@ -152,6 +155,12 @@ export function OSShell() {
 
             {/* Phase 7.2: Service Worker Registration */}
             <ServiceWorkerRegistration />
+
+            {/* Phase 36: Offline Mode Banner */}
+            <OfflineBanner />
+
+            {/* Phase 36A: Dev Badge */}
+            <DevBadge />
 
             {/* Top Bar */}
             <TopBar

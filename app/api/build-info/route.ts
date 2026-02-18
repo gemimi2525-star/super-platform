@@ -42,6 +42,7 @@ export async function GET() {
     const branch = process.env.VERCEL_GIT_COMMIT_REF || null;
     const shaResolved = !!commit;
     const environment = process.env.VERCEL_ENV || process.env.NODE_ENV || 'development';
+    const isVercelEnv = !!process.env.VERCEL_ENV;
 
     // ── Owner: Full Response ──────────────────────────────────────────────
     if (access.isOwner) {
@@ -54,8 +55,14 @@ export async function GET() {
             shaResolved,
         };
 
+        // Phase 36A: Dev-mode clarity — info vs warning
         if (!shaResolved) {
-            response._warning = 'ENV_SHA_NOT_EXPOSED: Enable "Automatically expose System Environment Variables" in Vercel Settings and redeploy.';
+            if (!isVercelEnv) {
+                response.isDev = true;
+                response._info = 'DEV_SHA_NOT_APPLICABLE: Running locally — commit SHA is not available in dev. This is normal.';
+            } else {
+                response._warning = 'ENV_SHA_NOT_EXPOSED: Enable "Automatically expose System Environment Variables" in Vercel Settings and redeploy.';
+            }
         }
 
         return NextResponse.json(response, { headers: NO_STORE_HEADERS });

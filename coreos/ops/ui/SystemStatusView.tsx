@@ -107,6 +107,25 @@ export function SystemStatusView({ compact = false }: SystemStatusViewProps) {
 
             {error && <div style={s.errorBanner}>⚠ {error}</div>}
 
+            {/* Phase 36: Offline Connectivity Indicator */}
+            {typeof navigator !== 'undefined' && !navigator.onLine && (
+                <div style={{
+                    padding: '8px 16px',
+                    margin: compact ? '0 0 8px' : '0 24px 12px',
+                    background: 'rgba(234, 179, 8, 0.1)',
+                    border: '1px solid rgba(234, 179, 8, 0.25)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: '#fbbf24',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                }}>
+                    📡 OFFLINE — Showing cached data
+                    {lastRefresh && <span style={{ opacity: 0.7 }}>(last update: {lastRefresh})</span>}
+                </div>
+            )}
+
             {/* System Status Banner */}
             <div style={{
                 ...s.alertBanner,

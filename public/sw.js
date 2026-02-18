@@ -1,26 +1,38 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * NEXUS Shell — Service Worker (Phase 7.2 HARDENED)
+ * NEXUS Shell — Service Worker (Phase 36 — Offline Kernel Layer)
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Safe caching for offline shell resilience.
- * ALLOWLIST ONLY — no wildcard caching, no sensitive data.
+ * Full offline capability for CORE OS.
+ * Supports app shell caching, safe API caching, and navigation caching.
  * 
  * ⚠️ CRITICAL SECURITY:
- * - NEVER cache navigation HTML for protected routes (/os, /login)
  * - NEVER cache auth/session/governance APIs
- * - Offline fallback is read-only informational only
+ * - Navigation HTML cached ONLY after successful auth (200 + no redirect)
+ * - No secrets, tokens, or PII in cache
+ * - Offline fallback is read-only
  * 
- * Cache Policy:
- * - Static assets: /_next/static/** (cache-first)
- * - Health API: /api/platform/health (stale-while-revalidate)
- * - Navigation: network-only, offline fallback on failure
+ * Cache Strategy:
+ * - Precache: offline.html, manifest.json
+ * - Navigation (/os, /ops): network-first, cache fallback
+ * - Static assets (/_next/static/**): cache-first
+ * - ALL API routes: NEVER cache (network-only)
+ * - Sensitive endpoints: NEVER cache (bypass SW)
  * 
- * @version 1.1.0 (Phase 7.2 Hardened)
+ * @version 36.0.0
  */
 
-const CACHE_VERSION = 'nexus-shell-v1.1.0';
-const CACHE_NAME = `${CACHE_VERSION}`;
+// ═══════════════════════════════════════════════════════════════════════════
+// DETERMINISTIC VERSIONING
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SW_VERSION = '36.0.0';
+const PRECACHE_NAME = 'coreos-precache-' + SW_VERSION;
+const STATIC_CACHE = 'coreos-static-' + SW_VERSION;
+const NAV_CACHE = 'coreos-nav-' + SW_VERSION;
+
+/** All valid cache names for this version — used during activate purge */
+const VALID_CACHES = [PRECACHE_NAME, STATIC_CACHE, NAV_CACHE];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE ALLOWLIST (EXPLICIT ONLY)
@@ -28,53 +40,38 @@ const CACHE_NAME = `${CACHE_VERSION}`;
 
 /**
  * Assets to precache on install
- * ⚠️ NO NAVIGATION HTML — only static assets and offline fallback
  */
 const PRECACHE_ASSETS = [
     '/offline.html',
-    // NO /os — protected route, must go through auth
+    '/manifest.json',
 ];
 
 /**
- * URL patterns safe for runtime caching (stale-while-revalidate)
+ * Navigation routes eligible for caching (network-first)
+ * Only cached AFTER successful auth response
  */
-const RUNTIME_CACHE_ALLOWLIST = [
-    '/api/platform/health',
+const CACHEABLE_NAVIGATION = [
+    '/os',
+    '/ops',
 ];
 
 /**
- * URL patterns that must NEVER be cached
- * These bypass cache completely
+ * URL prefix patterns that must NEVER be cached.
+ * Uses startsWith matching — covers all sub-routes.
  */
 const NEVER_CACHE_PATTERNS = [
-    // Auth & Session
+    // ALL API routes — owner-only, redacted, or sensitive
+    '/api/ops',
+    '/api/platform',
     '/api/auth',
-    '/api/platform/me',
-    '/api/platform/session',
-    '/api/platform/session-debug',
-
-    // Business Data
-    '/api/platform/users',
-    '/api/platform/orgs',
-    '/api/platform/audit',
-
-    // Governance & Trust
+    '/api/build-info',
     '/api/trust',
     '/api/governance',
+    '/api/brain',
 
-    // Auth Pages (navigation)
+    // Auth Pages
     '/login',
     '/logout',
-    '/auth',
-];
-
-/**
- * Protected navigation routes — NEVER cache HTML
- * Always network-only, fallback to offline.html
- */
-const PROTECTED_NAVIGATION_ROUTES = [
-    '/os',
-    '/login',
     '/auth',
 ];
 
@@ -83,15 +80,16 @@ const PROTECTED_NAVIGATION_ROUTES = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('install', (event) => {
-    console.log('[NEXUS SW] Installing v1.1.0 (Hardened)');
+    console.log('[NEXUS SW] Installing v' + SW_VERSION);
 
     event.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(PRECACHE_NAME)
             .then((cache) => {
-                console.log('[NEXUS SW] Precaching offline fallback');
+                console.log('[NEXUS SW] Precaching core assets');
                 return cache.addAll(PRECACHE_ASSETS);
             })
             .then(() => {
+                console.log('[NEXUS SW] Precache complete, skip waiting');
                 return self.skipWaiting();
             })
             .catch((err) => {
@@ -101,28 +99,40 @@ self.addEventListener('install', (event) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACTIVATE EVENT
+// ACTIVATE EVENT — Purge old caches + claim clients
 // ═══════════════════════════════════════════════════════════════════════════
 
 self.addEventListener('activate', (event) => {
-    console.log('[NEXUS SW] Activating');
+    console.log('[NEXUS SW] Activating v' + SW_VERSION);
 
     event.waitUntil(
         caches.keys()
             .then((cacheNames) => {
                 return Promise.all(
                     cacheNames
-                        .filter((name) => name !== CACHE_NAME)
+                        .filter((name) => !VALID_CACHES.includes(name))
                         .map((name) => {
-                            console.log('[NEXUS SW] Deleting old cache:', name);
+                            console.log('[NEXUS SW] Purging old cache:', name);
                             return caches.delete(name);
                         })
                 );
             })
             .then(() => {
+                console.log('[NEXUS SW] All old caches purged. Claiming clients.');
                 return self.clients.claim();
             })
     );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MESSAGE EVENT — SW Control
+// ═══════════════════════════════════════════════════════════════════════════
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[NEXUS SW] Received SKIP_WAITING, activating v' + SW_VERSION);
+        self.skipWaiting();
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -138,44 +148,36 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // PRIORITY 1: NAVIGATION REQUESTS — Special handling
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    // PRIORITY 1: NAVIGATION REQUESTS
+    // ─────────────────────────────────────────────────────────────────────
     if (request.mode === 'navigate') {
-        // Check for callbackUrl (OAuth redirects) — NEVER cache
+        // OAuth redirects — NEVER cache
         if (url.searchParams.has('callbackUrl')) {
-            return; // Let browser handle
-        }
-
-        // Protected routes — network-only with offline fallback
-        if (isProtectedNavigation(url.pathname)) {
-            event.respondWith(navigationNetworkOnly(request));
             return;
         }
 
-        // Other navigation — network-only (no caching HTML at all)
+        // Cacheable navigation (/os, /ops) — network-first with cache fallback
+        if (isCacheableNavigation(url.pathname)) {
+            event.respondWith(navigationNetworkFirst(request, url.pathname));
+            return;
+        }
+
+        // Other navigation — network-only with offline fallback
         event.respondWith(navigationNetworkOnly(request));
         return;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // PRIORITY 2: NEVER CACHE — Sensitive endpoints
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    // PRIORITY 2: NEVER CACHE — Sensitive endpoints (ALL APIs)
+    // ─────────────────────────────────────────────────────────────────────
     if (shouldNeverCache(url.pathname)) {
-        return; // Network only — bypass SW completely
+        return; // Bypass SW completely — network only
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // PRIORITY 3: RUNTIME CACHE — Health API (stale-while-revalidate)
-    // ─────────────────────────────────────────────────────────────────────────
-    if (isRuntimeCacheable(url.pathname)) {
-        event.respondWith(staleWhileRevalidate(request));
-        return;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PRIORITY 4: STATIC ASSETS — Cache first
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    // PRIORITY 3: STATIC ASSETS — Cache first
+    // ─────────────────────────────────────────────────────────────────────
     if (isStaticAsset(url.pathname)) {
         event.respondWith(cacheFirst(request));
         return;
@@ -189,41 +191,77 @@ self.addEventListener('fetch', (event) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
+ * Navigation: Network-First with Cache Fallback
+ * Used for /os and /ops — cache the HTML only after successful auth load
+ * On failure, serve cached version or offline fallback
+ */
+async function navigationNetworkFirst(request, pathname) {
+    const navCache = await caches.open(NAV_CACHE);
+
+    try {
+        const response = await fetch(request);
+
+        // Cache ONLY if:
+        // 1. Response is 200 OK
+        // 2. No redirect (prevents caching login page as /os)
+        // 3. Content-Type is HTML
+        if (
+            response.ok &&
+            !response.redirected &&
+            (response.headers.get('Content-Type') || '').includes('text/html')
+        ) {
+            console.log('[NEXUS SW] Caching navigation: ' + pathname);
+            navCache.put(request, response.clone());
+        }
+
+        return response;
+    } catch {
+        // Network failed — try cached version
+        console.log('[NEXUS SW] Network failed for ' + pathname + ', trying cache');
+        const cached = await navCache.match(request);
+
+        if (cached) {
+            console.log('[NEXUS SW] Serving cached navigation: ' + pathname);
+            return cached;
+        }
+
+        // No cache — serve offline fallback
+        console.log('[NEXUS SW] No cache available, serving offline fallback');
+        const cache = await caches.open(PRECACHE_NAME);
+        const offlinePage = await cache.match('/offline.html');
+
+        return offlinePage || new Response(
+            '<!DOCTYPE html><html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:50px;background:#1a1a2e;color:#fff;"><h1>⚡ Offline</h1><p>CORE OS requires a network connection for first load.</p><button onclick="location.reload()" style="padding:12px 32px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:8px;cursor:pointer;font-size:14px;">Retry</button></body></html>',
+            { status: 503, headers: { 'Content-Type': 'text/html' } }
+        );
+    }
+}
+
+/**
  * Navigation: Network ONLY — Never cache HTML
- * On failure, serve offline fallback
+ * For non-OS routes, offline fallback on failure
  */
 async function navigationNetworkOnly(request) {
     try {
-        const response = await fetch(request);
-        // ⚠️ DO NOT CACHE — return directly
-        return response;
+        return await fetch(request);
     } catch {
-        // Network failed — serve offline fallback
         console.log('[NEXUS SW] Navigation offline, serving fallback');
-        const cache = await caches.open(CACHE_NAME);
+        const cache = await caches.open(PRECACHE_NAME);
         const offlinePage = await cache.match('/offline.html');
 
-        if (offlinePage) {
-            return offlinePage;
-        }
-
-        // Fallback of fallback
-        return new Response(
-            '<!DOCTYPE html><html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:50px;"><h1>Offline</h1><p>NEXUS Shell requires network connection.</p><button onclick="location.reload()">Retry</button></body></html>',
-            {
-                status: 503,
-                headers: { 'Content-Type': 'text/html' }
-            }
+        return offlinePage || new Response(
+            '<!DOCTYPE html><html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:50px;background:#1a1a2e;color:#fff;"><h1>⚡ Offline</h1><p>Please check your connection.</p><button onclick="location.reload()" style="padding:12px 32px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:8px;cursor:pointer;font-size:14px;">Retry</button></body></html>',
+            { status: 503, headers: { 'Content-Type': 'text/html' } }
         );
     }
 }
 
 /**
  * Cache first, fallback to network
- * For static assets (JS/CSS/fonts)
+ * For static assets (JS/CSS/fonts/images)
  */
 async function cacheFirst(request) {
-    const cache = await caches.open(CACHE_NAME);
+    const cache = await caches.open(STATIC_CACHE);
     const cached = await cache.match(request);
 
     if (cached) {
@@ -243,32 +281,12 @@ async function cacheFirst(request) {
     }
 }
 
-/**
- * Stale-while-revalidate
- * Return cache immediately, update in background
- */
-async function staleWhileRevalidate(request) {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
-
-    const fetchPromise = fetch(request)
-        .then((response) => {
-            if (response.ok && isSafeToCache(response)) {
-                cache.put(request, response.clone());
-            }
-            return response;
-        })
-        .catch(() => null);
-
-    return cached || fetchPromise || new Response('Offline', { status: 503 });
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function isProtectedNavigation(pathname) {
-    return PROTECTED_NAVIGATION_ROUTES.some(route =>
+function isCacheableNavigation(pathname) {
+    return CACHEABLE_NAVIGATION.some(route =>
         pathname === route || pathname.startsWith(route + '/')
     );
 }
@@ -277,22 +295,21 @@ function shouldNeverCache(pathname) {
     return NEVER_CACHE_PATTERNS.some(pattern => pathname.startsWith(pattern));
 }
 
-function isRuntimeCacheable(pathname) {
-    return RUNTIME_CACHE_ALLOWLIST.some(pattern => pathname.startsWith(pattern));
-}
-
 function isStaticAsset(pathname) {
     return pathname.startsWith('/_next/static/') ||
         (pathname.endsWith('.js') && pathname.includes('/_next/')) ||
         (pathname.endsWith('.css') && pathname.includes('/_next/')) ||
         pathname.endsWith('.woff2') ||
         pathname.endsWith('.woff') ||
-        pathname.endsWith('.ttf');
+        pathname.endsWith('.ttf') ||
+        pathname.endsWith('.png') ||
+        pathname.endsWith('.jpg') ||
+        pathname.endsWith('.svg') ||
+        pathname.endsWith('.ico');
 }
 
 /**
  * Check if response is safe to cache
- * Rejects responses with Set-Cookie headers
  */
 function isSafeToCache(response) {
     // Never cache responses with cookies
@@ -300,11 +317,6 @@ function isSafeToCache(response) {
         return false;
     }
 
-    // Never cache HTML (navigation should use navigationNetworkOnly)
-    const contentType = response.headers.get('Content-Type') || '';
-    if (contentType.includes('text/html')) {
-        return false;
-    }
-
+    // For non-API responses, allow caching
     return response.status === 200;
 }

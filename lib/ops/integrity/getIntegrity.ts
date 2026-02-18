@@ -161,6 +161,13 @@ function checkBuild(): {
     const lockedTag = `v${getPackageVersion()}`;
 
     if (!sha) {
+        // Phase 36A: Dev-mode clarity — don't mark DEGRADED in local dev
+        const isVercelEnv = !!process.env.VERCEL_ENV;
+        if (!isVercelEnv) {
+            // Local dev: SHA not applicable, not a real problem
+            return { sha: 'local', lockedTag, ok: true, errorCode: 'DEV_SHA_NOT_APPLICABLE' };
+        }
+        // Production/Preview: SHA missing is a real problem
         return { sha: null, lockedTag, ok: false, errorCode: 'ENV_SHA_NOT_EXPOSED' };
     }
 
@@ -241,7 +248,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '34',
+        phase: '36',
         version: `v${getPackageVersion()}`,
     };
 }
