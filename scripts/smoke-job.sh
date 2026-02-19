@@ -6,7 +6,7 @@
 #   e.g. ./scripts/smoke-job.sh scheduler.tick local-e2e
 set -euo pipefail
 
-BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3000}"
 JOB_TYPE="${1:-scheduler.tick}"
 REASON="${2:-smoke}"
 PD_ID="pd-smoke-$(date +%s)"

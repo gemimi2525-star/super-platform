@@ -26,7 +26,7 @@ echo "  coreos-worker: $WORKER_STATUS"
 echo ""
 
 if [ "$TS_HEALTH" = "healthy" ]; then
-  echo "✅ CORE OS is running at http://localhost:3001"
+  echo "✅ CORE OS is running at http://localhost:3000"
 else
   echo "⏳ TS container still starting (health: $TS_HEALTH)"
   echo "   Run 'docker compose logs -f' to check"

@@ -6,7 +6,7 @@
 # Tests: health → enqueue → COMPLETED → metrics counter → stuck endpoint
 set -euo pipefail
 
-BASE="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE="${COREOS_API_URL:-http://127.0.0.1:3000}"
 
 echo "═══════════════════════════════════════"
 echo "  CORE OS — Production Smoke Test"

@@ -4,7 +4,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3000}"
 
 echo "[smoke-health] GET $BASE_URL/api/worker/health"
 RESP=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/worker/health")

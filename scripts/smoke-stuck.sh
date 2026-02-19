@@ -3,7 +3,7 @@
 # Smoke: Stuck Job Detection (Phase 22B)
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
-BASE="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE="${COREOS_API_URL:-http://127.0.0.1:3000}"
 
 echo "═══════════════════════════════════════"
 echo "  Smoke: Stuck Job Detection (Phase 22B)"

@@ -7,7 +7,7 @@
 # Verifies: status=DEAD, attempts=maxAttempts, lastError present.
 set -euo pipefail
 
-BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3000}"
 
 echo "═══════════════════════════════════════"
 echo "  Smoke: Dead Letter (Phase 22A)"

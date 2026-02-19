@@ -24,7 +24,7 @@
 # We verify it goes through FAILED_RETRYABLE on the way.
 set -euo pipefail
 
-BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3001}"
+BASE_URL="${COREOS_API_URL:-http://127.0.0.1:3000}"
 
 echo "═══════════════════════════════════════"
 echo "  Smoke: Retry Flow (Phase 22A)"
