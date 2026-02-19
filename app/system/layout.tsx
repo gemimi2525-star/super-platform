@@ -104,6 +104,21 @@ export default async function SystemLayout({
         <html lang={locale}>
             <body>
                 <I18nProvider locale={locale as any} messages={messages}>
+                    {/* Phase 39E: Rescue Mode Banner — signals this is NOT the OS runtime */}
+                    <div style={{
+                        background: 'linear-gradient(90deg, #92400e 0%, #b45309 50%, #92400e 100%)',
+                        color: '#fef3c7',
+                        padding: '6px 16px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textAlign: 'center' as const,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        letterSpacing: '0.5px',
+                        borderBottom: '1px solid rgba(251, 191, 36, 0.3)',
+                    }}>
+                        ⚠️ RECOVERY ENVIRONMENT — This is a standalone rescue interface. For normal operation, use{' '}
+                        <a href="/os" style={{ color: '#fbbf24', textDecoration: 'underline' }}>OS Shell →</a>
+                    </div>
                     {children}
                 </I18nProvider>
             </body>

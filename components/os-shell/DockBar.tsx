@@ -155,6 +155,13 @@ export function DockBar() {
     const userRole = state.security?.role || 'user';
 
     const visibleCapabilities = dockCapabilities.filter(cap => {
+        // Phase 39E: Block capabilities with route/href="/system" (rescue layer boundary)
+        if ((cap as any).route === '/system' || (cap as any).href === '/system') {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn(`[DockBar] BLOCKED: ${cap.id} has route/href="/system" — rescue layer boundary violation`);
+            }
+            return false;
+        }
         // Phase 39D: exclude hub-tab shortcuts — they are accessible via System Hub tabs only
         if (HUB_SHORTCUT_CAPABILITIES.has(cap.id)) {
             return false;

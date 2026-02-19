@@ -2,10 +2,11 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SystemNavBar — Standalone Route Nav (Phase 27A)
+ * SystemNavBar — Standalone Recovery Route Nav (Phase 27A → 39E)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * URL-based navigation for /system/* routes.
+ * URL-based navigation for /system/* rescue routes.
+ * Phase 39E: Renamed to Recovery to distinguish from OS-level System Hub.
  * Pattern: OpsNavBar.tsx
  *
  * @module coreos/system/ui/SystemNavBar
@@ -32,7 +33,17 @@ export function SystemNavBar() {
         <nav style={s.nav}>
             <div style={s.brand}>
                 <span style={{ fontSize: 18 }}>🖥️</span>
-                <span style={s.brandText}>System Hub</span>
+                <span style={s.brandText}>System Recovery</span>
+                <span style={{
+                    fontSize: 9,
+                    color: '#f59e0b',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    padding: '1px 6px',
+                    borderRadius: 3,
+                    fontWeight: 700,
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase' as const,
+                }}>RESCUE</span>
                 <a href="/os" style={s.backLink}>← OS Shell</a>
             </div>
             <div style={s.links}>
