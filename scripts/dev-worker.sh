@@ -3,13 +3,13 @@
 # CORE OS — Start Go Worker for Dev (Phase 21C)
 # ═══════════════════════════════════════════════════════════════════
 # Prerequisites:
-#   1. TS dev server must be running on port 3001
+#   1. TS dev server must be running on port 3000
 #   2. Run `scripts/kill-workers.sh` first to clear stale processes
 #   3. Env vars can be sourced from .env.local or set manually
 set -euo pipefail
 
 export PATH="/usr/local/go/bin:$PATH"
-export COREOS_API_URL="${COREOS_API_URL:-http://127.0.0.1:3001}"
+export COREOS_API_URL="${COREOS_API_URL:-http://127.0.0.1:3000}"
 export WORKER_ID="${WORKER_ID:-worker-dev-1}"
 
 # Load from .env.local if vars are missing
