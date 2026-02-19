@@ -109,3 +109,4 @@ export function getCalmStateSummary(): string {
     return lines.join('\n');
 }
 
+// Phase 40C.1 guard verification Thu Feb 19 21:42:04 +07 2026
