@@ -35,6 +35,13 @@ export function GeneralSettingsView({ compact }: GeneralSettingsViewProps) {
 
     return (
         <div>
+            {/* Phase 40A.1: Page header */}
+            <div style={s.pageHeader}>
+                <h2 style={s.pageTitle}>System Hub</h2>
+                <p style={s.pageSubtitle}>Global configuration for system-wide behavior.</p>
+                <div style={s.pageDivider} />
+            </div>
+
             {/* Appearance */}
             <div style={s.section}>
                 <div style={s.sectionHeader}>
@@ -80,6 +87,17 @@ export function GeneralSettingsView({ compact }: GeneralSettingsViewProps) {
 }
 
 const s: Record<string, React.CSSProperties> = {
+    pageHeader: { marginBottom: 24 },
+    pageTitle: {
+        margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em',
+        color: 'rgba(255, 255, 255, 0.9)',
+    },
+    pageSubtitle: {
+        margin: '4px 0 0', fontSize: 13, color: 'rgba(255, 255, 255, 0.5)',
+    },
+    pageDivider: {
+        marginTop: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    },
     section: { marginBottom: 28 },
     sectionHeader: {
         display: 'flex', alignItems: 'center', gap: 8,
