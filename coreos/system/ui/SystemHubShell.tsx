@@ -70,6 +70,14 @@ export function SystemHubShell({ initialTab = 'general' }: SystemHubShellProps) 
 
     return (
         <div style={s.container}>
+            {/* Phase 40A.2: Window-level header (above tabs, like Ops Center) */}
+            <header style={s.header}>
+                <div>
+                    <h1 style={s.title}>🖥️ System Hub</h1>
+                    <p style={s.subtitle}>Global configuration for system-wide behavior.</p>
+                </div>
+            </header>
+
             {/* Tab Bar */}
             <div style={s.tabBar}>
                 {TAB_DEFINITIONS.map(tab => {
@@ -110,6 +118,19 @@ const s: Record<string, React.CSSProperties> = {
         background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)',
         color: '#e2e8f0',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+    header: {
+        padding: '16px 20px 12px',
+        borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
+        flexShrink: 0,
+    },
+    title: {
+        margin: 0, fontSize: 18, fontWeight: 600,
+        background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+    },
+    subtitle: {
+        margin: '4px 0 0', fontSize: 12, color: '#94a3b8', letterSpacing: 0.5,
     },
     tabBar: {
         display: 'flex',
