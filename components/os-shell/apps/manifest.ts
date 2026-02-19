@@ -224,12 +224,12 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // MONITOR HUB (Phase 26A — replaces Ops Center + Brain Dashboard)
+    // OPS CENTER (Phase 26A → 39F: Canonicalized naming)
     // ─────────────────────────────────────────────────────────────────────────
 
     'ops.center': {
         appId: 'ops.center',
-        name: 'Monitor Hub',
+        name: 'Ops Center',
         icon: '◈',
         version: '3.0.0',
         category: 'admin',

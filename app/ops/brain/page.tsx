@@ -22,8 +22,8 @@ export default function BrainDashboardPage() {
             <div style={s.container}>
                 <header style={s.header}>
                     <div>
-                        <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Brain Dashboard</p>
+                        <h1 style={s.title}>◈ Ops Center</h1>
+                        <p style={s.subtitle}>Brain Dashboard</p>
                     </div>
                 </header>
 

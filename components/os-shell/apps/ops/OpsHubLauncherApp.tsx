@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Lightweight in-shell launcher that replaces legacy OpsCenterMVP.
- * Shows system status badge + quick stats + buttons to open Monitor Hub.
+ * Shows system status badge + quick stats + buttons to open Ops Center.
  *
  * Owner-only (gated by manifest.ts requiredRole: 'owner').
  *
@@ -96,7 +96,7 @@ export function OpsHubLauncherApp({ windowId, capabilityId, isFocused }: AppProp
                     onClick={() => window.location.href = '/ops'}
                     style={st.primaryBtn}
                 >
-                    📊 Open Monitor Hub
+                    📊 Open Ops Center
                 </button>
                 <button
                     onClick={() => window.location.href = '/ops/brain'}
@@ -108,7 +108,7 @@ export function OpsHubLauncherApp({ windowId, capabilityId, isFocused }: AppProp
 
             {/* Footer */}
             <p style={st.footer}>
-                Phase 25C — Monitor Hub Launcher
+                Phase 39F — Ops Center Launcher
             </p>
         </div>
     );

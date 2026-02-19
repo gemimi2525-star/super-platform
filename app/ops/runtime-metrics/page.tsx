@@ -2,7 +2,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Monitor Hub — Runtime Metrics (Phase 26A)
+ * Ops Center — Runtime Metrics (Phase 26A → 39F)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * /ops/runtime-metrics page showing runtime metrics.
@@ -22,8 +22,8 @@ export default function RuntimeMetricsPage() {
             <div style={s.container}>
                 <header style={s.header}>
                     <div>
-                        <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Runtime Metrics</p>
+                        <h1 style={s.title}>◈ Ops Center</h1>
+                        <p style={s.subtitle}>Runtime Metrics</p>
                     </div>
                 </header>
 

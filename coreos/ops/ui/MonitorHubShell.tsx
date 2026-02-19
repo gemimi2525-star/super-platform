@@ -5,7 +5,7 @@
  * MonitorHubShell — OS Shell Mirror (Phase 26A)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Internal tab navigation shell for the OS Shell Monitor Hub window.
+ * Internal tab navigation shell for the OS Shell Ops Center window.
  * Uses state-based navigation (no URL params) to switch between
  * the same shared views used by /ops/* routes.
  *
@@ -50,8 +50,8 @@ export function MonitorHubShell() {
             {/* Header (Matched to /ops) */}
             <header style={s.header}>
                 <div>
-                    <h1 style={s.title}>◈ Monitor Hub</h1>
-                    <p style={s.subtitle}>Phase 26A — Unified Operations Center</p>
+                    <h1 style={s.title}>◈ Ops Center</h1>
+                    <p style={s.subtitle}>Unified Operations Center</p>
                 </div>
             </header>
 

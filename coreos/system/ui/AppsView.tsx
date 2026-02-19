@@ -73,7 +73,7 @@ export function AppsView({ compact }: AppsViewProps) {
                         { name: 'Finder', icon: '📁', version: '1.0.0', tier: 'Core' },
                         { name: 'System Settings', icon: '⚙️', version: '2.0.0', tier: 'Core' },
                         { name: 'Brain', icon: '🧠', version: '1.0.0', tier: 'Core' },
-                        { name: 'Monitor Hub', icon: '◈', version: '3.0.0', tier: 'Core' },
+                        { name: 'Ops Center', icon: '◈', version: '3.0.0', tier: 'Core' },
                         { name: 'Notes', icon: '📝', version: '1.0.0', tier: 'Core' },
                     ].map(app => (
                         <div key={app.name} style={s.row}>

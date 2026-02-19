@@ -63,7 +63,7 @@ const ExplorerAppLazy = lazy(() =>
     import('./explorer/ExplorerApp').then(m => ({ default: m.ExplorerApp }))
 );
 
-// Phase 26A: Monitor Hub (replaces legacy OpsCenterMVP)
+// Phase 26A → 39F: Ops Center (replaces legacy OpsCenterMVP)
 const MonitorHubAppLazy = lazy(() =>
     import('./ops/MonitorHubApp').then(m => ({ default: m.MonitorHubApp }))
 );
@@ -156,7 +156,7 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     'system.configure': createLazyApp(SystemConfigureAppLazy),
 
     // ─────────────────────────────────────────────────────────────────────────
-    // MONITOR HUB (Phase 26A — replaces legacy OpsCenterMVP + BrainDashboardApp)
+    // OPS CENTER (Phase 26A → 39F: Canonicalized naming)
     // ─────────────────────────────────────────────────────────────────────────
 
     'ops.center': createLazyApp(MonitorHubAppLazy), // Phase 26A: Shared mirror views

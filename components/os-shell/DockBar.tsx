@@ -144,7 +144,7 @@ export function DockBar() {
     };
 
     // Phase 26D: Security Matrix v1 - Filter Dock Items
-    // Monitor Hub (ops.center) is OWNER ONLY.
+    // Ops Center (ops.center) is OWNER ONLY.
     // System Hub (system.hub) is OWNER + ADMIN ONLY.
     // Brain Assistant (brain.assist) is Open to All.
     const firebaseUser = useAuthStore((s) => s.firebaseUser);
@@ -167,7 +167,7 @@ export function DockBar() {
             return false;
         }
         if (cap.id === 'ops.center') {
-            // Only show Monitor Hub if user is owner
+            // Only show Ops Center if user is owner
             return isOwner;
         }
         if (cap.id === 'system.hub') {

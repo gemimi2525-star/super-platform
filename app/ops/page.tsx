@@ -2,7 +2,7 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * Monitor Hub — System Status (Phase 26A)
+ * Ops Center — System Status (Phase 26A → 39F)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Default /ops page showing System Status.
@@ -49,8 +49,8 @@ export default function MonitorHubPage() {
             <div style={s.container}>
                 <header style={s.header}>
                     <div>
-                        <h1 style={s.title}>◈ Monitor Hub</h1>
-                        <p style={s.subtitle}>Phase 26A — Unified Operations Center</p>
+                        <h1 style={s.title}>◈ Ops Center</h1>
+                        <p style={s.subtitle}>System Status</p>
                     </div>
                 </header>
 
