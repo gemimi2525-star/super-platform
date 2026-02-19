@@ -26,6 +26,7 @@ import {
     COLLECTION_JOB_DEAD_LETTERS,
     DEFAULT_MAX_ATTEMPTS, LEASE_DURATION_MS,
     RETRY_BASE_DELAY_MS, RETRY_MAX_DELAY_MS,
+    DEFAULT_PRIORITY, PRIORITY_MIN, PRIORITY_MAX,
 } from './types';
 import { jobLogger } from './job-logger';
 import { AUDIT_EVENTS } from '../audit/taxonomy';
@@ -56,6 +57,8 @@ export async function enqueueJob(envelope: JobEnvelope, maxAttempts?: number): P
         attempts: 0,
         maxAttempts: maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
         nextRunAt: now,
+        // Phase 15B.2 fields
+        priority: DEFAULT_PRIORITY,
     };
 
     await db.collection(COLLECTION_JOB_QUEUE).doc(envelope.ticket.jobId).set(record);
@@ -81,18 +84,27 @@ export async function claimNextJob(workerId: string): Promise<(JobEnvelope & { a
     const db = getAdminFirestore();
     const now = Date.now();
 
-    // Query jobs eligible for claiming
+    // Query jobs eligible for claiming (SUSPENDED excluded by status filter)
+    // Phase 15B.2: order by priority DESC (higher = claimed first), then nextRunAt ASC
     const query = db
         .collection(COLLECTION_JOB_QUEUE)
         .where('status', 'in', ['PENDING', 'FAILED_RETRYABLE'])
         .where('nextRunAt', '<=', now)
         .orderBy('nextRunAt', 'asc')
-        .limit(1);
+        .limit(5);  // Fetch top candidates, pick highest priority
 
     const snapshot = await query.get();
     if (snapshot.empty) return null;
 
-    const doc = snapshot.docs[0];
+    // Phase 15B.2: Sort candidates by priority DESC (client-side, Firestore
+    // doesn't support orderBy on a field not in the inequality filter group)
+    const sortedDocs = snapshot.docs.sort((a, b) => {
+        const aPriority = (a.data() as JobQueueRecord).priority ?? DEFAULT_PRIORITY;
+        const bPriority = (b.data() as JobQueueRecord).priority ?? DEFAULT_PRIORITY;
+        return bPriority - aPriority; // DESC
+    });
+
+    const doc = sortedDocs[0];
     const record = doc.data() as JobQueueRecord;
 
     // Check if ticket has expired
@@ -333,6 +345,7 @@ export async function getJobStatus(jobId: string): Promise<{
     createdAt: number;
     attempts: number;
     maxAttempts: number;
+    priority: number;
     lastError?: JobLastError;
     result?: JobResult;
 } | null> {
@@ -360,7 +373,169 @@ export async function getJobStatus(jobId: string): Promise<{
         createdAt: record.createdAt,
         attempts: record.attempts ?? 0,
         maxAttempts: record.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+        priority: record.priority ?? DEFAULT_PRIORITY,
         lastError: record.lastError,
         result,
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUSPEND (Phase 15B.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Suspendable statuses — only unclaimed/waiting jobs can be suspended */
+const SUSPENDABLE_STATUSES: JobStatus[] = ['PENDING', 'FAILED_RETRYABLE'];
+
+/**
+ * Suspend a job — removes it from claiming pool.
+ * Idempotent: suspending a SUSPENDED job is a no-op (returns { changed: false }).
+ */
+export async function suspendJob(
+    jobId: string,
+    actorId: string,
+    reason?: string,
+): Promise<{ changed: boolean; status: JobStatus }> {
+    const db = getAdminFirestore();
+    const now = Date.now();
+
+    const docRef = db.collection(COLLECTION_JOB_QUEUE).doc(jobId);
+    const doc = await docRef.get();
+    if (!doc.exists) throw new Error(`Job ${jobId} not found`);
+
+    const record = doc.data() as JobQueueRecord;
+
+    // Idempotent: already suspended
+    if (record.status === 'SUSPENDED') {
+        return { changed: false, status: 'SUSPENDED' };
+    }
+
+    // Only suspend from PENDING or FAILED_RETRYABLE
+    if (!SUSPENDABLE_STATUSES.includes(record.status)) {
+        throw new Error(
+            `Cannot suspend job in status '${record.status}'. ` +
+            `Only ${SUSPENDABLE_STATUSES.join(', ')} jobs can be suspended.`,
+        );
+    }
+
+    await docRef.update({
+        status: 'SUSPENDED' as JobStatus,
+        suspendedAt: now,
+        suspendedBy: actorId,
+        updatedAt: now,
+    });
+
+    jobLogger.log(AUDIT_EVENTS.JOB_SUSPENDED, {
+        jobId,
+        traceId: record.ticket?.traceId ?? `suspend-${jobId}`,
+        actorId,
+        reason,
+        previousStatus: record.status,
+    });
+
+    return { changed: true, status: 'SUSPENDED' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESUME (Phase 15B.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Resume a suspended job — returns it to PENDING (claimable).
+ * Idempotent: resuming a non-SUSPENDED job is a no-op.
+ */
+export async function resumeJob(
+    jobId: string,
+    actorId: string,
+    reason?: string,
+): Promise<{ changed: boolean; status: JobStatus }> {
+    const db = getAdminFirestore();
+    const now = Date.now();
+
+    const docRef = db.collection(COLLECTION_JOB_QUEUE).doc(jobId);
+    const doc = await docRef.get();
+    if (!doc.exists) throw new Error(`Job ${jobId} not found`);
+
+    const record = doc.data() as JobQueueRecord;
+
+    // Idempotent: not suspended
+    if (record.status !== 'SUSPENDED') {
+        return { changed: false, status: record.status };
+    }
+
+    await docRef.update({
+        status: 'PENDING' as JobStatus,
+        resumedAt: now,
+        nextRunAt: now, // Immediately eligible for claiming
+        updatedAt: now,
+    });
+
+    jobLogger.log(AUDIT_EVENTS.JOB_RESUMED, {
+        jobId,
+        traceId: record.ticket?.traceId ?? `resume-${jobId}`,
+        actorId,
+        reason,
+        previousStatus: 'SUSPENDED',
+    });
+
+    return { changed: true, status: 'PENDING' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRIORITY UPDATE (Phase 15B.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Terminal statuses — priority cannot be changed */
+const TERMINAL_STATUSES: JobStatus[] = ['COMPLETED', 'FAILED', 'DEAD'];
+
+/**
+ * Update job priority.
+ * Allowed on non-terminal statuses (PENDING, PROCESSING, FAILED_RETRYABLE, SUSPENDED).
+ */
+export async function updateJobPriority(
+    jobId: string,
+    priority: number,
+    actorId: string,
+): Promise<{ changed: boolean; previousPriority: number; newPriority: number }> {
+    const db = getAdminFirestore();
+    const now = Date.now();
+
+    // Validate range
+    if (!Number.isInteger(priority) || priority < PRIORITY_MIN || priority > PRIORITY_MAX) {
+        throw new Error(`Priority must be an integer between ${PRIORITY_MIN} and ${PRIORITY_MAX}`);
+    }
+
+    const docRef = db.collection(COLLECTION_JOB_QUEUE).doc(jobId);
+    const doc = await docRef.get();
+    if (!doc.exists) throw new Error(`Job ${jobId} not found`);
+
+    const record = doc.data() as JobQueueRecord;
+    const previousPriority = record.priority ?? DEFAULT_PRIORITY;
+
+    // Cannot change terminal jobs
+    if (TERMINAL_STATUSES.includes(record.status)) {
+        throw new Error(
+            `Cannot change priority of job in terminal status '${record.status}'.`,
+        );
+    }
+
+    // Idempotent: same priority
+    if (previousPriority === priority) {
+        return { changed: false, previousPriority, newPriority: priority };
+    }
+
+    await docRef.update({
+        priority,
+        priorityUpdatedAt: now,
+        updatedAt: now,
+    });
+
+    jobLogger.log(AUDIT_EVENTS.JOB_PRIORITY_UPDATED, {
+        jobId,
+        traceId: record.ticket?.traceId ?? `priority-${jobId}`,
+        actorId,
+        previousPriority,
+        newPriority: priority,
+    });
+
+    return { changed: true, previousPriority, newPriority: priority };
 }
