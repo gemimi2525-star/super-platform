@@ -680,6 +680,11 @@ function WindowChrome({ window, isFocused }: WindowChromeProps) {
 // B2: DOCK (OS-GRADE LAUNCHER)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Phase 39D: Hub shortcuts excluded from dock (accessible via System Hub tabs)
+const HUB_SHORTCUT_IDS = new Set([
+    'core.settings', 'user.manage', 'org.manage', 'audit.view', 'system.configure',
+]);
+
 function Dock() {
     const dockCapabilities = useDockCapabilities();
     const minimizedWindows = useMinimizedWindows();
@@ -713,15 +718,17 @@ function Dock() {
             }}
         >
             {/* Capability Launchers */}
-            {dockCapabilities.map(cap => (
-                <DockItem
-                    key={cap.id}
-                    icon={cap.icon}
-                    title={cap.title}
-                    onClick={() => openCapability(cap.id)}
-                    isRunning={hasOpenWindow(cap.id)}
-                />
-            ))}
+            {dockCapabilities
+                .filter(cap => !HUB_SHORTCUT_IDS.has(cap.id))
+                .map(cap => (
+                    <DockItem
+                        key={cap.id}
+                        icon={cap.icon}
+                        title={cap.title}
+                        onClick={() => openCapability(cap.id)}
+                        isRunning={hasOpenWindow(cap.id)}
+                    />
+                ))}
 
             {/* Separator if there are minimized windows */}
             {minimizedWindows.length > 0 && (

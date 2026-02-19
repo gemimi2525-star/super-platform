@@ -147,7 +147,7 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         requiredRole: 'user',
         capabilities: ['core.settings'],
         singleInstance: true,
-        showInDock: true,
+        showInDock: false,  // Phase 39D: accessible via System Hub → General tab
         showInFinder: true,
     },
 
@@ -180,7 +180,7 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         requiredRole: 'admin',
         capabilities: ['user.manage'],
         singleInstance: false, // Can open multiple user profiles
-        showInDock: true,
+        showInDock: false,  // Phase 39D: accessible via System Hub → Users tab
         showInFinder: true,
     },
 
@@ -193,7 +193,7 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         requiredRole: 'admin',
         capabilities: ['org.manage'],
         singleInstance: false,
-        showInDock: true,
+        showInDock: false,  // Phase 39D: accessible via System Hub → Organization tab
         showInFinder: true,
     },
 
@@ -206,7 +206,7 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         requiredRole: 'admin',
         capabilities: ['audit.view'],
         singleInstance: true,
-        showInDock: true,
+        showInDock: false,  // Phase 39D: accessible via System Hub → Audit tab
         showInFinder: true,
     },
 
@@ -219,7 +219,7 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         requiredRole: 'owner',
         capabilities: ['system.configure'],
         singleInstance: true,
-        showInDock: true,
+        showInDock: false,  // Phase 39D: accessible via System Hub → Configuration tab
         showInFinder: true,
     },
 

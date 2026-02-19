@@ -28,7 +28,7 @@ export const USER_MANAGE_MANIFEST: CapabilityManifest = {
     stepUpMessage: 'Verify your identity to access user management',
     dependencies: [],
     contextsSupported: ['global', 'organization'],
-    showInDock: true,
+    showInDock: false,               // Phase 39D: accessible via System Hub → Users tab
 
     // Certification (Phase E)
     certificationTier: 'core',

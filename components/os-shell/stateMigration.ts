@@ -12,7 +12,7 @@
  * - All migrations are versioned and forward-only
  *
  * @module components/os-shell/stateMigration
- * @version 1.0.0 (Phase 39)
+ * @version 2.0.0 (Phase 39D — Dock Canonicalization)
  */
 
 import type { ShellSnapshot, WindowSnapshot } from './shell-persistence';
@@ -48,7 +48,25 @@ export const HUB_TAB_MAP: Record<string, string> = {
     'org.manage': 'organization',
     'system.configure': 'configuration',
     'core.settings': 'general',
+    'audit.view': 'audit',        // Phase 39D: added
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HUB SHORTCUT CAPABILITIES — Should not appear as standalone dock/window
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Capabilities that are Hub-tab shortcuts.
+ * These should be removed from snapshots during v2→v3 migration
+ * because they are now accessed via System Hub internal tabs.
+ */
+export const HUB_SHORTCUT_CAPABILITIES = new Set<string>([
+    'core.settings',
+    'user.manage',
+    'org.manage',
+    'audit.view',
+    'system.configure',
+]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MIGRATION: v1 → v2
@@ -132,6 +150,55 @@ export function normalizeWindows(windows: WindowSnapshot[]): WindowSnapshot[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MIGRATION: v2 → v3 (Phase 39D — Dock Canonicalization)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Migrate a v2 snapshot to v3.
+ * - Removes windows for Hub-tab shortcuts (they now live inside System Hub)
+ * - Ensures at least one system.hub window exists if shortcuts were removed
+ * - Bumps version to 3
+ *
+ * Pure + deterministic + idempotent.
+ */
+export function migrateSnapshotV2toV3(snapshot: ShellSnapshot): ShellSnapshot {
+    // Step 1: Filter out Hub-tab shortcut windows
+    const filtered = snapshot.windows.filter(
+        win => !HUB_SHORTCUT_CAPABILITIES.has(win.capabilityId)
+    );
+
+    // Step 2: Ensure system.hub exists if we removed anything
+    const removedCount = snapshot.windows.length - filtered.length;
+    const hasHub = filtered.some(win => win.capabilityId === 'system.hub');
+
+    let windows = filtered;
+    if (removedCount > 0 && !hasHub) {
+        // Inject a system.hub window so user keeps hub access
+        const maxZ = filtered.reduce((max, w) => Math.max(max, w.zIndex), -1);
+        windows = [
+            ...filtered,
+            {
+                id: `system.hub-${Date.now()}`,
+                capabilityId: 'system.hub',
+                title: 'System Hub',
+                state: 'active' as const,
+                zIndex: maxZ + 1,
+                bounds: { x: 100, y: 60, width: 900, height: 600 },
+            },
+        ];
+    }
+
+    // Step 3: Re-normalize z-indices
+    const normalized = normalizeWindows(windows);
+
+    return {
+        ...snapshot,
+        version: 3 as ShellSnapshot['version'],
+        windows: normalized,
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MIGRATION PIPELINE
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -151,7 +218,11 @@ export function migrateSnapshot(snapshot: ShellSnapshot): ShellSnapshot | null {
         current = migrateSnapshotV1toV2(current);
     }
 
-    // Future: v2 → v3, etc.
+    // v2 → v3 (Phase 39D)
+    if (current.version === 2) {
+        console.log('[StateMigration] Migrating snapshot v2 → v3');
+        current = migrateSnapshotV2toV3(current);
+    }
 
     return current;
 }

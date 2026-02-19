@@ -28,7 +28,7 @@ exports.USER_MANAGE_MANIFEST = {
     stepUpMessage: 'Verify your identity to access user management',
     dependencies: [],
     contextsSupported: ['global', 'organization'],
-    showInDock: true,
+    showInDock: false,
     // Certification (Phase E)
     certificationTier: 'core',
 };

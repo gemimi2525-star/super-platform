@@ -255,14 +255,22 @@ export function useDockCapabilities(): CapabilityManifest[] {
     // Get manifests from SYNAPSE capability graph
     const synapseManifests = [...graph.getDockCapabilities()];
 
-    // Filter by shell manifest persona requirements
-    return synapseManifests.filter(m => {
-        const shellManifest = APP_MANIFESTS[m.id];
-        // If no shell manifest exists, use SYNAPSE manifest's showInDock
-        if (!shellManifest) return true;
-        // Check persona gate
-        return roleHasAccess(userRole, shellManifest.requiredRole);
-    });
+    // Phase 39D: Exclude hub-tab shortcuts from dock at the hook level
+    // These capabilities are accessible via System Hub internal tabs
+    const HUB_SHORTCUT_IDS = new Set([
+        'core.settings', 'user.manage', 'org.manage', 'audit.view', 'system.configure',
+    ]);
+
+    // Filter by shell manifest persona requirements + exclude hub shortcuts
+    return synapseManifests
+        .filter(m => !HUB_SHORTCUT_IDS.has(m.id))
+        .filter(m => {
+            const shellManifest = APP_MANIFESTS[m.id];
+            // If no shell manifest exists, use SYNAPSE manifest's showInDock
+            if (!shellManifest) return true;
+            // Check persona gate
+            return roleHasAccess(userRole, shellManifest.requiredRole);
+        });
 }
 
 /**

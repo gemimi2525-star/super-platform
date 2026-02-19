@@ -28,7 +28,7 @@ export const SYSTEM_CONFIGURE_MANIFEST: CapabilityManifest = {
     stepUpMessage: 'Verify your identity to access system configuration',
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true,
+    showInDock: false,               // Phase 39D: accessible via System Hub → Configuration tab
 
     // Certification (Phase E)
     certificationTier: 'core',

@@ -4,7 +4,15 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { migrateSnapshotV1toV2, normalizeWindows, migrateSnapshot, CAPABILITY_ALIAS_MAP, HUB_TAB_MAP } from '../stateMigration';
+import {
+    migrateSnapshotV1toV2,
+    migrateSnapshotV2toV3,
+    normalizeWindows,
+    migrateSnapshot,
+    CAPABILITY_ALIAS_MAP,
+    HUB_TAB_MAP,
+    HUB_SHORTCUT_CAPABILITIES,
+} from '../stateMigration';
 import type { ShellSnapshot, WindowSnapshot } from '../shell-persistence';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -23,7 +31,7 @@ function makeWindow(overrides: Partial<WindowSnapshot> = {}): WindowSnapshot {
     };
 }
 
-function makeSnapshot(windows: WindowSnapshot[], version: 1 | 2 = 1): ShellSnapshot {
+function makeSnapshot(windows: WindowSnapshot[], version: 1 | 2 | 3 = 1): ShellSnapshot {
     return {
         version,
         savedAt: Date.now(),
@@ -188,13 +196,13 @@ describe('normalizeWindows', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('migrateSnapshot', () => {
-    it('migrates v1 to v2', () => {
+    it('migrates v1 all the way to v3', () => {
         const snapshot = makeSnapshot([
             makeWindow({ id: 'w1', capabilityId: 'core.files' }),
         ]);
         const result = migrateSnapshot(snapshot);
         expect(result).not.toBeNull();
-        expect(result!.version).toBe(2);
+        expect(result!.version).toBe(3);
     });
 
     it('is idempotent — running twice gives same result', () => {
@@ -218,6 +226,105 @@ describe('migrateSnapshot', () => {
             makeWindow({ id: 'w2', capabilityId: 'core.store' }),
         ]);
         const result = migrateSnapshot(snapshot)!;
+        expect(result.windows).toHaveLength(0);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// v2 → v3 MIGRATION TESTS (Phase 39D)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('HUB_SHORTCUT_CAPABILITIES', () => {
+    it('contains all 5 hub-tab shortcuts', () => {
+        expect(HUB_SHORTCUT_CAPABILITIES.has('core.settings')).toBe(true);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('user.manage')).toBe(true);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('org.manage')).toBe(true);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('audit.view')).toBe(true);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('system.configure')).toBe(true);
+    });
+
+    it('does not contain canonical apps', () => {
+        expect(HUB_SHORTCUT_CAPABILITIES.has('system.hub')).toBe(false);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('core.finder')).toBe(false);
+        expect(HUB_SHORTCUT_CAPABILITIES.has('brain.assist')).toBe(false);
+    });
+});
+
+describe('migrateSnapshotV2toV3', () => {
+    it('removes hub-tab shortcut windows', () => {
+        const snapshot = makeSnapshot([
+            makeWindow({ id: 'w1', capabilityId: 'core.settings', zIndex: 0 }),
+            makeWindow({ id: 'w2', capabilityId: 'user.manage', zIndex: 1 }),
+            makeWindow({ id: 'w3', capabilityId: 'org.manage', zIndex: 2 }),
+            makeWindow({ id: 'w4', capabilityId: 'audit.view', zIndex: 3 }),
+            makeWindow({ id: 'w5', capabilityId: 'system.configure', zIndex: 4 }),
+            makeWindow({ id: 'w6', capabilityId: 'ops.center', zIndex: 5 }),
+        ], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        // ops.center preserved + system.hub injected (since no hub existed)
+        expect(result.windows).toHaveLength(2);
+        expect(result.windows.map(w => w.capabilityId)).toEqual(['ops.center', 'system.hub']);
+    });
+
+    it('injects system.hub when shortcuts removed and no hub exists', () => {
+        const snapshot = makeSnapshot([
+            makeWindow({ id: 'w1', capabilityId: 'core.settings', zIndex: 0 }),
+            makeWindow({ id: 'w2', capabilityId: 'user.manage', zIndex: 1 }),
+        ], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        // All shortcuts removed + system.hub injected
+        expect(result.windows).toHaveLength(1);
+        expect(result.windows[0].capabilityId).toBe('system.hub');
+    });
+
+    it('does not inject system.hub if already present', () => {
+        const snapshot = makeSnapshot([
+            makeWindow({ id: 'w1', capabilityId: 'core.settings', zIndex: 0 }),
+            makeWindow({ id: 'w2', capabilityId: 'system.hub', zIndex: 1 }),
+        ], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        const hubs = result.windows.filter(w => w.capabilityId === 'system.hub');
+        expect(hubs).toHaveLength(1);
+    });
+
+    it('preserves non-shortcut windows', () => {
+        const snapshot = makeSnapshot([
+            makeWindow({ id: 'w1', capabilityId: 'core.finder', zIndex: 0 }),
+            makeWindow({ id: 'w2', capabilityId: 'brain.assist', zIndex: 1 }),
+            makeWindow({ id: 'w3', capabilityId: 'ops.center', zIndex: 2 }),
+            makeWindow({ id: 'w4', capabilityId: 'core.settings', zIndex: 3 }),
+        ], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        // 3 non-shortcuts + injected system.hub
+        expect(result.windows).toHaveLength(4);
+        expect(result.windows.map(w => w.capabilityId)).toEqual([
+            'core.finder', 'brain.assist', 'ops.center', 'system.hub',
+        ]);
+    });
+
+    it('bumps version to 3', () => {
+        const snapshot = makeSnapshot([], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        expect(result.version).toBe(3);
+    });
+
+    it('is idempotent — running twice gives same result', () => {
+        const snapshot = makeSnapshot([
+            makeWindow({ id: 'w1', capabilityId: 'core.settings', zIndex: 0 }),
+            makeWindow({ id: 'w2', capabilityId: 'ops.center', zIndex: 1 }),
+        ], 2);
+        const first = migrateSnapshotV2toV3(snapshot);
+        const second = migrateSnapshotV2toV3(first);
+        expect(second.windows.length).toBe(first.windows.length);
+        expect(second.windows.map(w => w.capabilityId)).toEqual(
+            first.windows.map(w => w.capabilityId)
+        );
+    });
+
+    it('handles empty snapshot', () => {
+        const snapshot = makeSnapshot([], 2);
+        const result = migrateSnapshotV2toV3(snapshot);
+        expect(result.version).toBe(3);
         expect(result.windows).toHaveLength(0);
     });
 });

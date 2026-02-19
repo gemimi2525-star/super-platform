@@ -27,7 +27,7 @@ exports.AUDIT_VIEW_MANIFEST = {
     requiresStepUp: false,
     dependencies: [],
     contextsSupported: ['global', 'organization'],
-    showInDock: true,
+    showInDock: false,
     // Certification (Phase E)
     certificationTier: 'core',
 };

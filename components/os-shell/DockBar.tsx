@@ -27,7 +27,7 @@ import {
     type CapabilityId,
 } from '@/governance/synapse';
 import { useAuthStore } from '@/lib/stores/authStore';
-import { HUB_TAB_MAP } from './stateMigration'; // Phase 39: Hub-tab routing
+import { HUB_TAB_MAP, HUB_SHORTCUT_CAPABILITIES } from './stateMigration'; // Phase 39: Hub-tab routing + dock canonicalization
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DOCK ITEM
@@ -155,6 +155,10 @@ export function DockBar() {
     const userRole = state.security?.role || 'user';
 
     const visibleCapabilities = dockCapabilities.filter(cap => {
+        // Phase 39D: exclude hub-tab shortcuts — they are accessible via System Hub tabs only
+        if (HUB_SHORTCUT_CAPABILITIES.has(cap.id)) {
+            return false;
+        }
         if (cap.id === 'ops.center') {
             // Only show Monitor Hub if user is owner
             return isOwner;

@@ -27,7 +27,7 @@ exports.CORE_SETTINGS_MANIFEST = {
     requiresStepUp: false,
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true,
+    showInDock: false,
     // Certification (Phase E)
     certificationTier: 'core',
 };

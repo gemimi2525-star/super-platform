@@ -31,7 +31,7 @@ export interface WindowSnapshot {
 }
 
 export interface ShellSnapshot {
-    version: 1 | 2;
+    version: 1 | 2 | 3;
     savedAt: number;
     focusedWindowId: string | null;
     activeSpaceId: string | null;
@@ -44,7 +44,7 @@ export interface ShellSnapshot {
 
 const STORAGE_KEY_PREFIX = 'apicoredata:coreos:shell:v1';
 const DEBOUNCE_MS = 300;
-const CURRENT_VERSION = 2; // Phase 39: Bumped for migration
+const CURRENT_VERSION = 3; // Phase 39D: Bumped for dock canonicalization
 
 // Default bounds for new windows
 const DEFAULT_BOUNDS = {

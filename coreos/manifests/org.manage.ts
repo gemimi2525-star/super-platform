@@ -26,7 +26,7 @@ export const ORG_MANAGE_MANIFEST: CapabilityManifest = {
     requiresStepUp: false,
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true,
+    showInDock: false, // Phase 39D: accessible via System Hub 'Organization' tab
 
     // Certification (Phase E)
     certificationTier: 'core',

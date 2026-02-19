@@ -26,7 +26,7 @@ exports.ORG_MANAGE_MANIFEST = {
     requiresStepUp: false,
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true,
+    showInDock: false,
     // Certification (Phase E)
     certificationTier: 'core',
 };

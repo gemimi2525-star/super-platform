@@ -28,7 +28,7 @@ exports.SYSTEM_CONFIGURE_MANIFEST = {
     stepUpMessage: 'Verify your identity to access system configuration',
     dependencies: [],
     contextsSupported: ['global'],
-    showInDock: true,
+    showInDock: false,
     // Certification (Phase E)
     certificationTier: 'core',
 };

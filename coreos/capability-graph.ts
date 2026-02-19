@@ -300,8 +300,7 @@ export class CoreOSCapabilityGraph {
      * Get capabilities that should appear in dock
      */
     getDockCapabilities(): readonly CapabilityManifest[] {
-        return Array.from(this.manifests.values())
-            .filter(m => m.showInDock);
+        return Array.from(this.manifests.values()).filter(m => m.showInDock);
     }
 
     /**
