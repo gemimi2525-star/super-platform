@@ -31,7 +31,7 @@ export interface WindowSnapshot {
 }
 
 export interface ShellSnapshot {
-    version: 1;
+    version: 1 | 2;
     savedAt: number;
     focusedWindowId: string | null;
     activeSpaceId: string | null;
@@ -44,7 +44,7 @@ export interface ShellSnapshot {
 
 const STORAGE_KEY_PREFIX = 'apicoredata:coreos:shell:v1';
 const DEBOUNCE_MS = 300;
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2; // Phase 39: Bumped for migration
 
 // Default bounds for new windows
 const DEFAULT_BOUNDS = {
@@ -107,15 +107,22 @@ export function deserializeSnapshot(json: string): ShellSnapshot | null {
     try {
         const parsed = JSON.parse(json);
 
-        // Validate version
-        if (parsed.version !== CURRENT_VERSION) {
-            console.warn('[ShellPersistence] Version mismatch, ignoring snapshot');
-            return null;
-        }
-
         // Validate structure
         if (!parsed.windows || !Array.isArray(parsed.windows)) {
             console.warn('[ShellPersistence] Invalid snapshot structure');
+            return null;
+        }
+
+        // Phase 39: Auto-migrate older versions
+        if (parsed.version < CURRENT_VERSION) {
+            const { migrateSnapshot } = require('./stateMigration');
+            const migrated = migrateSnapshot(parsed as ShellSnapshot);
+            return migrated;
+        }
+
+        // Validate version
+        if (parsed.version !== CURRENT_VERSION) {
+            console.warn('[ShellPersistence] Unknown version, ignoring snapshot');
             return null;
         }
 
@@ -244,9 +251,14 @@ export function clampBounds(bounds: WindowSnapshot['bounds']): WindowSnapshot['b
  * Apply bounds safety to entire snapshot
  */
 export function sanitizeSnapshot(snapshot: ShellSnapshot): ShellSnapshot {
+    const { normalizeWindows } = require('./stateMigration');
+
+    // Phase 39: Normalize (dedup single-instance) + clamp bounds
+    const normalized = normalizeWindows(snapshot.windows);
+
     return {
         ...snapshot,
-        windows: snapshot.windows.map(w => ({
+        windows: normalized.map((w: WindowSnapshot) => ({
             ...w,
             bounds: clampBounds(w.bounds),
         })),

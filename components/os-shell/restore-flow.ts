@@ -167,18 +167,43 @@ async function restoreWindow(
 /**
  * Synchronous restore (for simple cases where we don't wait for events)
  * Used when kernel is already bootstrapped
+ *
+ * Phase 39: Validates capabilityIds against appRegistry and enforces
+ * single-instance dedup before replaying.
  */
 export function restoreFromSnapshotSync(
     snapshot: ShellSnapshot
 ): void {
     const kernel = getKernel();
+    const { appRegistry } = require('./apps/registry');
+    const { isSingleInstance } = require('./apps/manifest');
 
     // Sort windows by zIndex
     const sortedWindows = [...snapshot.windows].sort((a, b) => a.zIndex - b.zIndex);
 
-    // Emit intents for each window
+    // Phase 39: Track opened single-instance apps to prevent dupes
+    const openedSingleInstance = new Set<string>();
+
+    // Emit intents for each window — with validation
     for (const windowSnapshot of sortedWindows) {
-        kernel.emit(IntentFactory.openCapability(windowSnapshot.capabilityId as CapabilityId));
+        const capId = windowSnapshot.capabilityId;
+
+        // Phase 39: Skip if capabilityId is not in current registry
+        if (!appRegistry[capId]) {
+            console.log(`[RestoreFlow] Skipping unregistered capability: ${capId}`);
+            continue;
+        }
+
+        // Phase 39: Skip if single-instance and already opened
+        if (isSingleInstance(capId)) {
+            if (openedSingleInstance.has(capId)) {
+                console.log(`[RestoreFlow] Skipping duplicate single-instance: ${capId}`);
+                continue;
+            }
+            openedSingleInstance.add(capId);
+        }
+
+        kernel.emit(IntentFactory.openCapability(capId as CapabilityId));
     }
 
     // Restore focus after a delay
@@ -189,3 +214,4 @@ export function restoreFromSnapshotSync(
         }
     }, 200);
 }
+

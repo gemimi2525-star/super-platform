@@ -27,6 +27,7 @@ import {
     type CapabilityId,
 } from '@/governance/synapse';
 import { useAuthStore } from '@/lib/stores/authStore';
+import { HUB_TAB_MAP } from './stateMigration'; // Phase 39: Hub-tab routing
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DOCK ITEM
@@ -167,6 +168,14 @@ export function DockBar() {
 
     // Phase 14.1: Emit intent event when opening app
     const handleAppOpen = async (capabilityId: CapabilityId, title: string) => {
+        // Phase 39: Hub-tab routing — redirect overlapping capabilities to System Hub
+        const hubTab = HUB_TAB_MAP[capabilityId];
+        if (hubTab) {
+            // Open/focus System Hub instead of spawning standalone app
+            openCapability('system.hub' as CapabilityId);
+            return;
+        }
+
         // Phase 14.2: Generate traceId for this interaction
         const traceId = crypto.randomUUID();
 
