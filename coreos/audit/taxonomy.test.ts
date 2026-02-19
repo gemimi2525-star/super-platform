@@ -26,8 +26,8 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('T1: Taxonomy Version', () => {
-    it('T1a — AUDIT_VERSION is 1.0.1', () => {
-        expect(AUDIT_VERSION).toBe('1.0.1');
+    it('T1a — AUDIT_VERSION is 1.1.0', () => {
+        expect(AUDIT_VERSION).toBe('1.1.0');
     });
 
     it('T1b — version follows semver format', () => {

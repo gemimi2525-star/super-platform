@@ -22,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Taxonomy schema version — bump on event additions */
-export const AUDIT_VERSION = '1.0.1' as const;
+export const AUDIT_VERSION = '1.1.0' as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EVENT TYPE ENUM (FROZEN)
@@ -44,10 +44,13 @@ export type AuditEventType =
     | 'job.lifecycle.dead'
     | 'job.lifecycle.stuck'
     | 'job.lifecycle.reaped'
+    | 'job.lifecycle.suspended'
+    | 'job.lifecycle.resumed'
     // ─── Job Ops ─────────────────────────────────────────────────────
     | 'job.ops.reaper_run'
     | 'job.ops.result_idempotent'
     | 'job.ops.claim_idempotent'
+    | 'job.ops.priority_updated'
     // ─── Worker ──────────────────────────────────────────────────────
     | 'worker.registered'
     | 'worker.heartbeat'
@@ -109,11 +112,14 @@ export const AUDIT_EVENTS = {
     JOB_DEAD: 'job.lifecycle.dead',
     JOB_STUCK: 'job.lifecycle.stuck',
     JOB_REAPED: 'job.lifecycle.reaped',
+    JOB_SUSPENDED: 'job.lifecycle.suspended',
+    JOB_RESUMED: 'job.lifecycle.resumed',
 
     // ─── Job Ops ───
     JOB_REAPER_RUN: 'job.ops.reaper_run',
     JOB_RESULT_IDEMPOTENT: 'job.ops.result_idempotent',
     JOB_CLAIM_IDEMPOTENT: 'job.ops.claim_idempotent',
+    JOB_PRIORITY_UPDATED: 'job.ops.priority_updated',
 
     // ─── Worker ───
     WORKER_REGISTERED: 'worker.registered',

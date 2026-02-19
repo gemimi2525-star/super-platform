@@ -41,7 +41,8 @@ export type JobStatus =
     | 'COMPLETED'
     | 'FAILED'
     | 'FAILED_RETRYABLE'
-    | 'DEAD';
+    | 'DEAD'
+    | 'SUSPENDED';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // JOB TICKET (Created by TS, Verified by Go)
@@ -191,6 +192,18 @@ export interface JobQueueRecord {
     lease?: JobLease;
     /** Last heartbeat (set by worker during execution) */
     heartbeat?: JobHeartbeat;
+
+    // ── Phase 15B.2: Suspend/Resume/Priority fields ──
+    /** Scheduling priority (0-100, higher = more urgent). Default: 50 */
+    priority: number;
+    /** Epoch ms when job was suspended */
+    suspendedAt?: number;
+    /** Actor who suspended the job */
+    suspendedBy?: string;
+    /** Epoch ms of last resume */
+    resumedAt?: number;
+    /** Epoch ms of last priority update */
+    priorityUpdatedAt?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -211,6 +224,15 @@ export const RETRY_BASE_DELAY_MS = 2_000;
 
 /** Retry max delay in ms (Phase 31.3) */
 export const RETRY_MAX_DELAY_MS = 60_000;
+
+/** Default job priority (Phase 15B.2) */
+export const DEFAULT_PRIORITY = 50;
+
+/** Minimum priority value */
+export const PRIORITY_MIN = 0;
+
+/** Maximum priority value */
+export const PRIORITY_MAX = 100;
 
 /** Job queue Firestore collection */
 export const COLLECTION_JOB_QUEUE = 'job_queue';
