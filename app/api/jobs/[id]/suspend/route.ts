@@ -22,6 +22,13 @@ export async function POST(
         const body = await request.json().catch(() => ({}));
         const { reason } = body;
 
+        // 15C: Log offline replay traceability
+        const idempotencyKey = request.headers.get('X-Idempotency-Key');
+        const offlineQueued = request.headers.get('X-Offline-Queued');
+        if (idempotencyKey) {
+            console.log(`[Jobs/suspend] idempotencyKey=${idempotencyKey} offline=${offlineQueued ?? 'false'}`);
+        }
+
         const actorId = 'system'; // TODO: extract from session
 
         const result = await suspendJob(jobId, actorId, reason);

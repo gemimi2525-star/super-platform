@@ -29,6 +29,13 @@ export async function POST(
             );
         }
 
+        // 15C: Log offline replay traceability
+        const idempotencyKey = request.headers.get('X-Idempotency-Key');
+        const offlineQueued = request.headers.get('X-Offline-Queued');
+        if (idempotencyKey) {
+            console.log(`[Jobs/priority] idempotencyKey=${idempotencyKey} offline=${offlineQueued ?? 'false'} value=${value}`);
+        }
+
         const actorId = 'system'; // TODO: extract from session
 
         const result = await updateJobPriority(jobId, Number(value), actorId);
