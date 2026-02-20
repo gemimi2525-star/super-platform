@@ -19,7 +19,7 @@ import React, { useState } from 'react';
 import { SystemStatusView } from './SystemStatusView';
 import { RuntimeMetricsView } from './RuntimeMetricsView';
 import { BrainDashboardView } from '@/coreos/brain/ui/BrainDashboardView';
-import { WorkersView } from './WorkersView';
+import { JobsView } from './JobsView';
 import { AuditView } from './AuditView';
 import { VFSMaintenanceView } from './VFSMaintenanceView';
 
@@ -27,13 +27,13 @@ import { VFSMaintenanceView } from './VFSMaintenanceView';
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ViewId = 'status' | 'metrics' | 'brain' | 'workers' | 'audit' | 'vfs';
+type ViewId = 'status' | 'metrics' | 'brain' | 'jobs' | 'audit' | 'vfs';
 
 const TABS: { id: ViewId; label: string; icon: string }[] = [
     { id: 'status', label: 'System Status', icon: '🟢' },
     { id: 'metrics', label: 'Runtime Metrics', icon: '📊' },
     { id: 'brain', label: 'Brain', icon: '🧠' },
-    { id: 'workers', label: 'Workers', icon: '⚙️' },
+    { id: 'jobs', label: 'Jobs', icon: '📋' },
     { id: 'audit', label: 'Audit', icon: '📋' },
     { id: 'vfs', label: 'VFS', icon: '📂' },
 ];
@@ -76,7 +76,7 @@ export function MonitorHubShell() {
                 {activeView === 'status' && <SystemStatusView compact />}
                 {activeView === 'metrics' && <RuntimeMetricsView compact />}
                 {activeView === 'brain' && <BrainDashboardView compact />}
-                {activeView === 'workers' && <WorkersView />}
+                {activeView === 'jobs' && <JobsView />}
                 {activeView === 'audit' && <AuditView />}
                 {activeView === 'vfs' && <VFSMaintenanceView />}
             </div>
