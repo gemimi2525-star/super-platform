@@ -144,58 +144,85 @@ export function DockBar() {
     };
 
     // Phase 26D: Security Matrix v1 - Filter Dock Items
-    // Ops Center (ops.center) is OWNER ONLY.
-    // System Hub (system.hub) is OWNER + ADMIN ONLY.
-    // Brain Assistant (brain.assist) is Open to All.
     const firebaseUser = useAuthStore((s) => s.firebaseUser);
+    const authLoading = useAuthStore((s) => s.loading);
     const currentUid = firebaseUser?.uid;
     const SUPER_ADMIN_ID = process.env.NEXT_PUBLIC_SUPER_ADMIN_ID;
     const isOwner = currentUid === SUPER_ADMIN_ID;
-    // Phase 27A: For system.hub, admin check would need role from state
     const userRole = state.security?.role || 'user';
 
-    const visibleCapabilities = dockCapabilities.filter(cap => {
-        // Phase 39E: Block capabilities with route/href="/system" (rescue layer boundary)
-        if ((cap as any).route === '/system' || (cap as any).href === '/system') {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn(`[DockBar] BLOCKED: ${cap.id} has route/href="/system" — rescue layer boundary violation`);
+    // Phase 17X: Auth status for smooth dock rendering
+    const authReady = !authLoading && (firebaseUser !== null || !authLoading);
+
+    // Phase 17X: Determine icon state per capability
+    type DockSlot = {
+        cap: typeof dockCapabilities[0];
+        state: 'visible' | 'placeholder' | 'denied';
+    };
+
+    const dockSlots: DockSlot[] = dockCapabilities
+        .filter(cap => {
+            // Phase 39E: Block capabilities with route/href="/system"
+            if ((cap as any).route === '/system' || (cap as any).href === '/system') {
+                return false;
             }
-            return false;
+            // Phase 39D: exclude hub-tab shortcuts
+            if (HUB_SHORTCUT_CAPABILITIES.has(cap.id)) {
+                return false;
+            }
+            return true;
+        })
+        .map(cap => {
+            // Auth-gated capabilities
+            if (cap.id === 'ops.center') {
+                if (!authReady) return { cap, state: 'placeholder' as const };
+                return { cap, state: isOwner ? 'visible' as const : 'denied' as const };
+            }
+            if (cap.id === 'system.hub') {
+                if (!authReady) return { cap, state: 'placeholder' as const };
+                return { cap, state: (isOwner || userRole === 'admin') ? 'visible' as const : 'denied' as const };
+            }
+            return { cap, state: 'visible' as const };
+        });
+
+    // Phase 17X: Track denied fade-out (remove after animation)
+    const [fadingOut, setFadingOut] = React.useState<Set<string>>(new Set());
+    const prevSlotsRef = React.useRef<Map<string, string>>(new Map());
+
+    React.useEffect(() => {
+        const newFading = new Set<string>();
+        for (const slot of dockSlots) {
+            const prevState = prevSlotsRef.current.get(slot.cap.id);
+            if (prevState === 'placeholder' && slot.state === 'denied') {
+                newFading.add(slot.cap.id);
+            }
         }
-        // Phase 39D: exclude hub-tab shortcuts — they are accessible via System Hub tabs only
-        if (HUB_SHORTCUT_CAPABILITIES.has(cap.id)) {
-            return false;
+        if (newFading.size > 0) {
+            setFadingOut(newFading);
+            const timer = setTimeout(() => setFadingOut(new Set()), 300);
+            return () => clearTimeout(timer);
         }
-        if (cap.id === 'ops.center') {
-            // Only show Ops Center if user is owner
-            return isOwner;
-        }
-        if (cap.id === 'system.hub') {
-            // System Hub visible for owner and admin
-            return isOwner || userRole === 'admin';
-        }
-        return true;
-    });
+        // Update previous states
+        const map = new Map<string, string>();
+        for (const slot of dockSlots) map.set(slot.cap.id, slot.state);
+        prevSlotsRef.current = map;
+    }, [dockSlots.map(s => `${s.cap.id}:${s.state}`).join(',')]);
 
     // Phase 14.1: Emit intent event when opening app
     const handleAppOpen = async (capabilityId: CapabilityId, title: string) => {
-        // Phase 39: Hub-tab routing — redirect overlapping capabilities to System Hub
+        // Phase 39: Hub-tab routing
         const hubTab = HUB_TAB_MAP[capabilityId];
         if (hubTab) {
-            // Open/focus System Hub instead of spawning standalone app
             openCapability('system.hub' as CapabilityId);
             return;
         }
 
-        // Phase 14.2: Generate traceId for this interaction
         const traceId = crypto.randomUUID();
-
-        // Emit intent event (fire-and-forget, non-blocking)
         fetch('/api/platform/audit-intents', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-trace-id': traceId, // Phase 14.2: Trace propagation
+                'x-trace-id': traceId,
             },
             body: JSON.stringify({
                 action: 'os.app.open',
@@ -205,9 +232,13 @@ export function DockBar() {
             }),
         }).catch(err => console.warn('[Intent] Failed to emit os.app.open:', err));
 
-        // Open app (original logic)
         openCapability(capabilityId);
     };
+
+    // Filter: remove denied (unless fading)
+    const renderSlots = dockSlots.filter(
+        slot => slot.state !== 'denied' || fadingOut.has(slot.cap.id)
+    );
 
     return (
         <div
@@ -230,15 +261,40 @@ export function DockBar() {
             }}
         >
             {/* Capability Launchers */}
-            {visibleCapabilities.map(cap => (
-                <DockItem
-                    key={cap.id}
-                    icon={cap.icon}
-                    title={cap.title}
-                    onClick={() => handleAppOpen(cap.id, cap.title)}
-                    isRunning={hasOpenWindow(cap.id)}
-                />
-            ))}
+            {renderSlots.map(slot => {
+                if (slot.state === 'placeholder') {
+                    return (
+                        <DockIconPlaceholder
+                            key={slot.cap.id}
+                            icon={slot.cap.icon}
+                            title={slot.cap.title}
+                        />
+                    );
+                }
+                if (slot.state === 'denied' && fadingOut.has(slot.cap.id)) {
+                    return (
+                        <div key={slot.cap.id} style={{
+                            opacity: 0,
+                            transition: 'opacity 0.25s ease-out',
+                            pointerEvents: 'none',
+                        }}>
+                            <DockIconPlaceholder icon={slot.cap.icon} title={slot.cap.title} />
+                        </div>
+                    );
+                }
+                return (
+                    <div key={slot.cap.id} style={{
+                        animation: 'dockFadeIn 0.2s ease-out',
+                    }}>
+                        <DockItem
+                            icon={slot.cap.icon}
+                            title={slot.cap.title}
+                            onClick={() => handleAppOpen(slot.cap.id, slot.cap.title)}
+                            isRunning={hasOpenWindow(slot.cap.id)}
+                        />
+                    </div>
+                );
+            })}
 
             {/* Separator if there are minimized windows */}
             {minimizedWindows.length > 0 && (
@@ -256,6 +312,50 @@ export function DockBar() {
             {minimizedWindows.map(window => (
                 <MinimizedWindowItem key={window.id} window={window} />
             ))}
+
+            {/* Phase 17X: Dock animations */}
+            <style>{`
+                @keyframes dockFadeIn {
+                    from { opacity: 0; transform: scale(0.85); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                @keyframes dockPulse {
+                    0%, 100% { opacity: 0.25; }
+                    50% { opacity: 0.15; }
+                }
+            `}</style>
         </div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 17X: DOCK ICON PLACEHOLDER (ghost/skeleton during auth loading)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DockIconPlaceholder({ icon, title }: { icon: string; title: string }) {
+    return (
+        <div style={{ position: 'relative' }}>
+            <div
+                style={{
+                    width: 'var(--nx-dock-item-size)',
+                    height: 'var(--nx-dock-item-size)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--nx-surface-dock-item)',
+                    border: 'none',
+                    borderRadius: 'var(--nx-radius-xl)',
+                    fontSize: 28,
+                    opacity: 0.25,
+                    filter: 'grayscale(100%)',
+                    cursor: 'default',
+                    animation: 'dockPulse 1.8s ease-in-out infinite',
+                }}
+                title={`${title} — Checking permissions…`}
+            >
+                {icon}
+            </div>
+        </div>
+    );
+}
+
