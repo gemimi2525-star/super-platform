@@ -30,11 +30,30 @@ function getPackageVersion(): string {
     try {
         const pkgPath = path.join(process.cwd(), 'package.json');
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        _cachedVersion = pkg.version || '0.32.1';
+        _cachedVersion = pkg.version || '0.44.0';
     } catch {
-        _cachedVersion = '0.32.1';
+        _cachedVersion = '0.44.0';
     }
     return _cachedVersion;
+}
+
+/**
+ * Phase 40E: Read phase from env COREOS_PHASE, fallback to package.json major.minor
+ */
+function getCurrentPhase(): string {
+    if (process.env.COREOS_PHASE) return process.env.COREOS_PHASE;
+    // Derive from version: "0.44.0" → "44" (minor version = phase number)
+    const v = getPackageVersion();
+    const parts = v.split('.');
+    return parts[1] || v;
+}
+
+/**
+ * Phase 40E: Read locked tag from env COREOS_LOCKED_TAG, fallback to v{version}
+ */
+function getLockedTag(): string {
+    if (process.env.COREOS_LOCKED_TAG) return process.env.COREOS_LOCKED_TAG;
+    return `v${getPackageVersion()}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -157,8 +176,8 @@ function checkBuild(): {
         process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ??
         null;
 
-    // Locked tag — derived from package.json (single source of truth)
-    const lockedTag = `v${getPackageVersion()}`;
+    // Locked tag — from env or derived from package.json
+    const lockedTag = getLockedTag();
 
     if (!sha) {
         // Phase 36A: Dev-mode clarity — don't mark DEGRADED in local dev
@@ -248,7 +267,7 @@ export async function getIntegrity(): Promise<IntegrityResult> {
         },
         errorCodes,
         ts: new Date().toISOString(),
-        phase: '36',
+        phase: getCurrentPhase(),
         version: `v${getPackageVersion()}`,
     };
 }
