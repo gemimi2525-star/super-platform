@@ -49,6 +49,9 @@ const CAPABILITY_TIERS: Record<CapabilityId, TrustLevel> = {
 
     // Phase 15B: Task Manager
     'system.taskmanager': TrustLevel.SYSTEM,
+
+    // Phase 18: Notification Center
+    'system.notifications': TrustLevel.VERIFIED,
 };
 
 /**

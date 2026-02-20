@@ -20,9 +20,11 @@ import {
     useFocusedWindow,
     useMinimizeAll,
     useSystemState,
+    useOpenCapability,
 } from '@/governance/synapse';
 import { useMounted } from '@/coreos/useMounted';
 import { useTranslations, useLocale } from '@/lib/i18n/context';
+import { useNotificationStore } from '@/coreos/notifications/store';
 
 interface TopBarProps {
     onToggleLogs?: () => void;
@@ -33,8 +35,10 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
     const focusedWindow = useFocusedWindow();
     const minimizeAll = useMinimizeAll();
     const state = useSystemState();
+    const openCapability = useOpenCapability();
     const t = useTranslations('os');
     const locale = useLocale();
+    const unreadCount = useNotificationStore(s => s.getUnreadCount());
 
     // Phase 9.2: Hydration-safe clock
     const mounted = useMounted();
@@ -128,7 +132,45 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
 
             {/* Right: System Status */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--nx-space-4)' }}>
-                {/* Logs Toggle (Dev) */}
+                {/* Phase 18: Notification Bell */}
+                <button
+                    onClick={() => openCapability('system.notifications' as any)}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'inherit',
+                        fontSize: 'var(--nx-text-micro)',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        position: 'relative',
+                        opacity: 0.85,
+                    }}
+                    title="Notifications"
+                    id="notification-bell"
+                >
+                    🔔
+                    {unreadCount > 0 && (
+                        <span style={{
+                            position: 'absolute',
+                            top: -2,
+                            right: 0,
+                            background: '#E53E3E',
+                            color: '#fff',
+                            borderRadius: '8px',
+                            fontSize: '9px',
+                            fontWeight: 600,
+                            padding: '0 4px',
+                            minWidth: '14px',
+                            height: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1,
+                        }}>
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    )}
+                </button>
                 {onToggleLogs && (
                     <button
                         onClick={onToggleLogs}

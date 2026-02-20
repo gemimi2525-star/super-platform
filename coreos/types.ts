@@ -66,6 +66,8 @@ export type CapabilityId =
     | 'system.hub'
     // Phase 15B: Task Manager
     | 'system.taskmanager'
+    // Phase 18: Notification Center
+    | 'system.notifications'
     // Phase 15A
     | 'core.files';
 

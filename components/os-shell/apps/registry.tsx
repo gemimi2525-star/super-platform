@@ -93,6 +93,11 @@ const SystemHubAppLazy = lazy(() =>
     import('./system-hub/SystemHubApp').then(m => ({ default: m.SystemHubApp }))
 );
 
+// Phase 18: Notification Center
+const NotificationCenterAppLazy = lazy(() =>
+    import('@/coreos/notifications/ui/NotificationCenterView').then(m => ({ default: m.NotificationCenterView }))
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOADING PLACEHOLDER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -178,6 +183,12 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // ─────────────────────────────────────────────────────────────────────────
 
     'plugin.analytics': createLazyApp(AnalyticsAppLazy),
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // NOTIFICATION CENTER (Phase 18)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'system.notifications': createLazyApp(NotificationCenterAppLazy),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

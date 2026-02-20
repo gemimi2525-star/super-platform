@@ -43,6 +43,9 @@ import { SYSTEM_HUB_MANIFEST } from './system.hub';
 // Phase 15B: Task Manager
 import { SYSTEM_TASKMANAGER_MANIFEST } from './system.taskmanager';
 
+// Phase 18: Notification Center
+import { SYSTEM_NOTIFICATIONS_MANIFEST } from './system.notifications';
+
 // Phase 16A: VFS App Integration
 import { CORE_NOTES_MANIFEST } from './core.notes';
 
@@ -105,6 +108,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
 
     // Phase 15B: Task Manager
     'system.taskmanager': SYSTEM_TASKMANAGER_MANIFEST,
+
+    // Phase 18: Notification Center
+    'system.notifications': SYSTEM_NOTIFICATIONS_MANIFEST,
 
     // Phase 39: AI Governance Brain
     'core.admin': {

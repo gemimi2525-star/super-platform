@@ -96,7 +96,12 @@ export type AuditEventType =
     | 'process.lifecycle.spawned'
     | 'process.lifecycle.transition'
     | 'process.lifecycle.priority'
-    | 'process.lifecycle.terminated';
+    | 'process.lifecycle.terminated'
+    // ─── Notification Center (Phase 18) ─────────────────────────────
+    | 'notification.created'
+    | 'notification.read'
+    | 'notification.cleared'
+    | 'notification.muted';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -179,6 +184,12 @@ export const AUDIT_EVENTS = {
     PROCESS_TRANSITION: 'process.lifecycle.transition',
     PROCESS_PRIORITY: 'process.lifecycle.priority',
     PROCESS_TERMINATED: 'process.lifecycle.terminated',
+
+    // ─── Notification Center (Phase 18) ───
+    NOTIFICATION_CREATED: 'notification.created',
+    NOTIFICATION_READ: 'notification.read',
+    NOTIFICATION_CLEARED: 'notification.cleared',
+    NOTIFICATION_MUTED: 'notification.muted',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════
