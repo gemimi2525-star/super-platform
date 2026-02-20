@@ -31,6 +31,9 @@ import { HUB_TAB_MAP, HUB_SHORTCUT_CAPABILITIES } from './stateMigration'; // Ph
 // Phase 15B: Process Model
 import { useProcessStore } from '@/coreos/process/process-store';
 import type { ProcessState } from '@/coreos/process/types';
+// Phase 19: Drag & Drop
+import { useDragContext } from '@/coreos/dnd';
+import type { CapabilityId as DndCapabilityId } from '@/coreos/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DOCK ITEM
@@ -42,10 +45,12 @@ interface DockItemProps {
     onClick: () => void;
     isRunning?: boolean;
     processState?: ProcessState | null; // Phase 15B
+    capabilityId?: string; // Phase 19: for drag payload
 }
 
-function DockItem({ icon, title, onClick, isRunning, processState }: DockItemProps) {
+function DockItem({ icon, title, onClick, isRunning, processState, capabilityId }: DockItemProps) {
     const [hover, setHover] = React.useState(false);
+    const { startDrag } = useDragContext();
 
     // Phase 15B: Process state badge color
     const badgeColor = processState === 'BACKGROUND' ? '#007aff'
@@ -55,10 +60,25 @@ function DockItem({ icon, title, onClick, isRunning, processState }: DockItemPro
         : processState === 'SUSPENDED' ? '⏸ Suspended'
             : undefined;
 
+    const handleDragStart = React.useCallback((e: React.DragEvent) => {
+        if (!capabilityId) return;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', capabilityId);
+        startDrag({
+            type: 'capability',
+            capabilityId: capabilityId as DndCapabilityId,
+            sourceAppId: 'core.dock',
+            label: title,
+            icon,
+        });
+    }, [capabilityId, title, icon, startDrag]);
+
     return (
         <div style={{ position: 'relative' }}>
             <button
                 onClick={onClick}
+                draggable={!!capabilityId}
+                onDragStart={handleDragStart}
                 onMouseEnter={() => setHover(true)}
                 onMouseLeave={() => setHover(false)}
                 style={{
@@ -300,6 +320,7 @@ export function DockBar() {
                         key={slot.cap.id}
                         icon={slot.cap.icon}
                         title={slot.cap.title}
+                        capabilityId={slot.cap.id}
                         onClick={() => handleAppOpen(slot.cap.id, slot.cap.title)}
                         isRunning={hasOpenWindow(slot.cap.id)}
                         processState={useProcessStore.getState().getActiveByAppId(slot.cap.id)?.state ?? null}

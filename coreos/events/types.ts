@@ -29,6 +29,10 @@ export type OSEventType =
     // Offline kernel (Phase 36)
     | 'offline.entered'
     | 'offline.exited'
+    // Drag & Drop (Phase 19)
+    | 'drag.started'
+    | 'drag.dropped'
+    | 'drag.cancelled'
     // Reserved (no-emit from bus — audit-only)
     | 'notification.created'
     | 'audit.logged';

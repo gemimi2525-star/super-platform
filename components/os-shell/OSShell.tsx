@@ -58,6 +58,10 @@ import { useProcessStore } from '@/coreos/process/process-store';
 // Phase 18.5: OS Event Bus
 import { initEventBus } from '@/coreos/events';
 
+// Phase 19: Drag & Drop Framework
+import { DragProvider } from '@/coreos/dnd';
+import { DesktopDropZone } from './DesktopDropZone';
+
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
@@ -231,103 +235,108 @@ export function OSShell() {
     }, [focusedWindowId, state.windows, state.security.authenticated]);
 
     return (
-        <div style={{
-            position: 'fixed',
-            inset: 0,
-            overflow: 'hidden',
-            fontFamily: 'var(--nx-font-system)',
-        }}>
-            {/* Phase XI: Lock Screen - Removed in favor of /login page */}
-            {/* isLocked logic removed */}
+        <DragProvider>
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                overflow: 'hidden',
+                fontFamily: 'var(--nx-font-system)',
+            }}>
+                {/* Phase XI: Lock Screen - Removed in favor of /login page */}
+                {/* isLocked logic removed */}
 
-            {/* Background */}
-            <CalmDesktop />
+                {/* Background */}
+                <CalmDesktop />
 
-            {/* Phase 7.2: Service Worker Registration */}
-            <ServiceWorkerRegistration />
+                {/* Phase 7.2: Service Worker Registration */}
+                <ServiceWorkerRegistration />
 
-            {/* Phase 36: Offline Mode Banner */}
-            <OfflineBanner />
+                {/* Phase 36: Offline Mode Banner */}
+                <OfflineBanner />
 
-            {/* Phase 36A: Dev Badge */}
-            <DevBadge />
+                {/* Phase 36A: Dev Badge */}
+                <DevBadge />
 
-            {/* Top Bar */}
-            <TopBar
-                onToggleLogs={() => setIsLogPanelOpen(!isLogPanelOpen)}
-                isLogPanelOpen={isLogPanelOpen}
-            />
-
-            {/* Windows Layer */}
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    paddingTop: 'var(--nx-menubar-height)',
-                    paddingBottom: 'calc(var(--nx-dock-height) + 20px)',
-                }}
-                onContextMenu={(e) => {
-                    // Only show desktop context menu if clicking on the desktop area (not on a window)
-                    if ((e.target as HTMLElement).closest('[data-window-chrome]')) return;
-                    const desktopItems: ContextMenuEntry[] = [
-                        { id: 'show-all', label: 'Show All Windows', icon: '🪟', onClick: () => { } },
-                        { id: 'div-1', type: 'divider' },
-                        { id: 'about', label: 'About This OS', icon: 'ℹ️', onClick: () => { } },
-                    ];
-                    showMenu(e, desktopItems);
-                }}
-            >
-                {windows.map(window => (
-                    <WindowChrome
-                        key={window.id}
-                        window={window}
-                        isFocused={window.id === focusedWindowId}
-                    />
-                ))}
-            </div>
-
-            {/* Dock */}
-            <DockBar />
-
-            {/* Step-up Modal */}
-            <StepUpModal />
-
-            {/* System Log Panel (Dev) */}
-            <SystemLogPanel
-                isOpen={isLogPanelOpen}
-                onClose={() => setIsLogPanelOpen(false)}
-            />
-
-            {/* Phase 18: Brain Chat Overlay (⌘+K) */}
-            <BrainChatOverlay
-                isOpen={isBrainOverlayOpen}
-                onClose={() => setIsBrainOverlayOpen(false)}
-            />
-
-            {/* Phase 17N: Global Search Spotlight (⌘+Space) */}
-            <SpotlightOverlay
-                isOpen={spotlight.state.isOpen}
-                query={spotlight.state.query}
-                results={spotlight.state.results}
-                selectedIndex={spotlight.state.selectedIndex}
-                onQueryChange={spotlight.setQuery}
-                onSelectNext={spotlight.selectNext}
-                onSelectPrev={spotlight.selectPrev}
-                onExecuteSelected={spotlight.executeSelected}
-                onExecuteAction={spotlight.executeAction}
-                onClose={spotlight.close}
-            />
-
-            {/* Phase 13: Context Menu */}
-            {menuState.isOpen && (
-                <ContextMenu
-                    x={menuState.x}
-                    y={menuState.y}
-                    items={menuState.items}
-                    onClose={hideMenu}
+                {/* Top Bar */}
+                <TopBar
+                    onToggleLogs={() => setIsLogPanelOpen(!isLogPanelOpen)}
+                    isLogPanelOpen={isLogPanelOpen}
                 />
-            )}
-        </div>
+
+                {/* Windows Layer */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        paddingTop: 'var(--nx-menubar-height)',
+                        paddingBottom: 'calc(var(--nx-dock-height) + 20px)',
+                    }}
+                    onContextMenu={(e) => {
+                        // Only show desktop context menu if clicking on the desktop area (not on a window)
+                        if ((e.target as HTMLElement).closest('[data-window-chrome]')) return;
+                        const desktopItems: ContextMenuEntry[] = [
+                            { id: 'show-all', label: 'Show All Windows', icon: '🪟', onClick: () => { } },
+                            { id: 'div-1', type: 'divider' },
+                            { id: 'about', label: 'About This OS', icon: 'ℹ️', onClick: () => { } },
+                        ];
+                        showMenu(e, desktopItems);
+                    }}
+                >
+                    {/* Phase 19: Desktop drop zone for shortcuts */}
+                    <DesktopDropZone onOpenCapability={(capId) => openCapability(capId)} />
+
+                    {windows.map(window => (
+                        <WindowChrome
+                            key={window.id}
+                            window={window}
+                            isFocused={window.id === focusedWindowId}
+                        />
+                    ))}
+                </div>
+
+                {/* Dock */}
+                <DockBar />
+
+                {/* Step-up Modal */}
+                <StepUpModal />
+
+                {/* System Log Panel (Dev) */}
+                <SystemLogPanel
+                    isOpen={isLogPanelOpen}
+                    onClose={() => setIsLogPanelOpen(false)}
+                />
+
+                {/* Phase 18: Brain Chat Overlay (⌘+K) */}
+                <BrainChatOverlay
+                    isOpen={isBrainOverlayOpen}
+                    onClose={() => setIsBrainOverlayOpen(false)}
+                />
+
+                {/* Phase 17N: Global Search Spotlight (⌘+Space) */}
+                <SpotlightOverlay
+                    isOpen={spotlight.state.isOpen}
+                    query={spotlight.state.query}
+                    results={spotlight.state.results}
+                    selectedIndex={spotlight.state.selectedIndex}
+                    onQueryChange={spotlight.setQuery}
+                    onSelectNext={spotlight.selectNext}
+                    onSelectPrev={spotlight.selectPrev}
+                    onExecuteSelected={spotlight.executeSelected}
+                    onExecuteAction={spotlight.executeAction}
+                    onClose={spotlight.close}
+                />
+
+                {/* Phase 13: Context Menu */}
+                {menuState.isOpen && (
+                    <ContextMenu
+                        x={menuState.x}
+                        y={menuState.y}
+                        items={menuState.items}
+                        onClose={hideMenu}
+                    />
+                )}
+            </div>
+        </DragProvider>
     );
 }
 
