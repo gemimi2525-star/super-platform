@@ -55,6 +55,9 @@ import { OfflineBanner } from '@/coreos/offline/OfflineBanner';
 // Phase 15B: Process Model
 import { useProcessStore } from '@/coreos/process/process-store';
 
+// Phase 18.5: OS Event Bus
+import { initEventBus } from '@/coreos/events';
+
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
@@ -90,6 +93,12 @@ export function OSShell() {
             window.location.replace('/os');
             return;
         }
+    }, []);
+
+    // Phase 18.5: Initialize OS Event Bus (sources + sinks)
+    React.useEffect(() => {
+        const cleanup = initEventBus();
+        return cleanup;
     }, []);
 
     // Lock Screen decoupled to /login page

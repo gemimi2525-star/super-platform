@@ -3,12 +3,12 @@
  * NOTIFICATION CENTER — Event Emitter (Phase 18)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Thin emitter that hooks into existing OS subsystems and creates
- * notifications through the store. No timer-based or random notifications.
+ * @deprecated Phase 18.5 — Replaced by OS Event Bus.
+ * Use `coreos/events/bus.ts` for publishing events.
+ * Notification creation is now handled by `coreos/notifications/sinks/notificationSink.ts`.
  *
- * Sources:
- * - Process lifecycle (Phase 15B): spawn, terminate, suspend
- * - Offline kernel: online/offline transitions
+ * This file is kept for backward compatibility only.
+ * No files import from this module (verified Phase 18.5).
  *
  * @module coreos/notifications/emitter
  */
@@ -18,12 +18,14 @@ import type { CreateNotificationInput } from './types';
 
 // ─── Emit Helper ───────────────────────────────────────────────────────
 
+/** @deprecated Use OS Event Bus publish() instead */
 function emit(input: CreateNotificationInput): void {
     useNotificationStore.getState().create(input);
 }
 
 // ─── Process Lifecycle Events ──────────────────────────────────────────
 
+/** @deprecated Use OS Event Bus processSource instead */
 export function emitProcessSpawned(appId: string, title: string, pid: string): void {
     emit({
         severity: 'info',
@@ -33,6 +35,7 @@ export function emitProcessSpawned(appId: string, title: string, pid: string): v
     });
 }
 
+/** @deprecated Use OS Event Bus processSource instead */
 export function emitProcessTerminated(appId: string, title: string, pid: string): void {
     emit({
         severity: 'info',
@@ -42,6 +45,7 @@ export function emitProcessTerminated(appId: string, title: string, pid: string)
     });
 }
 
+/** @deprecated Use OS Event Bus processSource instead */
 export function emitProcessSuspended(appId: string, title: string, pid: string): void {
     emit({
         severity: 'warning',
@@ -53,6 +57,7 @@ export function emitProcessSuspended(appId: string, title: string, pid: string):
 
 // ─── Offline Kernel Events ─────────────────────────────────────────────
 
+/** @deprecated Use OS Event Bus offlineSource instead */
 export function emitOffline(): void {
     emit({
         severity: 'warning',
@@ -62,6 +67,7 @@ export function emitOffline(): void {
     });
 }
 
+/** @deprecated Use OS Event Bus offlineSource instead */
 export function emitOnline(): void {
     emit({
         severity: 'info',
@@ -73,6 +79,7 @@ export function emitOnline(): void {
 
 // ─── System Events ─────────────────────────────────────────────────────
 
+/** @deprecated Use OS Event Bus publish() instead */
 export function emitSystemNotification(
     title: string,
     body?: string,
