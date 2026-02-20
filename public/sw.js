@@ -19,14 +19,14 @@
  * - ALL API routes: NEVER cache (network-only)
  * - Sensitive endpoints: NEVER cache (bypass SW)
  * 
- * @version 36.0.0
+ * @version 36.1.0
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DETERMINISTIC VERSIONING
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SW_VERSION = '36.0.0';
+const SW_VERSION = '36.1.0';
 const PRECACHE_NAME = 'coreos-precache-' + SW_VERSION;
 const STATIC_CACHE = 'coreos-static-' + SW_VERSION;
 const NAV_CACHE = 'coreos-nav-' + SW_VERSION;
@@ -62,6 +62,7 @@ const CACHEABLE_NAVIGATION = [
 const NEVER_CACHE_PATTERNS = [
     // ALL API routes — owner-only, redacted, or sensitive
     '/api/ops',
+    '/api/os',       // Phase 18: Notification audit routes
     '/api/platform',
     '/api/auth',
     '/api/build-info',

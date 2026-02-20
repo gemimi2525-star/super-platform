@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-// Trigger Server Restart for Phase 27C.3
+// Phase 18: SW v36.1.0 — rebuild trigger
 
 /**
  * APICOREDATA OS — Next.js Configuration
