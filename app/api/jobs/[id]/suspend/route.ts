@@ -29,6 +29,18 @@ export async function POST(
             console.log(`[Jobs/suspend] idempotencyKey=${idempotencyKey} offline=${offlineQueued ?? 'false'}`);
         }
 
+        // 15C.2E: Fail-once debug hook (dev only)
+        const debugFailOnce = request.headers.get('X-Debug-Fail-Once');
+        if (debugFailOnce === '1' && process.env.NODE_ENV !== 'production' && idempotencyKey) {
+            const failKey = `debug:fail:${idempotencyKey}`;
+            const already = (globalThis as Record<string, unknown>)[failKey];
+            if (!already) {
+                (globalThis as Record<string, unknown>)[failKey] = true;
+                console.log(`[Jobs/suspend] DEBUG fail-once triggered for key=${idempotencyKey}`);
+                return NextResponse.json({ error: 'Debug fail-once' }, { status: 503 });
+            }
+        }
+
         const actorId = 'system'; // TODO: extract from session
 
         const result = await suspendJob(jobId, actorId, reason);
