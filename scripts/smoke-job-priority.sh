@@ -33,7 +33,7 @@ enqueue() {
 }
 
 get_status() {
-    curl -s "${BASE}/api/jobs/$1" | grep -o '"status":"[^"]*"' | cut -d'"' -f4
+    curl -s "${BASE}/api/jobs/$1" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4
 }
 
 set_priority() {
