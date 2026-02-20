@@ -38,10 +38,13 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
     const openCapability = useOpenCapability();
     const t = useTranslations('os');
     const locale = useLocale();
-    const unreadCount = useNotificationStore(s => s.getUnreadCount());
 
-    // Phase 9.2: Hydration-safe clock
+    // Phase 18: Notification bell (hydration-safe)
     const mounted = useMounted();
+    const unreadCount = useNotificationStore(s => {
+        const notifs = Object.values(s.notifications);
+        return notifs.filter(n => !n.readAt && !n.clearedAt && !n.muted).length;
+    });
     const [time, setTime] = React.useState<Date | null>(null);
 
     React.useEffect(() => {

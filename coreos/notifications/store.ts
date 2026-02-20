@@ -40,6 +40,7 @@ function generateNotificationId(): string {
 // ─── Persistence ───────────────────────────────────────────────────────
 
 function saveToStorage(notifications: Record<string, NotificationRecord>): void {
+    if (typeof window === 'undefined') return;
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
     } catch {
@@ -48,6 +49,7 @@ function saveToStorage(notifications: Record<string, NotificationRecord>): void 
 }
 
 function loadFromStorage(): Record<string, NotificationRecord> {
+    if (typeof window === 'undefined') return {};
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return {};
