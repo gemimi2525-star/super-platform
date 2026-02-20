@@ -29,6 +29,7 @@ import {
     useWindows,
     useSystemState,
     useKernelBootstrap,
+    useSingleInstanceOpen,
 } from '@/governance/synapse';
 import {
     loadSnapshot,
@@ -42,6 +43,10 @@ import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
 import { activateKeyboardHandler, deactivateKeyboardHandler, getKeyboardHandler } from '@/coreos/keyboard-handler';
 import { runStartupValidation } from './apps/manifest-validation';
 import { BrainChatOverlay } from './BrainChatOverlay'; // Phase 18
+import { SpotlightOverlay } from './SpotlightOverlay'; // Phase 17N
+import { useGlobalSearch } from '@/coreos/search/useGlobalSearch'; // Phase 17N
+import type { SearchAction } from '@/coreos/search/searchTypes'; // Phase 17N
+import type { CapabilityId } from '@/coreos/types'; // Phase 17N
 import { ContextMenu, type ContextMenuEntry } from './ContextMenu'; // Phase 13
 import { useContextMenu } from './hooks/useContextMenu'; // Phase 13
 // Phase 36: Offline Kernel + Dev Clarity
@@ -54,6 +59,37 @@ export function OSShell() {
     const state = useSystemState();
     const focusedWindowId = state.focusedWindowId;
 
+    // Phase 40E: ?reset=1 → clear persisted session + SW → redirect /os
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('reset') === '1') {
+            console.log('[OSShell] Reset session requested via ?reset=1');
+            // Clear all shell persistence keys
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('apicoredata:coreos:')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            console.log(`[OSShell] Cleared ${keysToRemove.length} session keys`);
+
+            // Unregister service workers
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(r => r.unregister());
+                    console.log(`[OSShell] Unregistered ${regs.length} service workers`);
+                });
+            }
+
+            // Redirect to clean URL (remove ?reset=1)
+            window.location.replace('/os');
+            return;
+        }
+    }, []);
+
     // Lock Screen decoupled to /login page
     // const [isLocked, setIsLocked] = React.useState(true);
     // handleUnlock removed in favor of middleware protection
@@ -63,6 +99,26 @@ export function OSShell() {
 
     // Phase 18: Brain Chat ⌘+K overlay state
     const [isBrainOverlayOpen, setIsBrainOverlayOpen] = React.useState(false);
+
+    // Phase 17N: Global Search / Spotlight
+    const openCapability = useSingleInstanceOpen();
+    const handleSearchAction = React.useCallback((action: SearchAction) => {
+        switch (action.type) {
+            case 'openApp':
+                openCapability(action.capabilityId as CapabilityId);
+                break;
+            case 'navigate':
+                window.location.href = action.route;
+                break;
+            case 'openTab':
+                openCapability(action.capabilityId as CapabilityId);
+                break;
+            case 'custom':
+                action.handler();
+                break;
+        }
+    }, [openCapability]);
+    const spotlight = useGlobalSearch(handleSearchAction);
 
     // Phase 13: Desktop context menu
     const { menuState, showMenu, hideMenu } = useContextMenu();
@@ -80,16 +136,21 @@ export function OSShell() {
 
     // Phase 7.3: Activate keyboard handler on mount
     // Phase 18: Register ⌘+K brain toggle callback
+    // Phase 17N: Register ⌘+Space spotlight toggle callback
     React.useEffect(() => {
         activateKeyboardHandler();
         getKeyboardHandler().setBrainToggleCallback(() => {
             setIsBrainOverlayOpen(prev => !prev);
         });
+        getKeyboardHandler().setSpotlightToggleCallback(() => {
+            spotlight.toggle();
+        });
         return () => {
             getKeyboardHandler().setBrainToggleCallback(null);
+            getKeyboardHandler().setSpotlightToggleCallback(null);
             deactivateKeyboardHandler();
         };
-    }, []);
+    }, [spotlight.toggle]);
 
     // Bootstrap on mount if not authenticated
     React.useEffect(() => {
@@ -212,6 +273,20 @@ export function OSShell() {
             <BrainChatOverlay
                 isOpen={isBrainOverlayOpen}
                 onClose={() => setIsBrainOverlayOpen(false)}
+            />
+
+            {/* Phase 17N: Global Search Spotlight (⌘+Space) */}
+            <SpotlightOverlay
+                isOpen={spotlight.state.isOpen}
+                query={spotlight.state.query}
+                results={spotlight.state.results}
+                selectedIndex={spotlight.state.selectedIndex}
+                onQueryChange={spotlight.setQuery}
+                onSelectNext={spotlight.selectNext}
+                onSelectPrev={spotlight.selectPrev}
+                onExecuteSelected={spotlight.executeSelected}
+                onExecuteAction={spotlight.executeAction}
+                onClose={spotlight.close}
             />
 
             {/* Phase 13: Context Menu */}

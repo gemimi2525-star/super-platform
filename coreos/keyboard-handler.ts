@@ -31,6 +31,7 @@ interface KeyboardConfig {
     enableCmdW: boolean;
     enableCmdM: boolean;
     enableCmdK: boolean; // Phase 18: Brain AI overlay
+    enableCmdSpace: boolean; // Phase 17N: Spotlight search
 }
 
 const DEFAULT_CONFIG: KeyboardConfig = {
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: KeyboardConfig = {
     enableCmdW: true,
     enableCmdM: true,
     enableCmdK: true, // Phase 18: Enabled by default
+    enableCmdSpace: true, // Phase 17N: Enabled by default
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -92,6 +94,8 @@ class ShellKeyboardHandler {
 
     // Phase 18: Callback for ⌘+K Brain overlay toggle
     private onBrainToggle: (() => void) | null = null;
+    // Phase 17N: Callback for ⌘+Space Spotlight search toggle
+    private onSpotlightToggle: (() => void) | null = null;
 
     constructor(config: Partial<KeyboardConfig> = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };
@@ -102,6 +106,13 @@ class ShellKeyboardHandler {
      */
     setBrainToggleCallback(callback: (() => void) | null): void {
         this.onBrainToggle = callback;
+    }
+
+    /**
+     * Phase 17N: Register callback for ⌘+Space Spotlight toggle
+     */
+    setSpotlightToggleCallback(callback: (() => void) | null): void {
+        this.onSpotlightToggle = callback;
     }
 
     /**
@@ -140,6 +151,18 @@ class ShellKeyboardHandler {
      * Main keyboard event handler
      */
     private handleKeyDown(event: KeyboardEvent): void {
+        // ─────────────────────────────────────────────────────────────────────
+        // Phase 17N: Cmd/Ctrl+Space → Spotlight Search (works even in editable)
+        // ─────────────────────────────────────────────────────────────────────
+        if (event.key === ' ' && isModifierKey(event) && this.config.enableCmdSpace) {
+            event.preventDefault();
+            if (this.onSpotlightToggle) {
+                this.onSpotlightToggle();
+                console.log('[NEXUS Keyboard] Cmd+Space → Spotlight toggle');
+            }
+            return;
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // Phase 18: Cmd/Ctrl+K → Brain AI Overlay (works even in editable)
         // ─────────────────────────────────────────────────────────────────────
