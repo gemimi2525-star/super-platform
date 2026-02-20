@@ -23,6 +23,8 @@ import React, { useState, useCallback } from 'react';
 import { useOfflineData } from '../../offline/useOfflineData';
 import { OFFLINE_KEYS, OFFLINE_TTL } from '../../offline/offlineStore';
 import { getSyncQueue } from '../../offline/syncQueue';
+import { getOrCreateDeviceId } from '../../device/deviceIdentity';
+import { resolveJobConflict } from '../../sync/conflictPolicy';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -107,14 +109,17 @@ export function JobsView() {
 
     // ─── Actions ─────────────────────────────────────────────────────────
 
-    const doAction = useCallback(async (jobId: string, action: string, body?: object) => {
+    const doAction = useCallback(async (jobId: string, action: string, body?: object, _retried = false) => {
         const key = `${jobId}:${action}`;
         const url = `/api/jobs/${jobId}/${action}`;
-        const payload = body ?? {};
+        const deviceId = getOrCreateDeviceId();
+        // Find the job's current updatedAt for merge guard
+        const job = jobs.find(j => j.jobId === jobId);
+        const payload = { ...body, lastUpdatedAt: job?.updatedAt };
 
         // ── Offline path: enqueue to SyncQueue ──
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            getSyncQueue().enqueue(url, 'POST', payload);
+            getSyncQueue().enqueue(url, 'POST', payload, { 'X-Device-Id': deviceId });
             setQueuedActions(prev => [...prev, {
                 jobId, action,
                 value: (payload as Record<string, number>).value,
@@ -127,9 +132,43 @@ export function JobsView() {
         try {
             const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Id': deviceId,
+                },
                 body: JSON.stringify(payload),
             });
+
+            // 15D.E: Handle 409 conflict with deterministic resolution
+            if (res.status === 409 && !_retried) {
+                const conflictData = await res.json().catch(() => ({}));
+                if (conflictData.conflict && conflictData.serverState) {
+                    const winner = resolveJobConflict(
+                        {
+                            updatedAt: job?.updatedAt ?? 0,
+                            priority: job?.priority ?? 50,
+                            deviceId,
+                            status: job?.status ?? 'PENDING',
+                        },
+                        {
+                            updatedAt: conflictData.serverState.updatedAt ?? 0,
+                            priority: conflictData.serverState.priority ?? 50,
+                            deviceId: conflictData.serverState.lastUpdatedByDevice ?? 'unknown',
+                            status: conflictData.serverState.status ?? 'PENDING',
+                        },
+                    );
+                    console.log(`[JobsView] Conflict resolved: ${winner} wins`);
+                    if (winner === 'local') {
+                        // Re-apply with server's timestamp to pass merge guard
+                        const retryBody = { ...body, lastUpdatedAt: conflictData.serverState.updatedAt };
+                        return doAction(jobId, action, retryBody, true);
+                    }
+                    // Remote wins → discard local, refresh to server state
+                    refresh();
+                    return;
+                }
+            }
+
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error || `HTTP ${res.status}`);
@@ -141,13 +180,12 @@ export function JobsView() {
 
             // Network failed mid-call → enqueue to outbox
             if (msg === 'Failed to fetch' || msg.includes('NetworkError')) {
-                getSyncQueue().enqueue(url, 'POST', payload);
+                getSyncQueue().enqueue(url, 'POST', payload, { 'X-Device-Id': deviceId });
                 setQueuedActions(prev => [...prev, {
                     jobId, action,
                     value: (payload as Record<string, number>).value,
                 }]);
             }
-            // For other errors, silently ignore (idempotent retry will handle)
         } finally {
             setLoadingActions(prev => {
                 const next = new Set(prev);
@@ -155,7 +193,7 @@ export function JobsView() {
                 return next;
             });
         }
-    }, [refresh]);
+    }, [refresh, jobs]);
 
     const handleSuspend = (jobId: string) => doAction(jobId, 'suspend');
     const handleResume = (jobId: string) => doAction(jobId, 'resume');
