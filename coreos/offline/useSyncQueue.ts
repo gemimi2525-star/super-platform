@@ -22,7 +22,7 @@ interface UseSyncQueueResult {
 
 export function useSyncQueue(): UseSyncQueueResult {
     const [queueStatus, setQueueStatus] = useState<QueueStatus>({
-        pending: 0, processing: 0, completed: 0, failed: 0, total: 0,
+        pending: 0, processing: 0, completed: 0, failed: 0, dead: 0, total: 0,
     });
     const [items, setItems] = useState<SyncQueueItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);

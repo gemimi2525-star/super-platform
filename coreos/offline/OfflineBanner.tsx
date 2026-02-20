@@ -11,15 +11,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getConnectivityMonitor, type ConnectivityStatus } from '../connectivity';
-import { getSyncQueue, type QueueStatus } from './syncQueue';
+import { getSyncQueue, isOutboxLockedByOther, type QueueStatus } from './syncQueue';
 import { getConflictStore } from '../vfs/maintenance/conflictStore';
 
-type BannerState = 'hidden' | 'offline' | 'reconnecting' | 'syncing' | 'conflict';
+type BannerState = 'hidden' | 'offline' | 'reconnecting' | 'syncing' | 'conflict' | 'lockedOther';
 
 export function OfflineBanner() {
     const [bannerState, setBannerState] = useState<BannerState>('hidden');
     const [queueStatus, setQueueStatus] = useState<QueueStatus>({
-        pending: 0, processing: 0, completed: 0, failed: 0, total: 0,
+        pending: 0, processing: 0, completed: 0, failed: 0, dead: 0, total: 0,
     });
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const wasOffline = useRef(false);
@@ -44,10 +44,21 @@ export function OfflineBanner() {
                 wasOffline.current = false;
                 const qs = queue.getStatus();
                 if (qs.pending > 0) {
-                    setBannerState('syncing');
-                    queue.processQueue().then(() => {
-                        setBannerState('hidden');
-                    });
+                    // 15C.2B: Check multi-tab lock
+                    if (isOutboxLockedByOther()) {
+                        setBannerState('lockedOther');
+                        hideTimer.current = setTimeout(() => setBannerState('hidden'), 5000);
+                    } else {
+                        setBannerState('syncing');
+                        queue.processQueue().then((result) => {
+                            if (result.locked) {
+                                setBannerState('lockedOther');
+                                hideTimer.current = setTimeout(() => setBannerState('hidden'), 5000);
+                            } else {
+                                setBannerState('hidden');
+                            }
+                        });
+                    }
                 } else {
                     // Show "back online" briefly
                     setBannerState('reconnecting');
@@ -150,6 +161,15 @@ const BANNER_CONFIG: Record<Exclude<BannerState, 'hidden'>, {
             background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.08))',
             borderColor: 'rgba(234, 179, 8, 0.3)',
             color: '#fbbf24',
+        },
+    },
+    lockedOther: {
+        icon: '🔒',
+        text: 'Syncing in another tab — this tab will wait.',
+        style: {
+            background: 'linear-gradient(90deg, rgba(148, 163, 184, 0.15), rgba(148, 163, 184, 0.08))',
+            borderColor: 'rgba(148, 163, 184, 0.3)',
+            color: '#94a3b8',
         },
     },
 };
