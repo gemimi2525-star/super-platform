@@ -275,7 +275,7 @@ export function DockBar() {
                     return (
                         <div key={slot.cap.id} style={{
                             opacity: 0,
-                            transition: 'opacity 0.25s ease-out',
+                            transition: 'opacity 150ms ease-out',
                             pointerEvents: 'none',
                         }}>
                             <DockIconPlaceholder icon={slot.cap.icon} title={slot.cap.title} />
@@ -283,16 +283,13 @@ export function DockBar() {
                     );
                 }
                 return (
-                    <div key={slot.cap.id} style={{
-                        animation: 'dockFadeIn 0.2s ease-out',
-                    }}>
-                        <DockItem
-                            icon={slot.cap.icon}
-                            title={slot.cap.title}
-                            onClick={() => handleAppOpen(slot.cap.id, slot.cap.title)}
-                            isRunning={hasOpenWindow(slot.cap.id)}
-                        />
-                    </div>
+                    <DockItem
+                        key={slot.cap.id}
+                        icon={slot.cap.icon}
+                        title={slot.cap.title}
+                        onClick={() => handleAppOpen(slot.cap.id, slot.cap.title)}
+                        isRunning={hasOpenWindow(slot.cap.id)}
+                    />
                 );
             })}
 
@@ -313,17 +310,7 @@ export function DockBar() {
                 <MinimizedWindowItem key={window.id} window={window} />
             ))}
 
-            {/* Phase 17X: Dock animations */}
-            <style>{`
-                @keyframes dockFadeIn {
-                    from { opacity: 0; transform: scale(0.85); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-                @keyframes dockPulse {
-                    0%, 100% { opacity: 0.25; }
-                    50% { opacity: 0.15; }
-                }
-            `}</style>
+            {/* Phase 17X.2: Removed warp animations — dock renders crisp */}
         </div>
     );
 }
@@ -346,10 +333,8 @@ function DockIconPlaceholder({ icon, title }: { icon: string; title: string }) {
                     border: 'none',
                     borderRadius: 'var(--nx-radius-xl)',
                     fontSize: 28,
-                    opacity: 0.25,
-                    filter: 'grayscale(100%)',
+                    opacity: 0.5,
                     cursor: 'default',
-                    animation: 'dockPulse 1.8s ease-in-out infinite',
                 }}
                 title={`${title} — Checking permissions…`}
             >
