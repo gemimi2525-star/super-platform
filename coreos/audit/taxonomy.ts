@@ -101,7 +101,10 @@ export type AuditEventType =
     | 'notification.created'
     | 'notification.read'
     | 'notification.cleared'
-    | 'notification.muted';
+    | 'notification.muted'
+    // ─── Desktop Shortcuts (Phase 19.5) ─────────────────────────────
+    | 'desktop.shortcut.created'
+    | 'desktop.shortcut.removed';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -190,6 +193,10 @@ export const AUDIT_EVENTS = {
     NOTIFICATION_READ: 'notification.read',
     NOTIFICATION_CLEARED: 'notification.cleared',
     NOTIFICATION_MUTED: 'notification.muted',
+
+    // ─── Desktop Shortcuts (Phase 19.5) ───
+    DESKTOP_SHORTCUT_CREATED: 'desktop.shortcut.created',
+    DESKTOP_SHORTCUT_REMOVED: 'desktop.shortcut.removed',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

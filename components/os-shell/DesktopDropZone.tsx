@@ -1,135 +1,150 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE OS — Desktop Drop Zone + Shortcut Grid (Phase 19)
+ * CORE OS — Desktop Drop Zone (Phase 19.5 — Intent-Bound)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Drop zone spanning the desktop surface. Accepts:
- * - 'capability' drops → creates desktop shortcut
- * - 'file' drops → shows VFS-locked indicator (Phase 15A constraint)
+ * Drop target for the desktop surface.
+ * - Capability drops → Intent → POST /api/os/desktop/shortcuts/create → Apply → Store
+ * - File drops → VFS-locked indicator (Phase 15A)
  *
- * Shortcuts persist in localStorage.
+ * No direct localStorage mutations. All writes go through the Apply Layer.
  *
  * @module components/os-shell/DesktopDropZone
  */
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useDragContext, useDropZone } from '@/coreos/dnd';
-import type { DragPayload } from '@/coreos/dnd';
-import type { CapabilityId } from '@/coreos/types';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { DragPayload } from '@/coreos/dnd/dragTypes';
+import { useDropZone } from '@/coreos/dnd/useDropZone';
+import { useShortcutStore } from '@/coreos/desktop/shortcuts/store';
+import { buildDropIntent, registerDesktopTarget } from '@/coreos/dnd/dropRegistry';
+import type { DesktopShortcut } from '@/coreos/desktop/shortcuts/types';
 
-// ─── Shortcut Store (localStorage) ─────────────────────────────────────
+// ─── Props ─────────────────────────────────────────────────────────────
 
-interface DesktopShortcut {
-    id: string;
-    capabilityId: CapabilityId;
-    label: string;
-    icon: string;
-    position: { x: number; y: number };
-    createdAt: string;
-}
-
-const STORAGE_KEY = 'coreos.desktop.shortcuts';
-
-function loadShortcuts(): DesktopShortcut[] {
-    if (typeof window === 'undefined') return [];
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveShortcuts(shortcuts: DesktopShortcut[]): void {
-    if (typeof window === 'undefined') return;
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts));
-    } catch {
-        // Non-blocking
-    }
-}
-
-// ─── Grid snapping ─────────────────────────────────────────────────────
-
-const GRID_SIZE = 100;
-const ICON_SIZE = 64;
-
-function snapToGrid(x: number, y: number): { x: number; y: number } {
-    return {
-        x: Math.round(x / GRID_SIZE) * GRID_SIZE,
-        y: Math.round(y / GRID_SIZE) * GRID_SIZE,
-    };
+interface DesktopDropZoneProps {
+    onOpenCapability: (capabilityId: string) => void;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────
 
-interface DesktopDropZoneProps {
-    onOpenCapability?: (capabilityId: CapabilityId) => void;
-}
-
 export function DesktopDropZone({ onOpenCapability }: DesktopDropZoneProps) {
-    const { phase } = useDragContext();
-    const [shortcuts, setShortcuts] = useState<DesktopShortcut[]>([]);
     const [vfsLockedMsg, setVfsLockedMsg] = useState<string | null>(null);
+    const [pendingDrop, setPendingDrop] = useState(false);
 
-    // Load shortcuts on mount
+    // Zustand store for shortcuts
+    const shortcuts = useShortcutStore(s => s.shortcuts);
+    const addShortcut = useShortcutStore(s => s.addShortcut);
+    const removeShortcut = useShortcutStore(s => s.removeShortcut);
+    const hydrate = useShortcutStore(s => s.hydrate);
+
+    // Register desktop target + hydrate on mount
     useEffect(() => {
-        setShortcuts(loadShortcuts());
-    }, []);
+        registerDesktopTarget();
+        hydrate();
+    }, [hydrate]);
 
-    // Handle drop
-    const handleDrop = useCallback((payload: DragPayload, position: { x: number; y: number }): boolean => {
+    // ─── Intent-Bound Drop Handler ─────────────────────────────
+    const handleDrop = useCallback(async (payload: DragPayload, position: { x: number; y: number }): Promise<boolean> => {
         if (payload.type === 'capability' && payload.capabilityId) {
-            const snapped = snapToGrid(position.x, position.y);
+            // Step 1: Build intent via registry
+            const intent = buildDropIntent(payload, 'desktop', payload.traceId);
+            if (!intent) return false;
 
-            // Check if shortcut already exists at this capabilityId
-            const exists = shortcuts.some(s => s.capabilityId === payload.capabilityId);
-            if (exists) {
-                return true; // Accept drop but don't duplicate
+            setPendingDrop(true);
+
+            try {
+                // Step 2: POST to API (audit sink)
+                const resp = await fetch('/api/os/desktop/shortcuts/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-trace-id': payload.traceId,
+                    },
+                    body: JSON.stringify({
+                        capabilityId: intent.payload.capabilityId,
+                        title: intent.payload.title,
+                        icon: intent.payload.icon,
+                        position,
+                        traceId: payload.traceId,
+                    }),
+                });
+
+                if (!resp.ok) {
+                    console.error('[DesktopDropZone] API error:', resp.status);
+                    setPendingDrop(false);
+                    return false;
+                }
+
+                const data = await resp.json();
+
+                // Step 3: Apply via store (which calls apply layer → localStorage)
+                const shortcut: DesktopShortcut = {
+                    id: data.shortcut.id,
+                    capabilityId: data.shortcut.capabilityId,
+                    title: data.shortcut.title,
+                    icon: data.shortcut.icon,
+                    createdAt: data.shortcut.createdAt,
+                    createdBy: { uid: 'current' },
+                    traceId: payload.traceId,
+                    source: { from: 'dock', appId: payload.sourceAppId },
+                    position,
+                };
+
+                addShortcut(shortcut);
+                setPendingDrop(false);
+                return true;
+
+            } catch (error) {
+                console.error('[DesktopDropZone] Error creating shortcut:', error);
+                setPendingDrop(false);
+                return false;
             }
+        }
 
-            const shortcut: DesktopShortcut = {
-                id: `shortcut-${Date.now()}`,
-                capabilityId: payload.capabilityId,
-                label: payload.label,
-                icon: payload.icon ?? '📦',
-                position: snapped,
-                createdAt: new Date().toISOString(),
-            };
-
-            const next = [...shortcuts, shortcut];
-            setShortcuts(next);
-            saveShortcuts(next);
+        // File drops → VFS locked
+        if (payload.type === 'file') {
+            setVfsLockedMsg('VFS is currently locked (Phase 15A). File drop not available.');
+            setTimeout(() => setVfsLockedMsg(null), 3000);
             return true;
         }
 
-        if (payload.type === 'file') {
-            // VFS 15A Lock — show message
-            setVfsLockedMsg('VFS is currently locked (Phase 15A). File drop not available.');
-            setTimeout(() => setVfsLockedMsg(null), 3000);
-            return true; // Accept to clear drag state
-        }
-
         return false;
-    }, [shortcuts]);
+    }, [addShortcut]);
 
+    // ─── Drop Zone Hook ────────────────────────────────────────
     const { dropRef, isOver, canDrop, handlers } = useDropZone({
         zoneId: 'desktop',
         accepts: ['capability', 'file'],
-        onDrop: handleDrop,
+        onDrop: (payload, position) => {
+            handleDrop(payload, position);
+            return true; // Accept immediately, async flow handles the rest
+        },
     });
 
-    // Remove shortcut handler
-    const removeShortcut = useCallback((id: string) => {
-        const next = shortcuts.filter(s => s.id !== id);
-        setShortcuts(next);
-        saveShortcuts(next);
-    }, [shortcuts]);
+    // ─── Remove Shortcut (Intent-Bound) ────────────────────────
+    const handleRemoveShortcut = useCallback(async (shortcutId: string) => {
+        const traceId = `sc-rm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        try {
+            const resp = await fetch('/api/os/desktop/shortcuts/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-trace-id': traceId,
+                },
+                body: JSON.stringify({ shortcutId, traceId }),
+            });
 
-    const isDragging = phase === 'dragging';
+            if (resp.ok) {
+                removeShortcut(shortcutId);
+            }
+        } catch (error) {
+            console.error('[DesktopDropZone] Error removing shortcut:', error);
+        }
+    }, [removeShortcut]);
 
+    // ─── Render ────────────────────────────────────────────────
     return (
         <div
             ref={dropRef}
@@ -138,91 +153,93 @@ export function DesktopDropZone({ onOpenCapability }: DesktopDropZoneProps) {
                 position: 'absolute',
                 inset: 0,
                 zIndex: 0,
-                // Visual feedback during drag
-                ...(isDragging && canDrop ? {
-                    outline: '2px dashed rgba(100, 180, 255, 0.4)',
-                    outlineOffset: '-4px',
-                    borderRadius: '8px',
-                } : {}),
-                ...(isOver ? {
-                    backgroundColor: 'rgba(100, 180, 255, 0.08)',
-                } : {}),
-                transition: 'background-color 0.2s ease, outline 0.2s ease',
+                outline: isOver && canDrop ? '2px dashed rgba(0,122,255,0.5)' : 'none',
+                backgroundColor: isOver && canDrop ? 'rgba(0,122,255,0.05)' : 'transparent',
+                transition: 'all 0.2s ease',
+                pointerEvents: 'auto',
             }}
         >
-            {/* Desktop Shortcuts Grid */}
-            {shortcuts.map(shortcut => (
+            {/* Desktop Shortcuts */}
+            {shortcuts.map(sc => (
                 <div
-                    key={shortcut.id}
-                    style={{
-                        position: 'absolute',
-                        left: shortcut.position.x,
-                        top: shortcut.position.y,
-                        width: ICON_SIZE,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                    }}
-                    onClick={() => onOpenCapability?.(shortcut.capabilityId)}
+                    key={sc.id}
+                    onDoubleClick={() => onOpenCapability(sc.capabilityId)}
                     onContextMenu={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        removeShortcut(shortcut.id);
+                        handleRemoveShortcut(sc.id);
                     }}
-                    title={`${shortcut.label}\nRight-click to remove`}
-                >
-                    <div style={{
-                        fontSize: '32px',
-                        width: '52px',
-                        height: '52px',
+                    title={`${sc.title}\nRight-click to remove`}
+                    style={{
+                        position: 'absolute',
+                        left: sc.position?.x ?? 20,
+                        top: sc.position?.y ?? 20,
+                        width: 72,
+                        height: 80,
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderRadius: '12px',
-                        backdropFilter: 'blur(8px)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        transition: 'transform 0.15s ease, background-color 0.15s ease',
-                    }}>
-                        {shortcut.icon}
-                    </div>
+                        gap: 4,
+                        cursor: 'pointer',
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                        userSelect: 'none',
+                    }}
+                >
+                    <span style={{ fontSize: 32 }}>{sc.icon}</span>
                     <span style={{
-                        fontSize: '11px',
-                        color: 'rgba(255,255,255,0.85)',
+                        fontSize: 11,
+                        color: 'var(--nx-text-inverse)',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.6)',
                         textAlign: 'center',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                        maxWidth: '80px',
+                        lineHeight: 1.2,
+                        maxWidth: 68,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                     }}>
-                        {shortcut.label}
+                        {sc.title}
                     </span>
                 </div>
             ))}
 
-            {/* VFS Locked Indicator */}
+            {/* VFS Locked Message */}
             {vfsLockedMsg && (
                 <div style={{
                     position: 'fixed',
-                    bottom: '100px',
+                    bottom: 80,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    backgroundColor: 'rgba(255, 120, 50, 0.9)',
+                    background: 'rgba(255,59,48,0.9)',
                     color: '#fff',
                     padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
+                    borderRadius: 8,
+                    fontSize: 13,
                     fontWeight: 500,
-                    zIndex: 9999,
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    zIndex: 1000,
                     animation: 'fadeIn 0.2s ease',
                 }}>
                     🔒 {vfsLockedMsg}
+                </div>
+            )}
+
+            {/* Pending Drop Indicator */}
+            {pendingDrop && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: 80,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,122,255,0.9)',
+                    color: '#fff',
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    zIndex: 1000,
+                }}>
+                    ⏳ Creating shortcut...
                 </div>
             )}
         </div>

@@ -80,6 +80,7 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
             severity: 'info',
             dedupeKey: `drag.started:${p.type}:${p.sourceAppId}`,
             payload: {
+                traceId: p.traceId,
                 itemType: p.type,
                 sourceAppId: p.sourceAppId,
                 label: p.label,
@@ -98,10 +99,12 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
             domain: 'ui',
             source: { appId: p?.sourceAppId ?? 'unknown', module: 'dnd' },
             severity: 'info',
-            dedupeKey: `drag.dropped:${p?.type}:${result.zoneId}`,
+            dedupeKey: `drag:${p?.traceId ?? 'unknown'}`,
             payload: {
+                traceId: p?.traceId,
                 itemType: p?.type,
                 sourceAppId: p?.sourceAppId,
+                sourceCapabilityId: p?.capabilityId,
                 targetZoneId: result.zoneId,
                 position: result.position,
                 vfsLocked: result.vfsLocked,
@@ -121,8 +124,9 @@ export function DragProvider({ children }: { children: React.ReactNode }) {
             domain: 'ui',
             source: { appId: p?.sourceAppId ?? 'unknown', module: 'dnd' },
             severity: 'info',
-            dedupeKey: `drag.cancelled:${p?.type}:${p?.sourceAppId}`,
+            dedupeKey: `drag:${p?.traceId ?? 'unknown'}`,
             payload: {
+                traceId: p?.traceId,
                 itemType: p?.type,
                 sourceAppId: p?.sourceAppId,
                 reason: reason ?? 'user_cancel',

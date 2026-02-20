@@ -283,7 +283,7 @@ export function OSShell() {
                     }}
                 >
                     {/* Phase 19: Desktop drop zone for shortcuts */}
-                    <DesktopDropZone onOpenCapability={(capId) => openCapability(capId)} />
+                    <DesktopDropZone onOpenCapability={(capId) => openCapability(capId as import('@/coreos/types').CapabilityId)} />
 
                     {windows.map(window => (
                         <WindowChrome

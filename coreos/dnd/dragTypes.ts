@@ -48,6 +48,9 @@ export interface DragPayload {
 
     /** Emoji icon for drag preview */
     readonly icon?: string;
+
+    /** Trace ID for audit correlation (Phase 19.5) */
+    readonly traceId: string;
 }
 
 // ─── Drag Phase ────────────────────────────────────────────────────────

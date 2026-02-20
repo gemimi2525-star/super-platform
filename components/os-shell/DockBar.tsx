@@ -62,6 +62,7 @@ function DockItem({ icon, title, onClick, isRunning, processState, capabilityId 
 
     const handleDragStart = React.useCallback((e: React.DragEvent) => {
         if (!capabilityId) return;
+        const traceId = `drag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', capabilityId);
         startDrag({
@@ -70,6 +71,7 @@ function DockItem({ icon, title, onClick, isRunning, processState, capabilityId 
             sourceAppId: 'core.dock',
             label: title,
             icon,
+            traceId,
         });
     }, [capabilityId, title, icon, startDrag]);
 
