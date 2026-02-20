@@ -64,6 +64,8 @@ export type CapabilityId =
     | 'core.notes'
     // Phase 27A: System Hub (Control Plane Consolidation)
     | 'system.hub'
+    // Phase 15B: Task Manager
+    | 'system.taskmanager'
     // Phase 15A
     | 'core.files';
 

@@ -46,6 +46,9 @@ const CAPABILITY_TIERS: Record<CapabilityId, TrustLevel> = {
 
     // Phase 27A: System Hub
     'system.hub': TrustLevel.SYSTEM,
+
+    // Phase 15B: Task Manager
+    'system.taskmanager': TrustLevel.SYSTEM,
 };
 
 /**

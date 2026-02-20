@@ -40,6 +40,9 @@ import { PLUGIN_ANALYTICS_MANIFEST } from './plugin.analytics';
 // Phase 27A: System Hub (Control Plane Consolidation)
 import { SYSTEM_HUB_MANIFEST } from './system.hub';
 
+// Phase 15B: Task Manager
+import { SYSTEM_TASKMANAGER_MANIFEST } from './system.taskmanager';
+
 // Phase 16A: VFS App Integration
 import { CORE_NOTES_MANIFEST } from './core.notes';
 
@@ -99,6 +102,9 @@ export const CAPABILITY_MANIFESTS: Record<CapabilityId, CapabilityManifest> = {
 
     // Phase 27A: System Hub
     'system.hub': SYSTEM_HUB_MANIFEST,
+
+    // Phase 15B: Task Manager
+    'system.taskmanager': SYSTEM_TASKMANAGER_MANIFEST,
 
     // Phase 39: AI Governance Brain
     'core.admin': {

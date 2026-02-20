@@ -91,7 +91,12 @@ export type AuditEventType =
     | 'brain.tool_call_blocked'
     | 'brain.proposal_created'
     | 'brain.proposal_approved'
-    | 'brain.proposal_rejected';
+    | 'brain.proposal_rejected'
+    // ─── Process Lifecycle (Phase 15B) ──────────────────────────────
+    | 'process.lifecycle.spawned'
+    | 'process.lifecycle.transition'
+    | 'process.lifecycle.priority'
+    | 'process.lifecycle.terminated';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -168,6 +173,12 @@ export const AUDIT_EVENTS = {
     BRAIN_PROPOSAL_CREATED: 'brain.proposal_created',
     BRAIN_PROPOSAL_APPROVED: 'brain.proposal_approved',
     BRAIN_PROPOSAL_REJECTED: 'brain.proposal_rejected',
+
+    // ─── Process Lifecycle (Phase 15B) ───
+    PROCESS_SPAWNED: 'process.lifecycle.spawned',
+    PROCESS_TRANSITION: 'process.lifecycle.transition',
+    PROCESS_PRIORITY: 'process.lifecycle.priority',
+    PROCESS_TERMINATED: 'process.lifecycle.terminated',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -271,6 +282,7 @@ export const AUDIT_GROUPS = [
     'system',
     'security',
     'brain',
+    'process.lifecycle',
 ] as const;
 
 export type AuditGroup = (typeof AUDIT_GROUPS)[number];

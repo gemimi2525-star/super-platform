@@ -28,6 +28,9 @@ import {
 } from '@/governance/synapse';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { HUB_TAB_MAP, HUB_SHORTCUT_CAPABILITIES } from './stateMigration'; // Phase 39: Hub-tab routing + dock canonicalization
+// Phase 15B: Process Model
+import { useProcessStore } from '@/coreos/process/process-store';
+import type { ProcessState } from '@/coreos/process/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DOCK ITEM
@@ -38,10 +41,19 @@ interface DockItemProps {
     title: string;
     onClick: () => void;
     isRunning?: boolean;
+    processState?: ProcessState | null; // Phase 15B
 }
 
-function DockItem({ icon, title, onClick, isRunning }: DockItemProps) {
+function DockItem({ icon, title, onClick, isRunning, processState }: DockItemProps) {
     const [hover, setHover] = React.useState(false);
+
+    // Phase 15B: Process state badge color
+    const badgeColor = processState === 'BACKGROUND' ? '#007aff'
+        : processState === 'SUSPENDED' ? '#ff9f0a'
+            : 'var(--nx-text-inverse-muted)';
+    const badgeTitle = processState === 'BACKGROUND' ? '◐ Background'
+        : processState === 'SUSPENDED' ? '⏸ Suspended'
+            : undefined;
 
     return (
         <div style={{ position: 'relative' }}>
@@ -65,12 +77,12 @@ function DockItem({ icon, title, onClick, isRunning }: DockItemProps) {
                     transition: `all var(--nx-duration-fast) var(--nx-ease-out)`,
                     transform: hover ? 'translateY(-8px) scale(1.1)' : 'none',
                 }}
-                title={title}
+                title={badgeTitle ? `${title} (${badgeTitle})` : title}
             >
                 {icon}
             </button>
 
-            {/* Running indicator */}
+            {/* Running indicator — Phase 15B: state-aware color */}
             {isRunning && (
                 <div
                     style={{
@@ -81,7 +93,8 @@ function DockItem({ icon, title, onClick, isRunning }: DockItemProps) {
                         width: 5,
                         height: 5,
                         borderRadius: '50%',
-                        background: 'var(--nx-text-inverse-muted)',
+                        background: badgeColor,
+                        transition: 'background 0.2s ease',
                     }}
                 />
             )}
@@ -289,6 +302,7 @@ export function DockBar() {
                         title={slot.cap.title}
                         onClick={() => handleAppOpen(slot.cap.id, slot.cap.title)}
                         isRunning={hasOpenWindow(slot.cap.id)}
+                        processState={useProcessStore.getState().getActiveByAppId(slot.cap.id)?.state ?? null}
                     />
                 );
             })}

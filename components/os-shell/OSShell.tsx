@@ -52,6 +52,8 @@ import { useContextMenu } from './hooks/useContextMenu'; // Phase 13
 // Phase 36: Offline Kernel + Dev Clarity
 import { DevBadge } from '@/coreos/ops/ui/DevBadge';
 import { OfflineBanner } from '@/coreos/offline/OfflineBanner';
+// Phase 15B: Process Model
+import { useProcessStore } from '@/coreos/process/process-store';
 
 export function OSShell() {
     const windows = useWindows();
@@ -200,6 +202,24 @@ export function OSShell() {
             debouncedSave(userId, state.windows, state.focusedWindowId, null);
         }
     }, [state.windows, state.focusedWindowId, state.security.authenticated, hasRestored, userId]);
+
+    // Phase 15B: Process lifecycle tracking
+    React.useEffect(() => {
+        if (!state.security.authenticated) return;
+
+        const focusedWin = focusedWindowId ? state.windows[focusedWindowId] : null;
+        const focusedAppId = focusedWin?.capabilityId ?? null;
+
+        // Ensure process exists for all open windows
+        Object.values(state.windows).forEach(w => {
+            if (w.state !== 'hidden') {
+                useProcessStore.getState().ensureProcess(w.capabilityId, w.title);
+            }
+        });
+
+        // Handle focus change
+        useProcessStore.getState().handleFocusChange(focusedAppId);
+    }, [focusedWindowId, state.windows, state.security.authenticated]);
 
     return (
         <div style={{
