@@ -204,6 +204,12 @@ export interface JobQueueRecord {
     resumedAt?: number;
     /** Epoch ms of last priority update */
     priorityUpdatedAt?: number;
+
+    // ── Phase 15D: Cross-device handoff metadata (additive) ──
+    /** Device ID that last modified this job */
+    lastUpdatedByDevice?: string;
+    /** User ID that last modified this job (future proof) */
+    lastUpdatedByUser?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

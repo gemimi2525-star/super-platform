@@ -394,6 +394,7 @@ export async function suspendJob(
     jobId: string,
     actorId: string,
     reason?: string,
+    deviceId?: string,
 ): Promise<{ changed: boolean; status: JobStatus }> {
     const db = getAdminFirestore();
     const now = Date.now();
@@ -422,6 +423,7 @@ export async function suspendJob(
         suspendedAt: now,
         suspendedBy: actorId,
         updatedAt: now,
+        ...(deviceId && { lastUpdatedByDevice: deviceId }),
     });
 
     jobLogger.log(AUDIT_EVENTS.JOB_SUSPENDED, {
@@ -447,6 +449,7 @@ export async function resumeJob(
     jobId: string,
     actorId: string,
     reason?: string,
+    deviceId?: string,
 ): Promise<{ changed: boolean; status: JobStatus }> {
     const db = getAdminFirestore();
     const now = Date.now();
@@ -467,6 +470,7 @@ export async function resumeJob(
         resumedAt: now,
         nextRunAt: now, // Immediately eligible for claiming
         updatedAt: now,
+        ...(deviceId && { lastUpdatedByDevice: deviceId }),
     });
 
     jobLogger.log(AUDIT_EVENTS.JOB_RESUMED, {
@@ -495,6 +499,7 @@ export async function updateJobPriority(
     jobId: string,
     priority: number,
     actorId: string,
+    deviceId?: string,
 ): Promise<{ changed: boolean; previousPriority: number; newPriority: number }> {
     const db = getAdminFirestore();
     const now = Date.now();
@@ -527,6 +532,7 @@ export async function updateJobPriority(
         priority,
         priorityUpdatedAt: now,
         updatedAt: now,
+        ...(deviceId && { lastUpdatedByDevice: deviceId }),
     });
 
     jobLogger.log(AUDIT_EVENTS.JOB_PRIORITY_UPDATED, {
