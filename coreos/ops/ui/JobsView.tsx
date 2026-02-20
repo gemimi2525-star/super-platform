@@ -2,23 +2,27 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * JobsView — Job Queue Manager (Phase 15B.2E)
+ * JobsView — Job Queue Manager (Phase 15B.2E + 15C Offline)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Interactive job list with Pause/Resume/Priority controls.
- * Used by MonitorHubShell (Ops Center) and /ops/workers page.
+ * Offline-aware: cached reads via useOfflineData, queued writes via SyncQueue.
  *
  * Features:
  *   - Live job list from /api/ops/jobs/list (10s auto-refresh)
+ *   - Offline: serves cached list + "QUEUED" badges for pending actions
  *   - Pause (suspend) / Resume per job
- *   - Priority presets (LOW/NORMAL/HIGH/CRITICAL) + custom input
+ *   - Priority presets (LOW/NORMAL/HIGH/CRITICAL)
  *   - Idempotent-safe controls (disabled during action)
  *
  * @module coreos/ops/ui/JobsView
- * @version 1.0.0
+ * @version 2.0.0 (15C: offline-first)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useOfflineData } from '../../offline/useOfflineData';
+import { OFFLINE_KEYS, OFFLINE_TTL } from '../../offline/offlineStore';
+import { getSyncQueue } from '../../offline/syncQueue';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -36,6 +40,18 @@ interface JobRow {
     updatedAt: number;
     suspendedAt: number | null;
     suspendedBy: string | null;
+}
+
+interface JobsListResponse {
+    jobs: JobRow[];
+    count: number;
+}
+
+/** Tracks optimistic UI state for offline-queued actions */
+interface QueuedAction {
+    jobId: string;
+    action: string;
+    value?: number;
 }
 
 const PRIORITY_PRESETS = [
@@ -60,67 +76,100 @@ const STATUS_COLORS: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function JobsView() {
-    const [jobs, setJobs] = useState<JobRow[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [lastRefresh, setLastRefresh] = useState('');
+    const {
+        data, isLoading, isStale, isOffline,
+        lastUpdated, error, refresh,
+    } = useOfflineData<JobsListResponse>('/api/ops/jobs/list', {
+        cacheKey: OFFLINE_KEYS.JOBS_LIST,
+        ttlMs: OFFLINE_TTL.SHORT,      // 5 min cache
+        refreshInterval: 10_000,        // 10s auto-refresh when online
+    });
+
+    const jobs = data?.jobs ?? [];
+
     const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
+    const [queuedActions, setQueuedActions] = useState<QueuedAction[]>([]);
 
-    const fetchJobs = useCallback(async () => {
-        try {
-            const res = await fetch('/api/ops/jobs/list');
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            setJobs(data.jobs ?? []);
-            setLastRefresh(new Date().toLocaleTimeString());
-            setError(null);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    }, []);
+    // ─── Format helpers ──────────────────────────────────────────────────
 
-    useEffect(() => {
-        fetchJobs();
-        const interval = setInterval(fetchJobs, 10_000);
-        return () => clearInterval(interval);
-    }, [fetchJobs]);
+    const lastRefresh = lastUpdated
+        ? new Date(lastUpdated).toLocaleTimeString()
+        : '—';
+
+    const timeAgoLabel = lastUpdated
+        ? (() => {
+            const sec = Math.floor((Date.now() - lastUpdated) / 1000);
+            if (sec < 60) return `${sec}s ago`;
+            if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+            return `${Math.floor(sec / 3600)}h ago`;
+        })()
+        : '';
 
     // ─── Actions ─────────────────────────────────────────────────────────
 
-    const doAction = async (jobId: string, action: string, body?: object) => {
-        setLoadingActions(prev => new Set(prev).add(`${jobId}:${action}`));
+    const doAction = useCallback(async (jobId: string, action: string, body?: object) => {
+        const key = `${jobId}:${action}`;
+        const url = `/api/jobs/${jobId}/${action}`;
+        const payload = body ?? {};
+
+        // ── Offline path: enqueue to SyncQueue ──
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            getSyncQueue().enqueue(url, 'POST', payload);
+            setQueuedActions(prev => [...prev, {
+                jobId, action,
+                value: (payload as Record<string, number>).value,
+            }]);
+            return;
+        }
+
+        // ── Online path: direct API call ──
+        setLoadingActions(prev => new Set(prev).add(key));
         try {
-            const res = await fetch(`/api/jobs/${jobId}/${action}`, {
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body ?? {}),
+                body: JSON.stringify(payload),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error || `HTTP ${res.status}`);
             }
             // Refetch to get fresh state
-            await fetchJobs();
-        } catch (err: any) {
-            setError(`${action} failed: ${err.message}`);
+            refresh();
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Unknown error';
+
+            // Network failed mid-call → enqueue to outbox
+            if (msg === 'Failed to fetch' || msg.includes('NetworkError')) {
+                getSyncQueue().enqueue(url, 'POST', payload);
+                setQueuedActions(prev => [...prev, {
+                    jobId, action,
+                    value: (payload as Record<string, number>).value,
+                }]);
+            }
+            // For other errors, silently ignore (idempotent retry will handle)
         } finally {
             setLoadingActions(prev => {
                 const next = new Set(prev);
-                next.delete(`${jobId}:${action}`);
+                next.delete(key);
                 return next;
             });
         }
-    };
+    }, [refresh]);
 
     const handleSuspend = (jobId: string) => doAction(jobId, 'suspend');
     const handleResume = (jobId: string) => doAction(jobId, 'resume');
     const handlePriority = (jobId: string, value: number) =>
         doAction(jobId, 'priority', { value });
 
-    const isLoading = (jobId: string, action: string) =>
+    const isLoading_ = (jobId: string, action: string) =>
         loadingActions.has(`${jobId}:${action}`);
 
     const isAnyLoading = (jobId: string) =>
         Array.from(loadingActions).some(k => k.startsWith(jobId));
+
+    const isQueued = (jobId: string) =>
+        queuedActions.some(q => q.jobId === jobId);
 
     // ─── Badge helpers ───────────────────────────────────────────────────
 
@@ -160,14 +209,40 @@ export function JobsView() {
             {/* Header */}
             <div style={st.headerRow}>
                 <span style={st.count}>{jobs.length} jobs</span>
-                <span style={st.refreshBadge}>Auto-refresh 10s • {lastRefresh}</span>
-                <button onClick={fetchJobs} style={st.refreshBtn}>↻ Refresh</button>
+                {isOffline && (
+                    <span style={st.offlineBadge}>📡 OFFLINE</span>
+                )}
+                {isStale && !isOffline && (
+                    <span style={st.staleBadge}>⏱ Stale data</span>
+                )}
+                <span style={st.refreshBadge}>
+                    {isOffline
+                        ? `Cached ${timeAgoLabel}`
+                        : `Auto-refresh 10s • ${lastRefresh}`
+                    }
+                </span>
+                <button onClick={refresh} style={st.refreshBtn} disabled={isOffline}>
+                    ↻ Refresh
+                </button>
             </div>
 
             {error && <div style={st.errorBanner}>⚠ {error}</div>}
 
-            {/* Jobs Table */}
-            {jobs.length > 0 ? (
+            {/* Queued actions banner */}
+            {queuedActions.length > 0 && (
+                <div style={st.queuedBanner}>
+                    🔄 {queuedActions.length} action{queuedActions.length > 1 ? 's' : ''} queued
+                    — will sync when online
+                </div>
+            )}
+
+            {/* Loading state */}
+            {isLoading && jobs.length === 0 ? (
+                <div style={st.empty}>
+                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>⏳</div>
+                    <p style={st.emptyText}>Loading jobs...</p>
+                </div>
+            ) : jobs.length > 0 ? (
                 <div style={st.tableWrap}>
                     <table style={st.table}>
                         <thead>
@@ -197,6 +272,9 @@ export function JobsView() {
                                         }}>
                                             {job.status}
                                         </span>
+                                        {isQueued(job.jobId) && (
+                                            <span style={st.queuedBadge}>QUEUED</span>
+                                        )}
                                     </td>
                                     <td style={st.td}>
                                         <span style={{
@@ -224,10 +302,10 @@ export function JobsView() {
                                                     style={{
                                                         ...st.actionBtn,
                                                         ...st.pauseBtn,
-                                                        ...(isLoading(job.jobId, 'suspend') ? st.loadingBtn : {}),
+                                                        ...(isLoading_(job.jobId, 'suspend') ? st.loadingBtn : {}),
                                                     }}
                                                 >
-                                                    {isLoading(job.jobId, 'suspend') ? '⏳' : '⏸'} Pause
+                                                    {isLoading_(job.jobId, 'suspend') ? '⏳' : '⏸'} Pause
                                                 </button>
                                             )}
                                             {canResume(job.status) && (
@@ -237,10 +315,10 @@ export function JobsView() {
                                                     style={{
                                                         ...st.actionBtn,
                                                         ...st.resumeBtn,
-                                                        ...(isLoading(job.jobId, 'resume') ? st.loadingBtn : {}),
+                                                        ...(isLoading_(job.jobId, 'resume') ? st.loadingBtn : {}),
                                                     }}
                                                 >
-                                                    {isLoading(job.jobId, 'resume') ? '⏳' : '▶'} Resume
+                                                    {isLoading_(job.jobId, 'resume') ? '⏳' : '▶'} Resume
                                                 </button>
                                             )}
 
@@ -273,7 +351,9 @@ export function JobsView() {
             ) : (
                 <div style={st.empty}>
                     <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>📋</div>
-                    <p style={st.emptyText}>No jobs in queue</p>
+                    <p style={st.emptyText}>
+                        {isOffline ? 'No cached jobs — connect to load' : 'No jobs in queue'}
+                    </p>
                 </div>
             )}
         </div>
@@ -291,6 +371,16 @@ const st: Record<string, React.CSSProperties> = {
     },
     count: { fontSize: 13, color: '#94a3b8', fontWeight: 600, marginRight: 'auto' },
     refreshBadge: { fontSize: 12, color: '#64748b' },
+    offlineBadge: {
+        fontSize: 11, fontWeight: 700, color: '#fbbf24',
+        background: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.3)',
+        borderRadius: 6, padding: '2px 8px',
+    },
+    staleBadge: {
+        fontSize: 11, fontWeight: 600, color: '#f97316',
+        background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.2)',
+        borderRadius: 6, padding: '2px 8px',
+    },
     refreshBtn: {
         background: 'rgba(96, 165, 250, 0.15)', color: '#60a5fa',
         border: '1px solid rgba(96, 165, 250, 0.3)', borderRadius: 8,
@@ -299,6 +389,11 @@ const st: Record<string, React.CSSProperties> = {
     errorBanner: {
         background: 'rgba(248, 113, 113, 0.15)', border: '1px solid rgba(248, 113, 113, 0.3)',
         borderRadius: 8, padding: '10px 16px', color: '#fca5a5', marginBottom: 16, fontSize: 14,
+    },
+    queuedBanner: {
+        background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.25)',
+        borderRadius: 8, padding: '8px 16px', color: '#93c5fd', marginBottom: 16,
+        fontSize: 13, fontWeight: 500,
     },
     tableWrap: {
         background: 'rgba(30, 41, 59, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)',
@@ -322,6 +417,12 @@ const st: Record<string, React.CSSProperties> = {
         display: 'inline-block', padding: '2px 8px', borderRadius: 6,
         fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
         border: '1px solid',
+    },
+    queuedBadge: {
+        display: 'inline-block', marginLeft: 6, padding: '1px 6px',
+        borderRadius: 4, fontSize: 9, fontWeight: 700,
+        background: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd',
+        border: '1px solid rgba(59, 130, 246, 0.3)', letterSpacing: 0.5,
     },
     timeAgo: { fontSize: 12, color: '#64748b' },
     actions: { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' as const },

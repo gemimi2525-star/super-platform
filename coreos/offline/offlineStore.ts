@@ -108,6 +108,7 @@ export const OFFLINE_KEYS = {
     INTEGRITY: 'integrity',
     METRICS: 'metrics',
     GOVERNANCE: 'governance',
+    JOBS_LIST: 'jobsList',
 } as const;
 
 export const OFFLINE_TTL = {
