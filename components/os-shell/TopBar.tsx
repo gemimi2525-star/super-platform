@@ -21,10 +21,205 @@ import {
     useMinimizeAll,
     useSystemState,
     useOpenCapability,
+    useActiveSpaceId,
 } from '@/governance/synapse';
 import { useMounted } from '@/coreos/useMounted';
 import { useTranslations, useLocale } from '@/lib/i18n/context';
 import { useNotificationStore } from '@/coreos/notifications/store';
+import { useSpaceStore } from '@/coreos/spaces/store';
+import { generateSpaceId } from '@/coreos/spaces/types';
+import type { SpaceRecord } from '@/coreos/spaces/types';
+import type { SpaceId } from '@/coreos/types';
+import { getKernel, IntentFactory } from '@/coreos/index';
+
+// ─── Phase 20: Space Switcher Component ────────────────────────────────
+
+function SpaceSwitcher() {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const activeSpaceId = useActiveSpaceId();
+    const spaces = useSpaceStore(s => s.spaces);
+    const addSpace = useSpaceStore(s => s.addSpace);
+    const removeSpace = useSpaceStore(s => s.removeSpace);
+    const hydrate = useSpaceStore(s => s.hydrate);
+    const mounted = useMounted();
+
+    React.useEffect(() => { hydrate(); }, [hydrate]);
+
+    const currentSpace = spaces.find(s => s.id === activeSpaceId) ?? spaces[0];
+
+    const handleSwitchSpace = React.useCallback(async (spaceId: SpaceId) => {
+        setIsOpen(false);
+        const traceId = `sp-sw-${Date.now().toString(36)}`;
+        try {
+            await fetch('/api/os/spaces/activate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ spaceId, traceId }),
+            });
+            getKernel().emit(IntentFactory.switchSpace(spaceId));
+        } catch (e) {
+            console.error('[SpaceSwitcher] Activate error:', e);
+        }
+    }, []);
+
+    const handleCreateSpace = React.useCallback(async () => {
+        const name = `Desktop ${spaces.length + 1}`;
+        const traceId = `sp-cr-${Date.now().toString(36)}`;
+        try {
+            const resp = await fetch('/api/os/spaces/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ name, traceId }),
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const newSpace: SpaceRecord = {
+                    id: data.space.id as SpaceId,
+                    name: data.space.name,
+                    order: data.space.order,
+                    createdAt: data.space.createdAt,
+                    createdBy: { uid: 'current' },
+                    traceId,
+                };
+                addSpace(newSpace);
+                // Switch to new space
+                getKernel().emit(IntentFactory.switchSpace(newSpace.id));
+                setIsOpen(false);
+            }
+        } catch (e) {
+            console.error('[SpaceSwitcher] Create error:', e);
+        }
+    }, [spaces.length, addSpace]);
+
+    const handleRemoveSpace = React.useCallback(async (spaceId: SpaceId, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (spaceId === 'space:default') return;
+        const traceId = `sp-rm-${Date.now().toString(36)}`;
+        try {
+            const resp = await fetch('/api/os/spaces/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ spaceId, traceId }),
+            });
+            if (resp.ok) {
+                // If removing active space, switch to default first
+                if (activeSpaceId === spaceId) {
+                    getKernel().emit(IntentFactory.switchSpace('space:default'));
+                }
+                removeSpace(spaceId);
+            }
+        } catch (e2) {
+            console.error('[SpaceSwitcher] Remove error:', e2);
+        }
+    }, [activeSpaceId, removeSpace]);
+
+    if (!mounted) return null;
+
+    return (
+        <div style={{ position: 'relative' }}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    background: isOpen ? 'rgba(255,255,255,0.12)' : 'none',
+                    border: 'none',
+                    color: 'inherit',
+                    fontSize: 'var(--nx-text-micro)',
+                    cursor: 'pointer',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    opacity: 0.85,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'background 0.15s ease',
+                }}
+                title={`Space: ${currentSpace?.name ?? 'Desktop 1'}`}
+                id="space-switcher-btn"
+            >
+                <span style={{ fontSize: 11 }}>⬜</span>
+                <span style={{ fontSize: 12 }}>{currentSpace?.name ?? 'Desktop 1'}</span>
+                <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>
+            </button>
+
+            {isOpen && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: 4,
+                        background: 'var(--nx-surface-popover, rgba(30,30,30,0.95))',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 8,
+                        padding: 4,
+                        minWidth: 180,
+                        zIndex: 9999,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    }}
+                >
+                    {spaces.map(space => (
+                        <div
+                            key={space.id}
+                            onClick={() => handleSwitchSpace(space.id)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '6px 10px',
+                                cursor: 'pointer',
+                                borderRadius: 4,
+                                background: space.id === activeSpaceId ? 'rgba(0,122,255,0.25)' : 'transparent',
+                                fontSize: 12,
+                                color: 'var(--nx-text-inverse, #fff)',
+                                transition: 'background 0.1s ease',
+                            }}
+                        >
+                            <span>{space.id === activeSpaceId ? '● ' : '○ '}{space.name}</span>
+                            {space.id !== 'space:default' && (
+                                <button
+                                    onClick={(e) => handleRemoveSpace(space.id, e)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'rgba(255,255,255,0.4)',
+                                        cursor: 'pointer',
+                                        fontSize: 11,
+                                        padding: '0 4px',
+                                    }}
+                                    title="Remove space"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Divider */}
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+
+                    {/* Create new space */}
+                    <div
+                        onClick={handleCreateSpace}
+                        style={{
+                            padding: '6px 10px',
+                            cursor: 'pointer',
+                            borderRadius: 4,
+                            fontSize: 12,
+                            color: 'rgba(0,122,255,0.9)',
+                            transition: 'background 0.1s ease',
+                        }}
+                    >
+                        ＋ New Space
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── TopBar Props ──────────────────────────────────────────────────────
 
 interface TopBarProps {
     onToggleLogs?: () => void;
@@ -97,7 +292,7 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                 userSelect: 'none',
             }}
         >
-            {/* Left: System Layer + App Context */}
+            {/* Left: System Layer + Space Switcher + App Context */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--nx-space-4)' }}>
                 {/* System Menu */}
                 <button
@@ -115,6 +310,9 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
                 >
                     ◈
                 </button>
+
+                {/* Phase 20: Space Switcher */}
+                <SpaceSwitcher />
 
                 {/* App Context Layer */}
                 <span style={{ fontWeight: 'var(--nx-weight-semibold)' }}>

@@ -104,7 +104,12 @@ export type AuditEventType =
     | 'notification.muted'
     // ─── Desktop Shortcuts (Phase 19.5) ─────────────────────────────
     | 'desktop.shortcut.created'
-    | 'desktop.shortcut.removed';
+    | 'desktop.shortcut.removed'
+    // ─── Virtual Spaces (Phase 20) ──────────────────────────────────
+    | 'space.created'
+    | 'space.activated'
+    | 'space.window.moved'
+    | 'space.removed';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -197,6 +202,12 @@ export const AUDIT_EVENTS = {
     // ─── Desktop Shortcuts (Phase 19.5) ───
     DESKTOP_SHORTCUT_CREATED: 'desktop.shortcut.created',
     DESKTOP_SHORTCUT_REMOVED: 'desktop.shortcut.removed',
+
+    // ─── Virtual Spaces (Phase 20) ───
+    SPACE_CREATED: 'space.created',
+    SPACE_ACTIVATED: 'space.activated',
+    SPACE_WINDOW_MOVED: 'space.window.moved',
+    SPACE_REMOVED: 'space.removed',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

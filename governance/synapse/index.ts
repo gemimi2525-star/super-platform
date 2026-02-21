@@ -55,6 +55,7 @@ export {
     useIsAuthenticated,
     useCalmState,
     useCapabilityInfo,
+    useActiveSpaceId,
     // Phase 9: Single-instance & Persona
     useExistingWindow,
     useSingleInstanceOpen,

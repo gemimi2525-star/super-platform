@@ -59,6 +59,7 @@ export interface SystemState {
     windows: Record<string, Window>;
     focusedWindowId: string | null;
     cognitiveMode: string;
+    activeSpaceId: string;  // Phase 20: Virtual Spaces
     security: {
         authenticated: boolean;
         userId: string | null;
@@ -107,11 +108,13 @@ export function useOpenCapability() {
 
 /**
  * Hook to get windows in z-order (highest first)
+ * Phase 20: Filtered by activeSpaceId — only shows windows in current space
  */
 export function useWindows(): Window[] {
     const state = useSystemState();
+    const activeSpaceId = (state as any).activeSpaceId;
     return Object.values(state.windows)
-        .filter(w => w.state === 'active')
+        .filter(w => w.state === 'active' && (!activeSpaceId || w.spaceId === activeSpaceId))
         .sort((a, b) => b.zIndex - a.zIndex)
         .map(w => ({
             id: w.id,
@@ -133,11 +136,21 @@ export function useWindows(): Window[] {
 
 /**
  * Hook to get minimized windows (for dock)
+ * Phase 20: Filtered by activeSpaceId
  */
 export function useMinimizedWindows(): Window[] {
     const state = useSystemState();
+    const activeSpaceId = (state as any).activeSpaceId;
     return Object.values(state.windows)
-        .filter(w => w.state === 'minimized');
+        .filter(w => w.state === 'minimized' && (!activeSpaceId || w.spaceId === activeSpaceId));
+}
+
+/**
+ * Hook to get active space ID (Phase 20)
+ */
+export function useActiveSpaceId(): string {
+    const state = useSystemState();
+    return (state as any).activeSpaceId ?? 'space:default';
 }
 
 /**

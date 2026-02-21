@@ -63,21 +63,31 @@ export function useCalmState() {
 
 /**
  * Hook to get windows in z-order (highest first)
+ * Phase 20: Filtered by activeSpaceId — only shows windows in current space
  */
 export function useWindows(): Window[] {
     const state = useSystemState();
     return Object.values(state.windows)
-        .filter(w => w.state === 'active')
+        .filter(w => w.state === 'active' && w.spaceId === state.activeSpaceId)
         .sort((a, b) => b.zIndex - a.zIndex);
 }
 
 /**
  * Hook to get minimized windows (for dock)
+ * Phase 20: Filtered by activeSpaceId
  */
 export function useMinimizedWindows(): Window[] {
     const state = useSystemState();
     return Object.values(state.windows)
-        .filter(w => w.state === 'minimized');
+        .filter(w => w.state === 'minimized' && w.spaceId === state.activeSpaceId);
+}
+
+/**
+ * Hook to get active space ID (Phase 20)
+ */
+export function useActiveSpaceId() {
+    const state = useSystemState();
+    return state.activeSpaceId;
 }
 
 /**
