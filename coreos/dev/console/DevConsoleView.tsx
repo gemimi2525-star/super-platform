@@ -11,12 +11,12 @@
  * - Permissions: audit event coverage overview
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { APP_MANIFESTS } from '@/components/os-shell/apps/manifest';
 import type { ShellAppManifest } from '@/components/os-shell/apps/manifest';
 import { appRegistry } from '@/components/os-shell/apps/registry';
 
-type Tab = 'capabilities' | 'validator' | 'permissions' | 'packages' | 'isolation';
+type Tab = 'capabilities' | 'validator' | 'permissions' | 'packages' | 'isolation' | 'observability';
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
@@ -504,6 +504,113 @@ function IsolationTab() {
     );
 }
 
+// ─── Observability Tab (Phase 27) ─────────────────────────────────────
+
+interface TLEntry { seq: number; kind: string; capabilityId: string; detail: string; timestamp: string }
+interface VCount { 'permission.denied': number; 'crosscall.denied': number; 'rate.throttled': number; 'disabled.action': number }
+interface VEntry { id: number; type: string; capabilityId: string; targetId?: string; reason: string; timestamp: string }
+
+function ObservabilityTab() {
+    const [timeline, setTimeline] = useState<TLEntry[]>([]);
+    const [violations, setViolations] = useState<VEntry[]>([]);
+    const [vCounts, setVCounts] = useState<VCount | null>(null);
+    const [seq, setSeq] = useState(0);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const refresh = useCallback(async () => {
+        try {
+            const { getTimeline, getSeq } = await import('@/coreos/dev/observability/timeline');
+            const { getViolations, getViolationCounts } = await import('@/coreos/dev/observability/violations');
+            setTimeline(getTimeline(50));
+            setViolations(getViolations(20));
+            setVCounts(getViolationCounts());
+            setSeq(getSeq());
+        } catch { /* not ready */ }
+    }, []);
+
+    useEffect(() => {
+        refresh();
+        intervalRef.current = setInterval(refresh, 2000);
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    }, [refresh]);
+
+    const kindColor = (k: string) => {
+        if (k.includes('denied')) return '#ef4444';
+        if (k.includes('throttled')) return '#f59e0b';
+        if (k.includes('enabled')) return '#10b981';
+        if (k.includes('disabled')) return '#f59e0b';
+        if (k.includes('installed')) return '#60a5fa';
+        return '#94a3b8';
+    };
+
+    return (
+        <div>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Seq: {seq} • Auto-refresh: 2s</span>
+                <button onClick={refresh} style={{
+                    padding: '2px 8px', background: 'rgba(16,185,129,0.1)',
+                    border: '1px solid rgba(16,185,129,0.2)', borderRadius: 4,
+                    color: '#10b981', fontSize: 10, cursor: 'pointer',
+                }}>↻ Refresh</button>
+            </div>
+
+            {/* Violation Counters */}
+            {vCounts && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    {Object.entries(vCounts).map(([type, count]) => (
+                        <div key={type} style={{
+                            padding: '6px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                            color: (count as number) > 0 ? '#ef4444' : '#475569',
+                        }}>
+                            {type.split('.').pop()}: {count as number}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Timeline */}
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Timeline (last 50):</div>
+            {timeline.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic', marginBottom: 12 }}>No events recorded</div>
+            ) : (
+                <div style={{ maxHeight: 240, overflow: 'auto', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {timeline.map(e => (
+                        <div key={e.seq} style={{
+                            display: 'grid', gridTemplateColumns: '40px 140px 1fr', gap: 6,
+                            padding: '4px 8px', background: 'rgba(255,255,255,0.02)',
+                            borderRadius: 4, fontSize: 10, alignItems: 'center',
+                        }}>
+                            <span style={{ color: '#475569', fontFamily: 'monospace' }}>#{e.seq}</span>
+                            <span style={{ color: kindColor(e.kind), fontWeight: 600 }}>{e.kind}</span>
+                            <span style={{ color: '#94a3b8' }}>{e.capabilityId}: {e.detail}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Recent Violations */}
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Recent Violations:</div>
+            {violations.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>No violations</div>
+            ) : (
+                <div style={{ maxHeight: 200, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {violations.map(v => (
+                        <div key={v.id} style={{
+                            padding: '6px 8px', background: 'rgba(239,68,68,0.05)',
+                            border: '1px solid rgba(239,68,68,0.1)', borderRadius: 4, fontSize: 10,
+                        }}>
+                            <span style={{ color: '#ef4444', fontWeight: 600 }}>{v.type}</span>
+                            <span style={{ color: '#94a3b8', marginLeft: 8 }}>{v.capabilityId}{v.targetId ? ` → ${v.targetId}` : ''}</span>
+                            <div style={{ color: '#64748b', marginTop: 2 }}>{v.reason}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────
 
 export function DevConsoleView() {
@@ -524,7 +631,7 @@ export function DevConsoleView() {
                     🛠️ Developer Console
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
-                    SDK Skeleton • Phase 24–26 • Dev-only
+                    SDK Skeleton • Phase 24–27 • Dev-only
                 </p>
             </div>
 
@@ -535,6 +642,7 @@ export function DevConsoleView() {
                 <TabButton label="Permissions" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
                 <TabButton label="Packages" active={activeTab === 'packages'} onClick={() => setActiveTab('packages')} />
                 <TabButton label="Isolation" active={activeTab === 'isolation'} onClick={() => setActiveTab('isolation')} />
+                <TabButton label="Observability" active={activeTab === 'observability'} onClick={() => setActiveTab('observability')} />
             </div>
 
             {/* Content */}
@@ -544,6 +652,7 @@ export function DevConsoleView() {
                 {activeTab === 'permissions' && <PermissionsTab />}
                 {activeTab === 'packages' && <PackagesTab />}
                 {activeTab === 'isolation' && <IsolationTab />}
+                {activeTab === 'observability' && <ObservabilityTab />}
             </div>
         </div>
     );
