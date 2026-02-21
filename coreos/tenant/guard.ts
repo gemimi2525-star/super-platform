@@ -1,16 +1,28 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * API Guard Middleware (Phase 29)
+ * API Guard Middleware (Phase 29.2 — Real Firestore Validation)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Server-side session context validation for tenant-aware APIs.
- * When multi-tenant is disabled, returns a legacy single-tenant context.
+ * When multi-tenant is disabled: returns legacy single-tenant context.
+ * When enabled: validates membership + session in Firestore.
  */
 
 import type { SessionContext, TenantRole } from './types';
 import { DEFAULT_TENANT_ID, SESSION_EXPIRY_MS } from './types';
 import { isMultiTenantEnabled } from './featureFlag';
 import { extractSessionHeaders } from './context';
+
+// ─── Error Codes ────────────────────────────────────────────────────────
+
+export const TENANT_ERRORS = {
+    HEADERS_MISSING: 'TENANT_HEADERS_MISSING',
+    MEMBER_REQUIRED: 'TENANT_MEMBER_REQUIRED',
+    SESSION_INVALID: 'TENANT_SESSION_INVALID',
+    SESSION_REVOKED: 'TENANT_SESSION_REVOKED',
+    AUTH_REQUIRED: 'AUTH_REQUIRED',
+    INSUFFICIENT_ROLE: 'INSUFFICIENT_ROLE',
+} as const;
 
 // ─── Context Resolution ─────────────────────────────────────────────────
 
@@ -21,8 +33,8 @@ import { extractSessionHeaders } from './context';
  *   → Returns legacy context with DEFAULT_TENANT_ID
  *
  * When multi-tenant is ENABLED:
- *   → Validates headers, membership, and session
- *   → Returns full SessionContext or throws
+ *   → Validates headers, membership, session via Firestore
+ *   → Returns full SessionContext or throws TenantGuardError
  */
 export async function resolveSessionContext(
     req: Request,
@@ -44,21 +56,59 @@ export async function resolveSessionContext(
     const headers = extractSessionHeaders(req);
 
     if (!headers.tenantId || !headers.sessionId) {
-        throw new TenantGuardError('Missing x-tenant-id or x-session-id header', 401);
+        throw new TenantGuardError(
+            'Missing x-tenant-id or x-session-id header',
+            401,
+            TENANT_ERRORS.HEADERS_MISSING,
+        );
     }
 
     if (!firebaseUid) {
-        throw new TenantGuardError('Authentication required', 401);
+        throw new TenantGuardError(
+            'Authentication required',
+            401,
+            TENANT_ERRORS.AUTH_REQUIRED,
+        );
     }
 
-    // TODO Phase 29.1: Validate membership + session in Firestore
-    // For now, return a context based on headers (scaffolding)
+    // Validate membership in Firestore
+    const { validateMembership, validateSession, touchSession } =
+        await import('./firestore');
+
+    const member = await validateMembership(headers.tenantId, firebaseUid);
+    if (!member) {
+        throw new TenantGuardError(
+            `User ${firebaseUid} is not an active member of tenant ${headers.tenantId}`,
+            403,
+            TENANT_ERRORS.MEMBER_REQUIRED,
+        );
+    }
+
+    // Validate session in Firestore
+    const session = await validateSession(
+        headers.tenantId,
+        headers.sessionId,
+        firebaseUid,
+    );
+    if (!session) {
+        throw new TenantGuardError(
+            `Session ${headers.sessionId} is invalid, revoked, or expired`,
+            401,
+            TENANT_ERRORS.SESSION_INVALID,
+        );
+    }
+
+    // Touch lastSeenAt (fire-and-forget, non-blocking)
+    touchSession(headers.tenantId, headers.sessionId).catch(() => {
+        /* silently ignore touch failures */
+    });
+
     return {
         tenantId: headers.tenantId,
         userId: firebaseUid,
         sessionId: headers.sessionId,
-        role: 'user' as TenantRole,
-        issuedAt: Date.now(),
+        role: member.role,
+        issuedAt: new Date(session.createdAt).getTime(),
         authMode: 'REAL',
     };
 }
@@ -86,6 +136,7 @@ export function assertMinRole(ctx: SessionContext, minRole: TenantRole): void {
         throw new TenantGuardError(
             `Insufficient role: requires ${minRole}, has ${ctx.role}`,
             403,
+            TENANT_ERRORS.INSUFFICIENT_ROLE,
         );
     }
 }
@@ -103,6 +154,7 @@ export class TenantGuardError extends Error {
     constructor(
         message: string,
         public readonly statusCode: number,
+        public readonly errorCode?: string,
     ) {
         super(`[Phase 29 Guard] ${message}`);
         this.name = 'TenantGuardError';

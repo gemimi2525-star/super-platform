@@ -1,8 +1,8 @@
 /**
- * API Route — End Session (Phase 29)
+ * API Route — End Session (Phase 29.2)
  * POST /api/tenants/sessions/end
  *
- * Revokes an active session by setting revokedAt timestamp.
+ * Revokes an active session in Firestore.
  */
 import { NextResponse } from 'next/server';
 
@@ -32,11 +32,13 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // TODO Phase 29.1: Set revokedAt in Firestore session doc
+        const { revokeSession } = await import('@/coreos/tenant/firestore');
+        await revokeSession(body.tenantId, body.sessionId);
+
         return NextResponse.json({
             status: 'OK',
             module: 'session-end',
-            phase: 29,
+            phase: 29.2,
             tenantId: body.tenantId,
             sessionId: body.sessionId,
             revokedAt: new Date().toISOString(),
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
     } catch (err) {
         return NextResponse.json({
             status: 'ERROR',
-            error: err instanceof Error ? err.message : 'Invalid request',
-        }, { status: 400 });
+            error: err instanceof Error ? err.message : 'Session revocation failed',
+        }, { status: 500 });
     }
 }

@@ -1,8 +1,8 @@
 /**
- * API Route — Dev Tenant Bootstrap (Phase 29, Dev-only)
+ * API Route — Dev Tenant Bootstrap (Phase 29.2, Dev-only)
  * POST /api/dev/tenants/bootstrap
  *
- * Creates a tenant + owner membership for development.
+ * Creates a tenant + owner membership in Firestore.
  * 404 in production.
  */
 import { NextResponse } from 'next/server';
@@ -32,18 +32,41 @@ export async function POST(request: Request) {
             .replace(/-+/g, '-')
             .slice(0, 32);
 
-        // TODO Phase 29.1: Write to Firestore
-        // For now, return scaffolding response
+        const { isMultiTenantEnabled } = await import('@/coreos/tenant/featureFlag');
+
+        if (!isMultiTenantEnabled()) {
+            // Scaffolding response when flag OFF
+            return NextResponse.json({
+                status: 'OK',
+                module: 'dev-tenant-bootstrap',
+                phase: 29.2,
+                multiTenantEnabled: false,
+                tenant: {
+                    tenantId,
+                    name: body.tenantName,
+                    ownerUserId: body.ownerUserId,
+                    role: 'owner',
+                    createdAt: new Date().toISOString(),
+                    note: 'Scaffolding only — enable MULTI_TENANT_ENABLED=true for real Firestore write',
+                },
+            });
+        }
+
+        // Real Firestore write when flag ON
+        const { createTenant } = await import('@/coreos/tenant/firestore');
+        const doc = await createTenant(tenantId, body.tenantName, body.ownerUserId);
+
         return NextResponse.json({
             status: 'OK',
             module: 'dev-tenant-bootstrap',
-            phase: 29,
+            phase: 29.2,
+            multiTenantEnabled: true,
             tenant: {
                 tenantId,
-                name: body.tenantName,
-                ownerUserId: body.ownerUserId,
+                name: doc.name,
+                ownerUserId: doc.ownerUserId,
                 role: 'owner',
-                createdAt: new Date().toISOString(),
+                createdAt: doc.createdAt,
             },
         });
     } catch (err) {
