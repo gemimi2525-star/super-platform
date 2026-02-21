@@ -16,7 +16,7 @@ import { APP_MANIFESTS } from '@/components/os-shell/apps/manifest';
 import type { ShellAppManifest } from '@/components/os-shell/apps/manifest';
 import { appRegistry } from '@/components/os-shell/apps/registry';
 
-type Tab = 'capabilities' | 'validator' | 'permissions';
+type Tab = 'capabilities' | 'validator' | 'permissions' | 'packages';
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
@@ -240,6 +240,137 @@ function PermissionsTab() {
     );
 }
 
+// ─── Packages Tab (Phase 25) ───────────────────────────────────────────
+
+function PackagesTab() {
+    const [json, setJson] = useState('');
+    const [status, setStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+    const [installed, setInstalled] = useState<Array<{ id: string; version: string; title: string; icon: string; trustLevel: string; installedAt: string }>>([]);
+    const [loading, setLoading] = useState(false);
+
+    const refresh = useCallback(async () => {
+        try {
+            const { usePackageStore } = await import('@/coreos/dev/packages/store');
+            const pkgs = usePackageStore.getState().packages;
+            setInstalled(pkgs.map(p => ({
+                id: p.id, version: p.version, title: p.ui.title,
+                icon: p.ui.icon, trustLevel: p.manifest.trustLevel,
+                installedAt: p.installedAt,
+            })));
+        } catch { /* store not ready */ }
+    }, []);
+
+    useEffect(() => { refresh(); }, [refresh]);
+
+    const handleInstall = useCallback(async () => {
+        setLoading(true);
+        setStatus(null);
+        try {
+            const parsed = JSON.parse(json);
+            const { validatePackage, installPackage } = await import('@/coreos/dev/packages/packageLoader');
+            const validation = validatePackage(parsed);
+            if (!validation.valid) {
+                setStatus({ type: 'err', msg: validation.errors.join('; ') });
+                setLoading(false);
+                return;
+            }
+            const result = await installPackage(parsed);
+            if (!result.success) {
+                setStatus({ type: 'err', msg: result.errors?.join('; ') || 'Install failed' });
+            } else {
+                setStatus({ type: 'ok', msg: `✓ Installed ${result.installed?.id} (hash: ${result.installed?.argsHash?.slice(0, 12)}…)` });
+                setJson('');
+                await refresh();
+            }
+        } catch (e) {
+            setStatus({ type: 'err', msg: e instanceof Error ? e.message : 'Invalid JSON' });
+        }
+        setLoading(false);
+    }, [json, refresh]);
+
+    const handleUninstall = useCallback(async (id: string) => {
+        const { uninstallPackage } = await import('@/coreos/dev/packages/packageLoader');
+        const result = uninstallPackage(id);
+        if (result.success) {
+            setStatus({ type: 'ok', msg: `✓ Uninstalled ${id}` });
+            await refresh();
+        } else {
+            setStatus({ type: 'err', msg: result.error || 'Uninstall failed' });
+        }
+    }, [refresh]);
+
+    return (
+        <div>
+            {/* JSON Input */}
+            <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Paste Capability Package JSON:</div>
+                <textarea
+                    value={json}
+                    onChange={e => setJson(e.target.value)}
+                    placeholder='{"id": "plugin.example", "version": "0.1.0", ...}'
+                    style={{
+                        width: '100%', height: 120, fontFamily: 'monospace', fontSize: 11,
+                        background: 'rgba(0,0,0,0.3)', color: '#e2e8f0',
+                        border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
+                        padding: 8, resize: 'vertical',
+                    }}
+                />
+                <button onClick={handleInstall} disabled={loading || !json.trim()} style={{
+                    marginTop: 8, padding: '6px 16px',
+                    background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
+                    borderRadius: 6, color: '#10b981', fontSize: 12, fontWeight: 600,
+                    cursor: loading ? 'wait' : 'pointer', opacity: !json.trim() ? 0.5 : 1,
+                }}>
+                    {loading ? 'Installing…' : '📦 Install Package'}
+                </button>
+            </div>
+
+            {/* Status */}
+            {status && (
+                <div style={{
+                    padding: '8px 12px', borderRadius: 6, fontSize: 11, marginBottom: 12,
+                    background: status.type === 'ok' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                    color: status.type === 'ok' ? '#10b981' : '#ef4444',
+                    border: `1px solid ${status.type === 'ok' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                }}>
+                    {status.msg}
+                </div>
+            )}
+
+            {/* Installed List */}
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>Installed ({installed.length}/10):</div>
+            {installed.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>No packages installed</div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {installed.map(p => (
+                        <div key={p.id} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '8px 12px', background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, fontSize: 12,
+                        }}>
+                            <div>
+                                <span style={{ fontSize: 16, marginRight: 8 }}>{p.icon}</span>
+                                <span style={{ fontWeight: 500, color: '#e2e8f0' }}>{p.title}</span>
+                                <span style={{ color: '#64748b', fontSize: 10, marginLeft: 8 }}>{p.id} v{p.version}</span>
+                                <span style={{
+                                    marginLeft: 8, padding: '1px 6px', borderRadius: 4, fontSize: 9,
+                                    background: 'rgba(168,85,247,0.15)', color: '#a855f7',
+                                }}>{p.trustLevel}</span>
+                            </div>
+                            <button onClick={() => handleUninstall(p.id)} style={{
+                                padding: '4px 10px', background: 'rgba(239,68,68,0.1)',
+                                border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4,
+                                color: '#ef4444', fontSize: 10, cursor: 'pointer',
+                            }}>Uninstall</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────
 
 export function DevConsoleView() {
@@ -260,7 +391,7 @@ export function DevConsoleView() {
                     🛠️ Developer Console
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
-                    SDK Skeleton • Phase 24 • Dev-only
+                    SDK Skeleton • Phase 24–25 • Dev-only
                 </p>
             </div>
 
@@ -269,6 +400,7 @@ export function DevConsoleView() {
                 <TabButton label="Capabilities" active={activeTab === 'capabilities'} onClick={() => setActiveTab('capabilities')} />
                 <TabButton label="Validator" active={activeTab === 'validator'} onClick={() => setActiveTab('validator')} />
                 <TabButton label="Permissions" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
+                <TabButton label="Packages" active={activeTab === 'packages'} onClick={() => setActiveTab('packages')} />
             </div>
 
             {/* Content */}
@@ -276,6 +408,7 @@ export function DevConsoleView() {
                 {activeTab === 'capabilities' && <CapabilitiesTab />}
                 {activeTab === 'validator' && <ValidatorTab />}
                 {activeTab === 'permissions' && <PermissionsTab />}
+                {activeTab === 'packages' && <PackagesTab />}
             </div>
         </div>
     );

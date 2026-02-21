@@ -121,7 +121,10 @@ export type AuditEventType =
     // ─── Accessibility (Phase 22) ─────────────────────────────────
     | 'a11y.highcontrast.changed'
     | 'a11y.reducedmotion.changed'
-    | 'a11y.focusring.changed';
+    | 'a11y.focusring.changed'
+    // ─── Dev Packages (Phase 25) ─────────────────────────────────
+    | 'dev.package.installed'
+    | 'dev.package.uninstalled';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -235,6 +238,10 @@ export const AUDIT_EVENTS = {
     A11Y_HIGHCONTRAST_CHANGED: 'a11y.highcontrast.changed',
     A11Y_REDUCEDMOTION_CHANGED: 'a11y.reducedmotion.changed',
     A11Y_FOCUSRING_CHANGED: 'a11y.focusring.changed',
+
+    // ─── Dev Packages (Phase 25) ───
+    DEV_PACKAGE_INSTALLED: 'dev.package.installed',
+    DEV_PACKAGE_UNINSTALLED: 'dev.package.uninstalled',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════
