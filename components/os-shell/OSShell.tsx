@@ -58,6 +58,10 @@ import { useProcessStore } from '@/coreos/process/process-store';
 // Phase 18.5: OS Event Bus
 import { initEventBus } from '@/coreos/events';
 
+// Phase 29.1: Multi-tenant
+import { TenantInitializer } from '@/coreos/tenant/TenantInitializer';
+import { TenantIndicator } from '@/coreos/tenant/TenantIndicator';
+
 // Phase 19: Drag & Drop Framework
 import { DragProvider } from '@/coreos/dnd';
 import { DesktopDropZone } from './DesktopDropZone';
@@ -364,6 +368,10 @@ export function OSShell() {
 
                 {/* Phase 23: Dev-only Performance HUD */}
                 {PerfHud && <PerfHud />}
+
+                {/* Phase 29.1: Multi-tenant context + indicator */}
+                <TenantInitializer />
+                <TenantIndicator />
             </div>
         </DragProvider>
     );

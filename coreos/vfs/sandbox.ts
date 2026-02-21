@@ -12,6 +12,8 @@
 export interface SandboxContext {
     userId: string;
     appId: string;
+    /** Phase 29.1: optional tenantId for multi-tenant VFS isolation */
+    tenantId?: string;
 }
 
 export class VFSSandbox {
@@ -31,17 +33,22 @@ export class VFSSandbox {
                 throw new Error('PATH_TRAVERSAL_DETECTED');
             }
 
+            // Phase 29.1: tenant prefix for multi-tenant isolation
+            const tenantPrefix = context.tenantId
+                ? `tenants/${context.tenantId}/`
+                : '';
+
             switch (scheme) {
                 case 'app':
-                    // /apps/{appId}/{path}
-                    return `apps/${context.appId}${pathname}`;
+                    // /[tenants/{tenantId}/]apps/{appId}/{path}
+                    return `${tenantPrefix}apps/${context.appId}${pathname}`;
 
                 case 'user':
-                    // /users/{userId}/{path}
-                    return `users/${context.userId}${pathname}`;
+                    // /[tenants/{tenantId}/]users/{userId}/{path}
+                    return `${tenantPrefix}users/${context.userId}${pathname}`;
 
                 case 'tmp':
-                    // /tmp/{sessionId}/{path}
+                    // /tmp/{sessionId}/{path} (tmp is session-scoped, not tenant-scoped)
                     return `tmp/session/${pathname}`;
 
                 default:
