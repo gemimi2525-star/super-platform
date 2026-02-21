@@ -68,6 +68,13 @@ import { useAppearanceStore } from '@/coreos/appearance/store';
 // Phase 22: Accessibility
 import { useAccessibilityStore } from '@/coreos/accessibility/store';
 
+// Phase 23: Dev-only Performance HUD + Caps
+const isDev = process.env.NODE_ENV === 'development';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PerfHud = isDev ? require('@/coreos/dev/perf/PerfHud').PerfHud : null;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const assertCaps = isDev ? require('@/coreos/dev/assertCaps').assertCaps : null;
+
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
@@ -81,6 +88,11 @@ export function OSShell() {
     // Phase 22: Hydrate accessibility
     const hydrateA11y = useAccessibilityStore(s => s.hydrate);
     React.useEffect(() => { hydrateA11y(); }, [hydrateA11y]);
+
+    // Phase 23: Assert store caps (dev-only)
+    React.useEffect(() => {
+        if (assertCaps) assertCaps();
+    }, []);
 
     // Phase 40E: ?reset=1 → clear persisted session + SW → redirect /os
     React.useEffect(() => {
@@ -349,6 +361,9 @@ export function OSShell() {
                         onClose={hideMenu}
                     />
                 )}
+
+                {/* Phase 23: Dev-only Performance HUD */}
+                {PerfHud && <PerfHud />}
             </div>
         </DragProvider>
     );

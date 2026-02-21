@@ -113,25 +113,28 @@ export function useOpenCapability() {
 export function useWindows(): Window[] {
     const state = useSystemState();
     const activeSpaceId = (state as any).activeSpaceId;
-    return Object.values(state.windows)
-        .filter(w => w.state === 'active' && (!activeSpaceId || w.spaceId === activeSpaceId))
-        .sort((a, b) => b.zIndex - a.zIndex)
-        .map(w => ({
-            id: w.id,
-            capabilityId: w.capabilityId,
-            title: w.title,
-            state: w.state,
-            zIndex: w.zIndex,
-            spaceId: w.spaceId,
-            // Phase 13: Position & Size
-            x: (w as any).x ?? 120,
-            y: (w as any).y ?? 80,
-            width: (w as any).width ?? 600,
-            height: (w as any).height ?? 480,
-            minWidth: (w as any).minWidth ?? 400,
-            minHeight: (w as any).minHeight ?? 300,
-            isMaximized: (w as any).isMaximized ?? false,
-        }));
+    // Phase 23: memoize to avoid N^2 re-render on space switch
+    return useMemo(() =>
+        Object.values(state.windows)
+            .filter(w => w.state === 'active' && (!activeSpaceId || w.spaceId === activeSpaceId))
+            .sort((a, b) => b.zIndex - a.zIndex)
+            .map(w => ({
+                id: w.id,
+                capabilityId: w.capabilityId,
+                title: w.title,
+                state: w.state,
+                zIndex: w.zIndex,
+                spaceId: w.spaceId,
+                // Phase 13: Position & Size
+                x: (w as any).x ?? 120,
+                y: (w as any).y ?? 80,
+                width: (w as any).width ?? 600,
+                height: (w as any).height ?? 480,
+                minWidth: (w as any).minWidth ?? 400,
+                minHeight: (w as any).minHeight ?? 300,
+                isMaximized: (w as any).isMaximized ?? false,
+            })),
+        [state.windows, activeSpaceId]);
 }
 
 /**
@@ -141,8 +144,11 @@ export function useWindows(): Window[] {
 export function useMinimizedWindows(): Window[] {
     const state = useSystemState();
     const activeSpaceId = (state as any).activeSpaceId;
-    return Object.values(state.windows)
-        .filter(w => w.state === 'minimized' && (!activeSpaceId || w.spaceId === activeSpaceId));
+    // Phase 23: memoize
+    return useMemo(() =>
+        Object.values(state.windows)
+            .filter(w => w.state === 'minimized' && (!activeSpaceId || w.spaceId === activeSpaceId)),
+        [state.windows, activeSpaceId]);
 }
 
 /**

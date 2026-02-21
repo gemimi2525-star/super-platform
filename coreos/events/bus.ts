@@ -22,6 +22,15 @@ import type {
     OSEventFilter,
 } from './types';
 import { createEventEnvelope, resetSeq } from './envelope';
+import {
+    incrementPublished,
+    incrementDelivered,
+    incrementDeduped,
+    incrementDropped,
+    setBufferSize,
+    resetMetrics,
+} from './metrics';
+import { shouldPublish, resetGuards } from './guards';
 
 // ─── Configuration ─────────────────────────────────────────────────────
 
@@ -97,6 +106,17 @@ function pruneDedupe(): void {
 export function publish(input: OSEventInput): OSEventEnvelope | null {
     // Dedupe check
     if (isDuplicate(input.dedupeKey)) {
+        incrementDeduped(); // Phase 23: metrics
+        return null;
+    }
+
+    // Phase 23: Guard check (throttle high-frequency events)
+    const guard = shouldPublish(input.type);
+    if (!guard.allowed) {
+        incrementDropped();
+        if (process.env.NODE_ENV === 'development') {
+            console.debug(`[EventBus] Guard denied: ${input.type} — ${guard.reason}`);
+        }
         return null;
     }
 
@@ -108,6 +128,7 @@ export function publish(input: OSEventInput): OSEventEnvelope | null {
     if (_events.length > MAX_EVENTS) {
         _events = _events.slice(-MAX_EVENTS);
     }
+    setBufferSize(_events.length); // Phase 23: metrics
 
     // Prune stale dedupe entries periodically
     if (_events.length % 50 === 0) {
@@ -115,15 +136,21 @@ export function publish(input: OSEventInput): OSEventEnvelope | null {
     }
 
     // Notify subscribers
+    let deliveredCount = 0;
     for (const sub of _subscriptions) {
         try {
             if (matchesFilter(envelope, sub.filter)) {
                 sub.handler(envelope);
+                deliveredCount++;
             }
         } catch (err) {
             console.error('[EventBus] Subscriber error:', err);
         }
     }
+
+    // Phase 23: metrics
+    incrementPublished(envelope.type);
+    incrementDelivered(deliveredCount);
 
     if (process.env.NODE_ENV === 'development') {
         console.debug(`[EventBus] Published: ${envelope.type} (seq=${envelope.seq})`);
@@ -173,5 +200,7 @@ export function reset(): void {
     _subIdCounter = 0;
     _dedupeMap.clear();
     resetSeq();
+    resetMetrics(); // Phase 23
+    resetGuards(); // Phase 23
     console.log('[EventBus] Reset complete');
 }
