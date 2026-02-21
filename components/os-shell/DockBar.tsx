@@ -133,9 +133,22 @@ function MinimizedWindowItem({ window }: { window: Window }) {
     const { icon } = useCapabilityInfo(window.capabilityId);
     const [hover, setHover] = React.useState(false);
 
+    const handleDragStart = (e: React.DragEvent) => {
+        // Phase 20.5: Set window data for cross-space drag
+        e.dataTransfer.setData('application/x-coreos-window', JSON.stringify({
+            windowId: window.id,
+            title: window.title,
+            capabilityId: window.capabilityId,
+            spaceId: window.spaceId,
+        }));
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
     return (
         <button
             onClick={restore}
+            draggable
+            onDragStart={handleDragStart}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
             style={{
@@ -154,7 +167,7 @@ function MinimizedWindowItem({ window }: { window: Window }) {
                 transition: `all var(--nx-duration-fast) var(--nx-ease-out)`,
                 transform: hover ? 'translateY(-8px) scale(1.1)' : 'none',
             }}
-            title={`Restore: ${window.title}`}
+            title={`Restore: ${window.title} (drag to move space)`}
         >
             {icon}
         </button>

@@ -109,7 +109,10 @@ export type AuditEventType =
     | 'space.created'
     | 'space.activated'
     | 'space.window.moved'
-    | 'space.removed';
+    | 'space.removed'
+    // ─── Spaces Hardening (Phase 20.5) ─────────────────────────────
+    | 'space.renamed'
+    | 'space.reordered';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -208,6 +211,10 @@ export const AUDIT_EVENTS = {
     SPACE_ACTIVATED: 'space.activated',
     SPACE_WINDOW_MOVED: 'space.window.moved',
     SPACE_REMOVED: 'space.removed',
+
+    // ─── Spaces Hardening (Phase 20.5) ───
+    SPACE_RENAMED: 'space.renamed',
+    SPACE_REORDERED: 'space.reordered',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

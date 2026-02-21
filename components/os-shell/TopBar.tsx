@@ -32,22 +32,53 @@ import type { SpaceRecord } from '@/coreos/spaces/types';
 import type { SpaceId } from '@/coreos/types';
 import { getKernel, IntentFactory } from '@/coreos/index';
 
-// ─── Phase 20: Space Switcher Component ────────────────────────────────
+// ─── Phase 20 / 20.5: Space Switcher Component ────────────────────────
 
 function SpaceSwitcher() {
     const [isOpen, setIsOpen] = React.useState(false);
+    const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [editName, setEditName] = React.useState('');
+    const [dragOverId, setDragOverId] = React.useState<string | null>(null);
     const activeSpaceId = useActiveSpaceId();
     const spaces = useSpaceStore(s => s.spaces);
     const addSpace = useSpaceStore(s => s.addSpace);
     const removeSpace = useSpaceStore(s => s.removeSpace);
+    const renameSpace = useSpaceStore(s => s.renameSpace);
+    const reorderSpaces = useSpaceStore(s => s.reorderSpaces);
+    const setPersistedActiveSpaceId = useSpaceStore(s => s.setActiveSpaceId);
     const hydrate = useSpaceStore(s => s.hydrate);
     const mounted = useMounted();
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => { hydrate(); }, [hydrate]);
 
+    // Phase 20.5: Restore persisted activeSpaceId on mount
+    React.useEffect(() => {
+        if (!mounted) return;
+        const persisted = useSpaceStore.getState().getPersistedActiveSpaceId();
+        if (persisted && persisted !== activeSpaceId && persisted !== 'space:default') {
+            try { getKernel().emit(IntentFactory.switchSpace(persisted as SpaceId)); } catch { }
+        }
+    }, [mounted]);
+
+    // Phase 20.5: Click-outside to close
+    React.useEffect(() => {
+        if (!isOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+                setEditingId(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isOpen]);
+
     const currentSpace = spaces.find(s => s.id === activeSpaceId) ?? spaces[0];
 
+    // ─── Switch Space ──────────────────────────────────────────────
     const handleSwitchSpace = React.useCallback(async (spaceId: SpaceId) => {
+        if (spaceId === activeSpaceId) return;
         setIsOpen(false);
         const traceId = `sp-sw-${Date.now().toString(36)}`;
         try {
@@ -57,11 +88,13 @@ function SpaceSwitcher() {
                 body: JSON.stringify({ spaceId, traceId }),
             });
             getKernel().emit(IntentFactory.switchSpace(spaceId));
+            setPersistedActiveSpaceId(spaceId);
         } catch (e) {
             console.error('[SpaceSwitcher] Activate error:', e);
         }
-    }, []);
+    }, [activeSpaceId, setPersistedActiveSpaceId]);
 
+    // ─── Create Space ──────────────────────────────────────────────
     const handleCreateSpace = React.useCallback(async () => {
         const name = `Desktop ${spaces.length + 1}`;
         const traceId = `sp-cr-${Date.now().toString(36)}`;
@@ -82,15 +115,16 @@ function SpaceSwitcher() {
                     traceId,
                 };
                 addSpace(newSpace);
-                // Switch to new space
                 getKernel().emit(IntentFactory.switchSpace(newSpace.id));
+                setPersistedActiveSpaceId(newSpace.id);
                 setIsOpen(false);
             }
         } catch (e) {
             console.error('[SpaceSwitcher] Create error:', e);
         }
-    }, [spaces.length, addSpace]);
+    }, [spaces.length, addSpace, setPersistedActiveSpaceId]);
 
+    // ─── Remove Space ──────────────────────────────────────────────
     const handleRemoveSpace = React.useCallback(async (spaceId: SpaceId, e: React.MouseEvent) => {
         e.stopPropagation();
         if (spaceId === 'space:default') return;
@@ -102,23 +136,110 @@ function SpaceSwitcher() {
                 body: JSON.stringify({ spaceId, traceId }),
             });
             if (resp.ok) {
-                // If removing active space, switch to default first
                 if (activeSpaceId === spaceId) {
                     getKernel().emit(IntentFactory.switchSpace('space:default'));
+                    setPersistedActiveSpaceId('space:default');
                 }
                 removeSpace(spaceId);
             }
         } catch (e2) {
             console.error('[SpaceSwitcher] Remove error:', e2);
         }
-    }, [activeSpaceId, removeSpace]);
+    }, [activeSpaceId, removeSpace, setPersistedActiveSpaceId]);
+
+    // ─── Phase 20.5: Rename ────────────────────────────────────────
+    const handleStartRename = (spaceId: string, currentName: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(spaceId);
+        setEditName(currentName);
+    };
+
+    const handleFinishRename = React.useCallback(async () => {
+        if (!editingId || editName.trim().length === 0) { setEditingId(null); return; }
+        const traceId = `sp-rn-${Date.now().toString(36)}`;
+        try {
+            await fetch('/api/os/spaces/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ spaceId: editingId, name: editName.trim(), traceId }),
+            });
+            renameSpace(editingId, editName.trim());
+        } catch (e) {
+            console.error('[SpaceSwitcher] Rename error:', e);
+        }
+        setEditingId(null);
+    }, [editingId, editName, renameSpace]);
+
+    // ─── Phase 20.5: Reorder ───────────────────────────────────────
+    const handleMoveUp = React.useCallback(async (spaceId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const idx = spaces.findIndex(s => s.id === spaceId);
+        if (idx <= 0) return;
+        const ids = spaces.map(s => s.id);
+        [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+        const traceId = `sp-ro-${Date.now().toString(36)}`;
+        try {
+            await fetch('/api/os/spaces/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ orderedIds: ids, traceId }),
+            });
+            reorderSpaces(ids);
+        } catch (e2) { console.error('[SpaceSwitcher] Reorder error:', e2); }
+    }, [spaces, reorderSpaces]);
+
+    const handleMoveDown = React.useCallback(async (spaceId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const idx = spaces.findIndex(s => s.id === spaceId);
+        if (idx < 0 || idx >= spaces.length - 1) return;
+        const ids = spaces.map(s => s.id);
+        [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+        const traceId = `sp-ro-${Date.now().toString(36)}`;
+        try {
+            await fetch('/api/os/spaces/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ orderedIds: ids, traceId }),
+            });
+            reorderSpaces(ids);
+        } catch (e2) { console.error('[SpaceSwitcher] Reorder error:', e2); }
+    }, [spaces, reorderSpaces]);
+
+    // ─── Phase 20.5: Drop target for cross-space window drag ──────
+    const handleDragOver = (e: React.DragEvent, spaceId: string) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverId(spaceId);
+    };
+
+    const handleDragLeave = () => { setDragOverId(null); };
+
+    const handleDrop = React.useCallback(async (e: React.DragEvent, targetSpaceId: string) => {
+        e.preventDefault();
+        setDragOverId(null);
+        const raw = e.dataTransfer.getData('application/x-coreos-window');
+        if (!raw) return;
+        try {
+            const { windowId } = JSON.parse(raw);
+            if (!windowId) return;
+            const traceId = `sp-mv-${Date.now().toString(36)}`;
+            await fetch('/api/os/spaces/move-window', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-trace-id': traceId },
+                body: JSON.stringify({ windowId, targetSpaceId, traceId }),
+            });
+            getKernel().emit(IntentFactory.moveWindowToSpace(windowId, targetSpaceId as SpaceId));
+        } catch (e2) {
+            console.error('[SpaceSwitcher] Move window error:', e2);
+        }
+    }, []);
 
     if (!mounted) return null;
 
     return (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => { setIsOpen(!isOpen); setEditingId(null); }}
                 style={{
                     background: isOpen ? 'rgba(255,255,255,0.12)' : 'none',
                     border: 'none',
@@ -154,45 +275,95 @@ function SpaceSwitcher() {
                         border: '1px solid rgba(255,255,255,0.12)',
                         borderRadius: 8,
                         padding: 4,
-                        minWidth: 180,
+                        minWidth: 220,
                         zIndex: 9999,
                         boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                     }}
                 >
-                    {spaces.map(space => (
+                    {spaces.map((space, idx) => (
                         <div
                             key={space.id}
                             onClick={() => handleSwitchSpace(space.id)}
+                            onDragOver={(e) => handleDragOver(e, space.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, space.id)}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                padding: '6px 10px',
+                                padding: '5px 8px',
                                 cursor: 'pointer',
                                 borderRadius: 4,
-                                background: space.id === activeSpaceId ? 'rgba(0,122,255,0.25)' : 'transparent',
+                                background: dragOverId === space.id
+                                    ? 'rgba(0,122,255,0.35)'
+                                    : space.id === activeSpaceId
+                                        ? 'rgba(0,122,255,0.2)'
+                                        : 'transparent',
                                 fontSize: 12,
                                 color: 'var(--nx-text-inverse, #fff)',
                                 transition: 'background 0.1s ease',
+                                gap: 4,
                             }}
                         >
-                            <span>{space.id === activeSpaceId ? '● ' : '○ '}{space.name}</span>
-                            {space.id !== 'space:default' && (
-                                <button
-                                    onClick={(e) => handleRemoveSpace(space.id, e)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'rgba(255,255,255,0.4)',
-                                        cursor: 'pointer',
-                                        fontSize: 11,
-                                        padding: '0 4px',
-                                    }}
-                                    title="Remove space"
-                                >
-                                    ✕
-                                </button>
-                            )}
+                            {/* Name or inline edit */}
+                            <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                                <span style={{ width: 14, flexShrink: 0 }}>{space.id === activeSpaceId ? '●' : '○'}</span>
+                                {editingId === space.id ? (
+                                    <input
+                                        autoFocus
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        onBlur={handleFinishRename}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleFinishRename(); if (e.key === 'Escape') setEditingId(null); }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: '1px solid rgba(0,122,255,0.5)',
+                                            borderRadius: 3,
+                                            color: 'inherit',
+                                            fontSize: 12,
+                                            padding: '1px 4px',
+                                            outline: 'none',
+                                            width: '100%',
+                                        }}
+                                    />
+                                ) : (
+                                    <span
+                                        onDoubleClick={(e) => handleStartRename(space.id, space.name, e)}
+                                        title="Double-click to rename"
+                                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                        {space.name}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Controls: ▲▼ reorder + ✕ remove */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                                {spaces.length > 1 && (
+                                    <>
+                                        <button
+                                            onClick={(e) => handleMoveUp(space.id, e)}
+                                            disabled={idx === 0}
+                                            style={{ background: 'none', border: 'none', color: idx === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 9, padding: '0 2px' }}
+                                            title="Move up"
+                                        >▲</button>
+                                        <button
+                                            onClick={(e) => handleMoveDown(space.id, e)}
+                                            disabled={idx === spaces.length - 1}
+                                            style={{ background: 'none', border: 'none', color: idx === spaces.length - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === spaces.length - 1 ? 'default' : 'pointer', fontSize: 9, padding: '0 2px' }}
+                                            title="Move down"
+                                        >▼</button>
+                                    </>
+                                )}
+                                {space.id !== 'space:default' && (
+                                    <button
+                                        onClick={(e) => handleRemoveSpace(space.id, e)}
+                                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 10, padding: '0 3px', marginLeft: 2 }}
+                                        title="Remove space"
+                                    >✕</button>
+                                )}
+                            </div>
                         </div>
                     ))}
 
@@ -203,7 +374,7 @@ function SpaceSwitcher() {
                     <div
                         onClick={handleCreateSpace}
                         style={{
-                            padding: '6px 10px',
+                            padding: '5px 8px',
                             cursor: 'pointer',
                             borderRadius: 4,
                             fontSize: 12,

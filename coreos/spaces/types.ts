@@ -19,6 +19,7 @@ export interface SpaceRecord {
     readonly name: string;
     readonly order: number;
     readonly createdAt: string;       // ISO 8601
+    readonly updatedAt?: string;      // ISO 8601 (Phase 20.5)
     readonly createdBy: { uid: string };
     readonly traceId: string;
 }
@@ -46,6 +47,19 @@ export interface RemoveSpaceIntent {
     readonly traceId: string;
 }
 
+// ─── Phase 20.5: Rename & Reorder Intents ──────────────────────────────
+
+export interface RenameSpaceIntent {
+    readonly spaceId: SpaceId;
+    readonly name: string;
+    readonly traceId: string;
+}
+
+export interface ReorderSpacesIntent {
+    readonly orderedIds: SpaceId[];
+    readonly traceId: string;
+}
+
 // ─── Defaults ──────────────────────────────────────────────────────────
 
 export const DEFAULT_SPACE_RECORD: SpaceRecord = {
@@ -69,3 +83,4 @@ export function generateSpaceId(name: string): SpaceId {
 // ─── Storage Key ───────────────────────────────────────────────────────
 
 export const SPACES_STORAGE_KEY = 'coreos:spaces:v1';
+export const ACTIVE_SPACE_KEY = 'coreos:activeSpaceId:v1';

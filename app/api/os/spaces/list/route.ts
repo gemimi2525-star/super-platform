@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({
         status: 'OK',
         module: 'virtual-spaces',
-        phase: 20,
+        phase: 20.5,
         integrity,
     });
 }
