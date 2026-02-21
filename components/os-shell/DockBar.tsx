@@ -290,6 +290,8 @@ export function DockBar() {
 
     return (
         <div
+            role="toolbar"
+            aria-label="Application Dock"
             style={{
                 position: 'fixed',
                 bottom: 'var(--nx-space-2)',

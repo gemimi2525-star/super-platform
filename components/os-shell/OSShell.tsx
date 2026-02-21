@@ -65,6 +65,9 @@ import { DesktopDropZone } from './DesktopDropZone';
 // Phase 21: Appearance Manager
 import { useAppearanceStore } from '@/coreos/appearance/store';
 
+// Phase 22: Accessibility
+import { useAccessibilityStore } from '@/coreos/accessibility/store';
+
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
@@ -74,6 +77,10 @@ export function OSShell() {
     // Phase 21: Hydrate appearance (must be first effect to prevent flicker)
     const hydrateAppearance = useAppearanceStore(s => s.hydrate);
     React.useEffect(() => { hydrateAppearance(); }, [hydrateAppearance]);
+
+    // Phase 22: Hydrate accessibility
+    const hydrateA11y = useAccessibilityStore(s => s.hydrate);
+    React.useEffect(() => { hydrateA11y(); }, [hydrateA11y]);
 
     // Phase 40E: ?reset=1 → clear persisted session + SW → redirect /os
     React.useEffect(() => {

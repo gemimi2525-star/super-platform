@@ -117,7 +117,11 @@ export type AuditEventType =
     | 'appearance.theme.changed'
     | 'appearance.accent.changed'
     | 'appearance.fontscale.changed'
-    | 'appearance.wallpaper.changed';
+    | 'appearance.wallpaper.changed'
+    // ─── Accessibility (Phase 22) ─────────────────────────────────
+    | 'a11y.highcontrast.changed'
+    | 'a11y.reducedmotion.changed'
+    | 'a11y.focusring.changed';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -226,6 +230,11 @@ export const AUDIT_EVENTS = {
     APPEARANCE_ACCENT_CHANGED: 'appearance.accent.changed',
     APPEARANCE_FONTSCALE_CHANGED: 'appearance.fontscale.changed',
     APPEARANCE_WALLPAPER_CHANGED: 'appearance.wallpaper.changed',
+
+    // ─── Accessibility (Phase 22) ───
+    A11Y_HIGHCONTRAST_CHANGED: 'a11y.highcontrast.changed',
+    A11Y_REDUCEDMOTION_CHANGED: 'a11y.reducedmotion.changed',
+    A11Y_FOCUSRING_CHANGED: 'a11y.focusring.changed',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

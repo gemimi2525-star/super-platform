@@ -21,6 +21,7 @@ import { OrganizationView } from './OrganizationView';
 import { AppsView } from './AppsView';
 import { AboutView } from './AboutView';
 import { AppearanceView } from './AppearanceView';
+import { AccessibilityView } from './AccessibilityView';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -34,6 +35,7 @@ export type SystemHubTab =
     | 'organization'
     | 'apps'
     | 'appearance'
+    | 'accessibility'
     | 'about';
 
 const TAB_DEFINITIONS: { id: SystemHubTab; label: string; icon: string }[] = [
@@ -44,6 +46,7 @@ const TAB_DEFINITIONS: { id: SystemHubTab; label: string; icon: string }[] = [
     { id: 'organization', label: 'Organization', icon: '🏢' },
     { id: 'apps', label: 'Apps', icon: '🛍️' },
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
+    { id: 'accessibility', label: 'Accessibility', icon: '♿' },
     { id: 'about', label: 'About', icon: 'ℹ️' },
 ];
 
@@ -67,6 +70,7 @@ export function SystemHubShell({ initialTab = 'general' }: SystemHubShellProps) 
             case 'organization': return <OrganizationView />;
             case 'apps': return <AppsView />;
             case 'appearance': return <AppearanceView />;
+            case 'accessibility': return <AccessibilityView />;
             case 'about': return <AboutView />;
             default: return <GeneralSettingsView />;
         }
@@ -82,13 +86,17 @@ export function SystemHubShell({ initialTab = 'general' }: SystemHubShellProps) 
                 </div>
             </header>
 
-            {/* Tab Bar */}
-            <div style={s.tabBar}>
+            {/* Tab Bar — Phase 22: ARIA tablist */}
+            <div style={s.tabBar} role="tablist" aria-label="System Hub tabs">
                 {TAB_DEFINITIONS.map(tab => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
                             key={tab.id}
+                            role="tab"
+                            aria-selected={isActive}
+                            aria-controls={`systemhub-panel-${tab.id}`}
+                            id={`systemhub-tab-${tab.id}`}
                             onClick={() => setActiveTab(tab.id)}
                             style={{
                                 ...s.tab,
@@ -102,8 +110,13 @@ export function SystemHubShell({ initialTab = 'general' }: SystemHubShellProps) 
                 })}
             </div>
 
-            {/* Content */}
-            <div style={s.content}>
+            {/* Content — Phase 22: ARIA tabpanel */}
+            <div
+                style={s.content}
+                role="tabpanel"
+                id={`systemhub-panel-${activeTab}`}
+                aria-labelledby={`systemhub-tab-${activeTab}`}
+            >
                 {renderContent()}
             </div>
         </div>

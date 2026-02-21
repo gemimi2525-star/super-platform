@@ -442,6 +442,8 @@ export function TopBar({ onToggleLogs, isLogPanelOpen }: TopBarProps) {
 
     return (
         <div
+            role="banner"
+            aria-label="Menu Bar"
             style={{
                 position: 'fixed',
                 top: 0,
