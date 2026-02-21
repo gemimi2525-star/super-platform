@@ -98,6 +98,11 @@ const NotificationCenterAppLazy = lazy(() =>
     import('@/coreos/notifications/ui/NotificationCenterView').then(m => ({ default: m.NotificationCenterView }))
 );
 
+// Phase 24: Dev Console
+const DevConsoleAppLazy = lazy(() =>
+    import('./devconsole/DevConsoleApp').then(m => ({ default: m.DevConsoleApp }))
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LOADING PLACEHOLDER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -189,6 +194,12 @@ export const appRegistry: Record<string, ComponentType<AppProps>> = {
     // ─────────────────────────────────────────────────────────────────────────
 
     'system.notifications': createLazyApp(NotificationCenterAppLazy),
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEV CONSOLE (Phase 24 — dev-only visible in Dock)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'system.devconsole': createLazyApp(DevConsoleAppLazy),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

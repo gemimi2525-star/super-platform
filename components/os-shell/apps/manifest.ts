@@ -293,6 +293,23 @@ export const APP_MANIFESTS: Record<string, ShellAppManifest> = {
         showInDock: false, // Hidden from dock
         showInFinder: true,
     },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DEV CONSOLE (Phase 24 — dev-only)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    'system.devconsole': {
+        appId: 'system.devconsole',
+        name: 'Dev Console',
+        icon: '🛠️',
+        version: '1.0.0',
+        category: 'utility',
+        requiredRole: 'owner',
+        capabilities: ['system.devconsole'],
+        singleInstance: true,
+        showInDock: process.env.NODE_ENV !== 'production',
+        showInFinder: process.env.NODE_ENV !== 'production',
+    },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
