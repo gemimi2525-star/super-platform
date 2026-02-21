@@ -112,7 +112,12 @@ export type AuditEventType =
     | 'space.removed'
     // ─── Spaces Hardening (Phase 20.5) ─────────────────────────────
     | 'space.renamed'
-    | 'space.reordered';
+    | 'space.reordered'
+    // ─── Appearance Manager (Phase 21) ──────────────────────────────
+    | 'appearance.theme.changed'
+    | 'appearance.accent.changed'
+    | 'appearance.fontscale.changed'
+    | 'appearance.wallpaper.changed';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -215,6 +220,12 @@ export const AUDIT_EVENTS = {
     // ─── Spaces Hardening (Phase 20.5) ───
     SPACE_RENAMED: 'space.renamed',
     SPACE_REORDERED: 'space.reordered',
+
+    // ─── Appearance Manager (Phase 21) ───
+    APPEARANCE_THEME_CHANGED: 'appearance.theme.changed',
+    APPEARANCE_ACCENT_CHANGED: 'appearance.accent.changed',
+    APPEARANCE_FONTSCALE_CHANGED: 'appearance.fontscale.changed',
+    APPEARANCE_WALLPAPER_CHANGED: 'appearance.wallpaper.changed',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

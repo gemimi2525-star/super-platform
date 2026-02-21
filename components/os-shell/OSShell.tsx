@@ -62,11 +62,18 @@ import { initEventBus } from '@/coreos/events';
 import { DragProvider } from '@/coreos/dnd';
 import { DesktopDropZone } from './DesktopDropZone';
 
+// Phase 21: Appearance Manager
+import { useAppearanceStore } from '@/coreos/appearance/store';
+
 export function OSShell() {
     const windows = useWindows();
     const bootstrap = useKernelBootstrap();
     const state = useSystemState();
     const focusedWindowId = state.focusedWindowId;
+
+    // Phase 21: Hydrate appearance (must be first effect to prevent flicker)
+    const hydrateAppearance = useAppearanceStore(s => s.hydrate);
+    React.useEffect(() => { hydrateAppearance(); }, [hydrateAppearance]);
 
     // Phase 40E: ?reset=1 → clear persisted session + SW → redirect /os
     React.useEffect(() => {
