@@ -124,7 +124,12 @@ export type AuditEventType =
     | 'a11y.focusring.changed'
     // ─── Dev Packages (Phase 25) ─────────────────────────────────
     | 'dev.package.installed'
-    | 'dev.package.uninstalled';
+    | 'dev.package.uninstalled'
+    // ─── Dev Isolation (Phase 26) ─────────────────────────────────
+    | 'dev.capability.enabled'
+    | 'dev.capability.disabled'
+    | 'dev.capability.throttled'
+    | 'dev.capability.denied';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FROZEN EVENT MAP (readonly constant)
@@ -242,6 +247,12 @@ export const AUDIT_EVENTS = {
     // ─── Dev Packages (Phase 25) ───
     DEV_PACKAGE_INSTALLED: 'dev.package.installed',
     DEV_PACKAGE_UNINSTALLED: 'dev.package.uninstalled',
+
+    // ─── Dev Isolation (Phase 26) ───
+    DEV_CAPABILITY_ENABLED: 'dev.capability.enabled',
+    DEV_CAPABILITY_DISABLED: 'dev.capability.disabled',
+    DEV_CAPABILITY_THROTTLED: 'dev.capability.throttled',
+    DEV_CAPABILITY_DENIED: 'dev.capability.denied',
 } as const satisfies Record<string, AuditEventType>;
 
 // ═══════════════════════════════════════════════════════════════════════════

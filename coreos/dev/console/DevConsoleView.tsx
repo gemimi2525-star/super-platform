@@ -16,7 +16,7 @@ import { APP_MANIFESTS } from '@/components/os-shell/apps/manifest';
 import type { ShellAppManifest } from '@/components/os-shell/apps/manifest';
 import { appRegistry } from '@/components/os-shell/apps/registry';
 
-type Tab = 'capabilities' | 'validator' | 'permissions' | 'packages';
+type Tab = 'capabilities' | 'validator' | 'permissions' | 'packages' | 'isolation';
 
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
@@ -371,6 +371,139 @@ function PackagesTab() {
     );
 }
 
+// ─── Isolation Tab (Phase 26) ─────────────────────────────────────────
+
+interface IsolatedCap {
+    capabilityId: string;
+    state: string;
+    trustLevel: string;
+    permissions: string[];
+    throttleCount: number;
+    denyCount: number;
+    lastActivity: string | null;
+    validActions: string[];
+}
+
+function IsolationTab() {
+    const [caps, setCaps] = useState<IsolatedCap[]>([]);
+    const [status, setStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+
+    const refresh = useCallback(async () => {
+        try {
+            const { useIsolationRegistry } = await import('@/coreos/dev/isolation/registry');
+            const { validActions } = await import('@/coreos/dev/isolation/lifecycle');
+            const store = useIsolationRegistry.getState();
+            setCaps(store.capabilities.map(c => ({
+                ...c,
+                validActions: validActions(c.state as 'INSTALLED' | 'ENABLED' | 'DISABLED' | 'REMOVED'),
+            })));
+        } catch { /* store not ready */ }
+    }, []);
+
+    useEffect(() => { refresh(); }, [refresh]);
+
+    const handleAction = useCallback(async (id: string, action: string) => {
+        setStatus(null);
+        try {
+            const { useIsolationRegistry } = await import('@/coreos/dev/isolation/registry');
+            const result = useIsolationRegistry.getState().transitionState(id, action as 'enable' | 'disable' | 'remove');
+            if (result.allowed) {
+                setStatus({ type: 'ok', msg: `✓ ${id} → ${action}d` });
+            } else {
+                setStatus({ type: 'err', msg: result.reason || 'Transition denied' });
+            }
+            await refresh();
+        } catch (e) {
+            setStatus({ type: 'err', msg: e instanceof Error ? e.message : 'Error' });
+        }
+    }, [refresh]);
+
+    const stateColor = (s: string) => {
+        switch (s) {
+            case 'ENABLED': return '#10b981';
+            case 'DISABLED': return '#f59e0b';
+            case 'INSTALLED': return '#60a5fa';
+            case 'REMOVED': return '#ef4444';
+            default: return '#94a3b8';
+        }
+    };
+
+    return (
+        <div>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+                Isolated capabilities: {caps.length}
+            </div>
+
+            {status && (
+                <div style={{
+                    padding: '8px 12px', borderRadius: 6, fontSize: 11, marginBottom: 12,
+                    background: status.type === 'ok' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                    color: status.type === 'ok' ? '#10b981' : '#ef4444',
+                    border: `1px solid ${status.type === 'ok' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                }}>
+                    {status.msg}
+                </div>
+            )}
+
+            {caps.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>
+                    No isolated capabilities. Install a package first.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {caps.map(c => (
+                        <div key={c.capabilityId} style={{
+                            padding: '10px 12px', background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8,
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <div>
+                                    <span style={{ fontWeight: 600, color: '#e2e8f0', fontSize: 13 }}>{c.capabilityId}</span>
+                                    <span style={{
+                                        marginLeft: 8, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                                        color: stateColor(c.state),
+                                        background: `${stateColor(c.state)}22`,
+                                    }}>{c.state}</span>
+                                    <span style={{
+                                        marginLeft: 6, padding: '1px 6px', borderRadius: 4, fontSize: 9,
+                                        background: 'rgba(168,85,247,0.15)', color: '#a855f7',
+                                    }}>{c.trustLevel}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                    {c.validActions.includes('enable') && (
+                                        <button onClick={() => handleAction(c.capabilityId, 'enable')} style={{
+                                            padding: '3px 10px', background: 'rgba(16,185,129,0.1)',
+                                            border: '1px solid rgba(16,185,129,0.2)', borderRadius: 4,
+                                            color: '#10b981', fontSize: 10, cursor: 'pointer',
+                                        }}>Enable</button>
+                                    )}
+                                    {c.validActions.includes('disable') && (
+                                        <button onClick={() => handleAction(c.capabilityId, 'disable')} style={{
+                                            padding: '3px 10px', background: 'rgba(245,158,11,0.1)',
+                                            border: '1px solid rgba(245,158,11,0.2)', borderRadius: 4,
+                                            color: '#f59e0b', fontSize: 10, cursor: 'pointer',
+                                        }}>Disable</button>
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#94a3b8', display: 'flex', gap: 16 }}>
+                                <span>Throttled: {c.throttleCount}</span>
+                                <span>Denied: {c.denyCount}</span>
+                                <span>Perms: {c.permissions.length > 0 ? c.permissions.join(', ') : 'none'}</span>
+                            </div>
+                            {c.lastActivity && (
+                                <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>
+                                    Last: {new Date(c.lastActivity).toLocaleTimeString()}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────
 
 export function DevConsoleView() {
@@ -391,7 +524,7 @@ export function DevConsoleView() {
                     🛠️ Developer Console
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
-                    SDK Skeleton • Phase 24–25 • Dev-only
+                    SDK Skeleton • Phase 24–26 • Dev-only
                 </p>
             </div>
 
@@ -401,6 +534,7 @@ export function DevConsoleView() {
                 <TabButton label="Validator" active={activeTab === 'validator'} onClick={() => setActiveTab('validator')} />
                 <TabButton label="Permissions" active={activeTab === 'permissions'} onClick={() => setActiveTab('permissions')} />
                 <TabButton label="Packages" active={activeTab === 'packages'} onClick={() => setActiveTab('packages')} />
+                <TabButton label="Isolation" active={activeTab === 'isolation'} onClick={() => setActiveTab('isolation')} />
             </div>
 
             {/* Content */}
@@ -409,6 +543,7 @@ export function DevConsoleView() {
                 {activeTab === 'validator' && <ValidatorTab />}
                 {activeTab === 'permissions' && <PermissionsTab />}
                 {activeTab === 'packages' && <PackagesTab />}
+                {activeTab === 'isolation' && <IsolationTab />}
             </div>
         </div>
     );
